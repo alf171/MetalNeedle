@@ -6,8 +6,9 @@ class  Needle():
 
 
     class Tensor():
-        def __init__(self, array):
+        def __init__(self, array, device):
             self.array = array
+            self.device = device
 
         # yeah let's just use numpy print for now
         def __str__(self):
