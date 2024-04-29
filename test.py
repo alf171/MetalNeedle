@@ -1,6 +1,6 @@
 import torch
 import time
-# enable metal
+# enable metal 
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
 MSIZE = 4096
@@ -28,4 +28,3 @@ if __name__ == "__main__":
     # print(result)
     print(f'METAL RUNTIME {end_time_metal - start_time_metal} seconds')
     print(f'CPU RUNTIME {end_time_cpu - start_time_cpu} seconds')
-    print()
