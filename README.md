@@ -5,9 +5,15 @@ Goals
   - [ ] recreate needle (maybe I will ref code I wrote)
     - just basic operations for now ig
   - [ ] start to incorporate metal stuff 
-  - [ ] benchmark performance 
+  - [ ] benchmark performance (RNNs / LTSMs, CNNs, Transformers, Alexnet?)
   - [ ] compiler stuff?
 
 
 ## Run instructions 
   - downloading metal (import torch; torch.backends.mps.is_available())
+  - adjust run.sh with your corresponding paths
+
+## TODO 
+  - [ ] implement rand, randn, ones, zeros, one_hot?
+  - [ ] implement a couple basic ops
+  - [ ] extend to ndimensional arrays not just lists
