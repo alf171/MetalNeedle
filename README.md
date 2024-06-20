@@ -15,5 +15,6 @@ Goals
 
 ## TODO 
   - [ ] implement rand, randn, ones, zeros, one_hot?
-  - [ ] implement a couple basic ops
-  - [ ] extend to ndimensional arrays not just lists
+  - [ ] implement reshape and transpose
+  - [ ] implement 
+  - [ ] Rename to MetalNEEDLE

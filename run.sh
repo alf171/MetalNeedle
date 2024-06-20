@@ -5,4 +5,4 @@ clang++ -O3 -Wall -shared -std=c++17 -fPIC \
     -lpython3.12 \
     -o cpu_backend.so cpu_backend.cc
 
-python3 main.py
+python3 -m Needle.main

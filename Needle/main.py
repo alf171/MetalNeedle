@@ -5,13 +5,14 @@ LAZY_MODE = False
 TENSOR_COUNTER = 0
 
 class  Needle():
+    # TODO: add automatic differentiation
     class Tensor():
-        def __init__(self, data, device="cpu", dtype="int32"):
+        def __init__(self, data, shape = None, device="cpu", dtype="int32"):
             self.device = "mps" if (device == "mps") else "cpu"
             (self._tensor, self._operations) = self.set_dtype_tensor(dtype)
             # get our shape (currently implemented in python)
-            self.shape = self.get_shape(self, data)
-            self.data = data
+            self.shape = self.get_shape(self, data) if shape == None else shape
+
             self._data = self.create_data_struct(self, data)
             self.dtype = dtype
 
@@ -59,8 +60,6 @@ class  Needle():
             result = Needle.Tensor.__new__(Needle.Tensor)
             result.device = self.device
             result.shape = self.shape
-            # TODO: handle setting of data (only need this for prints really)
-            result.data = None
             result._data = self._operations.ewise_add(self._data, other._data)
             return result
         
@@ -68,13 +67,6 @@ class  Needle():
             result = Needle.Tensor.__new__(Needle.Tensor)
             result.device = self.device
             result.shape = self.shape
-            # TODO: handle setting of data (only need this for prints really)
-            result.data = None
             result._data = self._operations.ewise_mul(self._data, other._data)
             return result
 
-
-x = Needle.Tensor([[1, 2, 3], [4, 5, 6]])
-y = Needle.Tensor([[1, 2, 3], [4, 5, 6]])
-z = x * y
-print(z._data.data)
