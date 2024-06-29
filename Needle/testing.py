@@ -6,5 +6,9 @@ from Needle.init import *
 # z = x * y
 # print(z._data.data)
 
-x = Needle.randn([3,3], 10, 5, "float32")
-print(x.get_item([0,0]))
+x = Needle.randn([3,3], 0, 1, "float32")
+y = Needle.randn([3,3], 0, 1, "float32")
+z = x @ y
+#print(x._data.data)
+#print(y._data.data)
+print(z._data.data)

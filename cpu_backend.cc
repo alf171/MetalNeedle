@@ -99,6 +99,48 @@ public:
         return Tensor<T>::initialize(result_data, e1.shape);
     }
 
+    // this is a pretty naive matmul. things like tiling could improve performance
+    Tensor<T> mat_mult(Tensor<T> e1, Tensor<T> e2) {
+        if (e1.shape[e1.shape.size() - 1] != e2.shape[0]) {
+            throw std::invalid_argument("matmul shapes are not congruent");
+        }
+        std::vector<size_t> new_size(e1.shape.begin(), e1.shape.end() - 1);
+        new_size.insert(new_size.end(), e2.shape.begin() + 1, e2.shape.end());
+        size_t data_size = 1;
+        for(size_t dim : new_size) {
+            data_size *= dim;
+        }
+        std::vector<T> result_data(data_size, 0);
+        Tensor<T> result_tensor = Tensor<T>::initialize(result_data, new_size);
+
+        for(size_t i = 0; i < e1.shape[0]; i++) {
+            for(size_t j = 0; j < e2.shape[1]; j++) {
+                T tmp_sum = 0;
+                for(size_t k = 0; k < e1.shape[1]; k++) {
+                    std::vector<size_t> _ij = {i, k}; 
+                    size_t ik = e1.mult_dim_to_flat_index(_ij);
+                    std::vector<size_t> _kj = {k, j};
+                    size_t kj = e2.mult_dim_to_flat_index(_kj);
+
+                    tmp_sum += (e1.data[ik] * e2.data[kj]);
+                }
+
+                std::vector<size_t> _ij = {i, j};
+                size_t ij = result_tensor.mult_dim_to_flat_index(_ij);
+                result_data[ij] = tmp_sum;
+            }
+        }
+
+    result_tensor = Tensor<T>::initialize(result_data, new_size);
+
+    return result_tensor;
+    }
+
+private:
+
+
+
+
     // // Make our array contiguous. Many matrix operation are implemented by manipulating
     // // shape, stride, and offset. However, some operations requrie our matrix to be compact..
     // void compact(std::vector<int> input, std::vector<int32_t> shape, std::vector<int32_t> stride, size_t offset) {}
@@ -122,7 +164,8 @@ void bind_operations(pybind11::module& m, const std::string& class_name) {
     py::class_<CPUBackend<T>>(m, class_name.c_str())
         .def(py::init<>())
         .def("ewise_add", &CPUBackend<T>::ewise_add)
-        .def("ewise_mul", &CPUBackend<T>::ewise_mul);
+        .def("ewise_mul", &CPUBackend<T>::ewise_mul)
+        .def("mat_mult", &CPUBackend<T>::mat_mult);
 }
 
 

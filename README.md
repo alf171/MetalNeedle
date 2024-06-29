@@ -1,4 +1,4 @@
-# NEEDLEMetal
+# MetalNeedle
 Inspired by taking the course 10-714, I am going to be porting needle to use metal. We will also bench mark with a bunch of different architectures like LSTMs, RNNs, CNNs, Transformers (vs Pytorch).
 
 Goals

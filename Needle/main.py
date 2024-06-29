@@ -69,4 +69,11 @@ class  Needle():
             result.shape = self.shape
             result._data = self._operations.ewise_mul(self._data, other._data)
             return result
+        
+        def __matmul__(self, other):
+            result = Needle.Tensor.__new__(Needle.Tensor)
+            result.device = self.device
+            result.shape = self.shape[:-1] + other.shape[1:]
+            result._data = self._operations.mat_mult(self._data, other._data)
+            return result 
 

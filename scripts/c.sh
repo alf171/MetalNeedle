@@ -4,5 +4,3 @@ clang++ -O3 -Wall -shared -std=c++17 -fPIC \
     -L/opt/homebrew/opt/python@3.12/Frameworks/Python.framework/Versions/3.12/lib \
     -lpython3.12 \
     -o cpu_backend.so cpu_backend.cc
-
-python3 -m Needle.main
