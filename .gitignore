@@ -1,3 +1,4 @@
-test.py
-.vscode
-cpu_backend.so
+benchmark/*
+cpu_backend.so.dSYM/*
+tmp/*
+Needle/__pycache__/*
