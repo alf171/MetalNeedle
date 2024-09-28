@@ -6,7 +6,9 @@ from Needle.init import *
 # z = x * y
 # print(z._data.data)
 
-x = Needle.randn([8, 8], 0, 1, "float32")
-y = Needle.randn([8, 8], 0, 1, "float32")
-z = x @ y
-print(z)
+x = Needle.randn([3,3,1], 0, 1, "float32")
+print(x)
+# y = Needle.randn([3,3,3], 0, 1, "float32")
+# print(y)
+# z = x @ y
+# print(x._tensor)

@@ -2,3 +2,4 @@ benchmark/*
 cpu_backend.so.dSYM/*
 tmp/*
 Needle/__pycache__/*
+.vscode/*

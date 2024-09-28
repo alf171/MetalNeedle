@@ -1,6 +1,6 @@
-import sys; sys.path.insert(1, "tmp")
-import cpu_backend
-# import gpu_backend
+import sys; sys.path.append("tmp")
+import backend
+from util import flatten
 
 # later utilities for complete AD library
 LAZY_MODE = False
@@ -35,27 +35,27 @@ class  Needle():
 
         @staticmethod
         def create_data_struct(self, array):
-            flat_data = [item for sublist in array for item in sublist]
-            return self._tensor.initialize(flat_data, self.shape)
+            return self._tensor.initialize(flatten(array), self.shape)
             
-        # TODO: fix pretty repetitive code
         @staticmethod
         def set_dtype_tensor(dtype, device):
+            # set backend device
             if device == "cpu":
-                backend = cpu_backend
+                curBackend = backend.cpu
+            # TODO: support gpus
             elif device == "mps":
-                backend = gpu_backend
+                curBackend = backend.gpu
             else:
                 raise ValueError("device %s is not supported")
-            
+            # set tensor and corresponding operations
             if dtype == "int32":
-                return (backend.IntTensor, backend.CPUBackendInt())
+                return (curBackend.IntTensor, curBackend.IntOperation())
             elif dtype == "int64":
-                return (backend.LongTensor, backend.CPUBackendLong())
+                return (curBackend.LongTensor, curBackend.LongOperation())
             elif dtype == "float32":
-                return (backend.FloatTensor, backend.CPUBackendFloat())
+                return (curBackend.FloatTensor, curBackend.FloatOperation())
             elif dtype == "float64":
-                return (backend.DoubleTensor, backend.CPUBackendDouble())
+                return (curBackend.DoubleTensor, curBackend.DoubleOperation())
             else:
                 raise ValueError("dtype %s is not supported" % dtype) 
 
@@ -90,5 +90,5 @@ class  Needle():
         # print shape and dtype in addition to default stuff
         def __str__(self):
             shape = ', '.join(str(x) for x in self.shape)
-            return f"<{self.__class__.__module__}.{self.__class__.__name__} object at {hex(id(self))}> (size: [{shape}], dtype={self.dtype})"
+            return f"<{self.__class__.__module__}.{self.__class__.__name__}> (size: [{shape}], dtype={self.dtype})"
 

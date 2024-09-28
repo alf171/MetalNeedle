@@ -1,12 +1,8 @@
-ECHO $PWD
+#!/bin/bash
+
+# put __pycache__ into tmp dir
+CACHE_DIR=$pwd
+export PYTHONPYCACHEPREFIX="$CACHE_DIR/tmp"
+
+# run testing script
 python3 -m Needle.testing
-
-# ulimit -c unlimited
-# core_dump=$(ls ~/core_dumps/core* 2>/dev/null)
-
-# if [ -n "$core_dump" ]; then
-#     echo "Core dump detected: $core_dump. Starting lldb for debugging..."
-#     lldb -c "$core_dump"
-# else
-#     echo "No core dump found."
-# fi
