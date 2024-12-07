@@ -5,4 +5,4 @@ CACHE_DIR=$pwd
 export PYTHONPYCACHEPREFIX="$CACHE_DIR/tmp"
 
 # run testing script
-python3 -m Needle.testing
+python3 -m src.needle.testing

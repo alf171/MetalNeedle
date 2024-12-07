@@ -1,5 +1,5 @@
 import random
-from Needle.main import Needle
+from .main import Needle
 
 # initialization is being done in python not C++
 def rand(mean = 0, std = 1, dtype = "float32"):

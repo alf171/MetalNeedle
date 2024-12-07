@@ -82,5 +82,9 @@
     "python.analysis.extraPaths": [
         "${workspaceFolder}"
     ],
-    "C_Cpp.errorSquiggles": "disabled"
+    "C_Cpp.errorSquiggles": "disabled",
+    "cSpell.words": [
+        "broadcastable",
+        "matmul"
+    ]
 }

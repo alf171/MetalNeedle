@@ -1,12 +1,13 @@
 import sys; sys.path.append("tmp")
-import backend
-from util import flatten
+import backend;
+from src.util import flatten
+from .base import TensorBackend
 
 # later utilities for complete AD library
 LAZY_MODE = False
 TENSOR_COUNTER = 0
 
-class  Needle():
+class  Needle(TensorBackend):
     # TODO: add automatic differentiation
     class Tensor():
         def __init__(self, data, shape = None, device="cpu", dtype="int32"):
@@ -42,7 +43,6 @@ class  Needle():
             # set backend device
             if device == "cpu":
                 curBackend = backend.cpu
-            # TODO: support gpus
             elif device == "mps":
                 curBackend = backend.gpu
             else:

@@ -1,11 +1,13 @@
+#include <algorithm>
+#include <iostream>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <vector>
-#include <iostream>
+
 
 namespace py = pybind11;
 // this number might have to be tuned to match width of asm instruction
-#define TILE 8
+#define TILE static_cast<size_t>(8)
 
 template<typename T>
 struct Tensor {
@@ -66,7 +68,6 @@ public:
         }
         return result;
     }
-
 
     std::vector<size_t> flat_index_to_mult_dim(const size_t index) const {
         std::vector<size_t> result(shape.size());
@@ -158,18 +159,20 @@ public:
         return Tensor<T>::initialize(result_data, e1.shape);
     }
 
-    // TODO: ensure we support higher order dimensions than 2
     Tensor<T> tiled_mat_mul(Tensor<T>& e1, Tensor<T>& e2) {
         size_t e1_last_dim = e1.shape.size() - 1;
+        size_t e2_last_dim = e2.shape.size() - 1;
+        // this could be moved into data manipulation loop
         if (e1.shape[e1_last_dim] != e2.shape[0]) {
             throw std::invalid_argument("matmul shapes are not congruent");
         }
 
-        // if shape isnt divisible by TILE, we cant tile matmul
-        if(e2.shape[0] % TILE != 0) {
+        // fall back to non tiled matmul
+        if (e1.shape[e1_last_dim] % TILE != 0 || e2.shape[0] % TILE != 0) {
             return naive_mat_mult(e1, e2);
         }
-
+            
+        // (m,n) @ (n,p) => (m,p)
         std::vector<size_t> new_size(e1.shape.begin(), e1.shape.end() - 1);
         new_size.insert(new_size.end(), e2.shape.begin() + 1, e2.shape.end());
         size_t data_size = 1;
@@ -178,13 +181,13 @@ public:
         }
         std::vector<T> result_data(data_size, 0);
 
-        for(size_t block_x = 0; block_x < e1.shape[0]/TILE; block_x += TILE) {
-            for(size_t block_y = 0; block_y < e2.shape[1]/TILE; block_y += TILE) {
-                tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1.shape[1], e2.shape[1]);
+        // add another for loop in order to support dim > 2
+        for(size_t block_x = 0; block_x < e1.shape[0]; block_x += TILE) {
+            for(size_t block_y = 0; block_y < e2.shape[e2_last_dim]; block_y += TILE) {
+                tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1.shape[e1_last_dim], e2.shape[e2_last_dim]);
             }
         }
-        // we need to initialize twice which isn't ideal
-        // first init is to creatr
+
         Tensor<T> result_tensor = Tensor<T>::initialize(result_data, new_size);
         return result_tensor;
     }
@@ -221,6 +224,7 @@ public:
             }
         }
 
+        // we need to initialize twice which seems unnecessary
         result_tensor = Tensor<T>::initialize(result_data, new_size);
         return result_tensor;
     }
@@ -228,8 +232,11 @@ public:
 private:
     // can only be applied to matricies that are size (TILE, TILE)
     void tile_compute(std::vector<T>& e1, std::vector<T>& e2, std::vector<T>& res, size_t block_x, size_t block_y, size_t e1_col, size_t e2_col) {
-        for(size_t i = 0; i < TILE; i++){ 
-            for(size_t j = 0; j < TILE; j++) {
+        size_t X_TILE = std::min(TILE, e1_col - block_x);
+        size_t Y_TILE = std::min(TILE, e2_col - block_y);
+
+        for(size_t i = 0; i < X_TILE; i++){ 
+            for(size_t j = 0; j < Y_TILE; j++) {
                 T tmp_sum = 0;
                 for(size_t k = 0; k < TILE; k++) {
                     tmp_sum += (e1[(i + block_x) * e1_col + k] * e2[k * e2_col + (j + block_y)]);
