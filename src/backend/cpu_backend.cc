@@ -4,10 +4,9 @@
 #include <pybind11/stl.h>
 #include <vector>
 
-
 namespace py = pybind11;
 // this number might have to be tuned to match width of asm instruction
-#define TILE static_cast<size_t>(8)
+#define TILE static_cast<size_t>(2)
 
 template<typename T>
 struct Tensor {
@@ -79,8 +78,6 @@ public:
         return result;
     }
 };
-
-
 
 template<typename T>
 class CPUBackend {
@@ -171,30 +168,33 @@ public:
         if (e1.shape[e1_last_dim] % TILE != 0 || e2.shape[0] % TILE != 0) {
             return naive_mat_mult(e1, e2);
         }
+
+        // make matrices compact to have better caching properties
+        e1.compact();
+        e2.compact();
             
         // (m,n) @ (n,p) => (m,p)
-        std::vector<size_t> new_size(e1.shape.begin(), e1.shape.end() - 1);
-        new_size.insert(new_size.end(), e2.shape.begin() + 1, e2.shape.end());
-        size_t data_size = 1;
-        for(size_t dim : new_size) {
-            data_size *= dim;
-        }
-        std::vector<T> result_data(data_size, 0);
+        size_t e1_rows = e1.shape[0];
+        size_t e2_cols = e2.shape[1];
+        size_t e1_cols = e1.shape[e1_last_dim];
+
+        std::vector<size_t> result_shape = {e1_rows, e2_cols};
+        std::vector<T> result_data(e1_rows * e2_cols, 0);
 
         // add another for loop in order to support dim > 2
         for(size_t block_x = 0; block_x < e1.shape[0]; block_x += TILE) {
             for(size_t block_y = 0; block_y < e2.shape[e2_last_dim]; block_y += TILE) {
-                tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1.shape[e1_last_dim], e2.shape[e2_last_dim]);
+                tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1_cols, e2_cols);
             }
         }
 
-        Tensor<T> result_tensor = Tensor<T>::initialize(result_data, new_size);
+        Tensor<T> result_tensor = Tensor<T>::initialize(result_data, result_shape);
         return result_tensor;
     }
 
 
     // TODO: I need to use mult_dim_to_flat_index since I dont know the underlying state of the data
-    // this however can be factored out into a function such as compact and then the user can call 
+    // this however can be factored out into a function such as compact and then the user can call
     // compact based on their further understanding of the system at any point
 
     // naive matmul since we dont tile
@@ -208,9 +208,10 @@ public:
         for(size_t dim : new_size) {
             data_size *= dim;
         }
+
         std::vector<T> result_data(data_size, 0);
         Tensor<T> result_tensor = Tensor<T>::initialize(result_data, new_size);
-        
+
         for(size_t i = 0; i < e1.shape[0]; i++) {
             for(size_t j = 0; j < e2.shape[1]; j++) {
                 T tmp_sum = 0;
@@ -225,23 +226,22 @@ public:
         }
 
         // we need to initialize twice which seems unnecessary
-        result_tensor = Tensor<T>::initialize(result_data, new_size);
-        return result_tensor;
+        return Tensor<T>::initialize(result_data, new_size);
     }
 
 private:
-    // can only be applied to matricies that are size (TILE, TILE)
+    // can only be applied to matrices that are size (TILE, TILE)
     void tile_compute(std::vector<T>& e1, std::vector<T>& e2, std::vector<T>& res, size_t block_x, size_t block_y, size_t e1_col, size_t e2_col) {
-        size_t X_TILE = std::min(TILE, e1_col - block_x);
-        size_t Y_TILE = std::min(TILE, e2_col - block_y);
+//        size_t X_TILE = std::min(TILE, e1_col - block_x);
+//        size_t Y_TILE = std::min(TILE, e2_col - block_y);
 
-        for(size_t i = 0; i < X_TILE; i++){ 
-            for(size_t j = 0; j < Y_TILE; j++) {
+        for(size_t i = 0; i < TILE; i++){
+            for(size_t j = 0; j < TILE; j++) {
                 T tmp_sum = 0;
                 for(size_t k = 0; k < TILE; k++) {
                     tmp_sum += (e1[(i + block_x) * e1_col + k] * e2[k * e2_col + (j + block_y)]);
                 }
-                res[(block_x + i) * e2_col + (j + block_y)] = tmp_sum;   
+                res[(block_x + i) * e2_col + (j + block_y)] += tmp_sum;
             }
         }
     }    

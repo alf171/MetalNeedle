@@ -1,11 +1,10 @@
 import random
 from .main import Needle
 
-# initialization is being done in python not C++
 def rand(mean = 0, std = 1, dtype = "float32"):
-    if(dtype == "float32" or dtype == "float64"):
+    if dtype == "float32" or dtype == "float64":
         return random.uniform(mean - std, mean + std)
-    elif(dtype == "int32" or dtype == "int64"):
+    elif dtype == "int32" or dtype == "int64":
         return random.randint(mean - std, mean + std)
     else:
         raise ValueError("dtype %s is not supported" % dtype) 

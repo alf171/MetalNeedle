@@ -21,7 +21,7 @@ class  Needle(TensorBackend):
 
         @staticmethod
         def get_shape(self, array):
-            if(self.device == "cpu" or self.device == "mps"):
+            if self.device == "cpu" or self.device == "mps":
                 if(isinstance(array, list)):
                     shape = []
                     current_level = array
