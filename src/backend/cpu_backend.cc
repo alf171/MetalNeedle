@@ -1,4 +1,5 @@
 #include <algorithm>
+// for logging
 #include <iostream>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -6,7 +7,7 @@
 
 namespace py = pybind11;
 // this number might have to be tuned to match width of asm instruction
-#define TILE static_cast<size_t>(2)
+#define TILE static_cast<size_t>(1)
 
 template<typename T>
 struct Tensor {
@@ -27,18 +28,24 @@ struct Tensor {
         return tensor;
     }
 
+    // Make our array contiguous. Many matrix operation are implemented by manipulating
+    // shape, stride, and offset. However, some operations require our matrix to be compact..
     void compact() {
         size_t num_elements = 1;
-        for(size_t elem : shape) {
+        for (size_t elem : shape) {
             num_elements *= elem;
         }
-        std::vector<T> new_data;
-        for(size_t i = 0; i < num_elements; ++i) {
-            // gi// new_data[i] = data[multi_dim];
+        std::vector<T> new_data(num_elements);
+        for (size_t i = 0; i < num_elements; ++i) {
+            std::vector<size_t> multi_dim = flat_index_to_mult_dim(i);
+            size_t source_index = mult_dim_to_flat_index(multi_dim);
+            new_data[i] = data[source_index];
         }
         data = new_data;
         stride = calculate_stride(shape);
+        offset = 0;
     }
+
 
 private:
     static size_t calculate_size(const std::vector<size_t>& shape) {
@@ -103,6 +110,7 @@ public:
         return Tensor<T>::initialize(result_data, e1.shape);
     }
 
+
     /**
      * description: result = (e1 - e2) \forall e1,e2 \in Tensor1, Tensor2
      * input: e1: Tensor, e2: Tensor
@@ -164,10 +172,8 @@ public:
             throw std::invalid_argument("matmul shapes are not congruent");
         }
 
-        // fall back to non tiled matmul
-        if (e1.shape[e1_last_dim] % TILE != 0 || e2.shape[0] % TILE != 0) {
-            return naive_mat_mult(e1, e2);
-        }
+        std::cout << "Matrix 1 shape: (" << e1.shape[0] << ", " << e1.shape[1] << ")" << std::endl;
+        std::cout << "Matrix 2 shape: (" << e2.shape[0] << ", " << e2.shape[1] << ")" << std::endl;
 
         // make matrices compact to have better caching properties
         e1.compact();
@@ -184,7 +190,7 @@ public:
         // add another for loop in order to support dim > 2
         for(size_t block_x = 0; block_x < e1.shape[0]; block_x += TILE) {
             for(size_t block_y = 0; block_y < e2.shape[e2_last_dim]; block_y += TILE) {
-                tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1_cols, e2_cols);
+                tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1_cols, e2_cols, e1_rows);
             }
         }
 
@@ -192,63 +198,82 @@ public:
         return result_tensor;
     }
 
-
-    // TODO: I need to use mult_dim_to_flat_index since I dont know the underlying state of the data
-    // this however can be factored out into a function such as compact and then the user can call
-    // compact based on their further understanding of the system at any point
-
-    // naive matmul since we dont tile
-    Tensor<T> naive_mat_mult(Tensor<T> e1, Tensor<T> e2) {
-        if (e1.shape[e1.shape.size() - 1] != e2.shape[0]) {
-            throw std::invalid_argument("matmul shapes are not congruent");
+    /**
+     * description: result = e1 + scalar for all e1 in tensor
+       * this method is not destructive i.e. it uses the tensor passed in
+       * unlike other ops which generate a new one
+       * TODO: this is a nasty habit so should fix
+     * input: tensor: Tensor, scalar: T
+     * output: result: Tensor
+    **/
+    Tensor<T> scalar_add(Tensor<T>& tensor, T scalar) {
+        std::vector<T> result_data(tensor.data.size());
+        for(int i = 0; i < tensor.data.size(); i++) {
+            result_data[i] = tensor.data[i] + scalar;
         }
-        std::vector<size_t> new_size(e1.shape.begin(), e1.shape.end() - 1);
-        new_size.insert(new_size.end(), e2.shape.begin() + 1, e2.shape.end());
-        size_t data_size = 1;
-        for(size_t dim : new_size) {
-            data_size *= dim;
+        return Tensor<T>::initialize(result_data, tensor.shape);
+    }
+
+    /**
+     * description: result = tensor - scalar
+     * input: tensor: Tensor, scalar: T
+     * output: result: Tensor
+    **/
+    Tensor<T> scalar_sub(Tensor<T>& tensor, T scalar) {
+        std::vector<T> result_data(tensor.data.size());
+        for(int i = 0; i < tensor.data.size(); i++) {
+            result_data[i] = tensor.data[i] - scalar;
         }
+        return Tensor<T>::initialize(result_data, tensor.shape);
+    }
 
-        std::vector<T> result_data(data_size, 0);
-        Tensor<T> result_tensor = Tensor<T>::initialize(result_data, new_size);
-
-        for(size_t i = 0; i < e1.shape[0]; i++) {
-            for(size_t j = 0; j < e2.shape[1]; j++) {
-                T tmp_sum = 0;
-                for(size_t k = 0; k < e1.shape[1]; k++) {
-                    size_t ik = e1.mult_dim_to_flat_index({i, k});
-                    size_t kj = e2.mult_dim_to_flat_index({k, j});
-                    tmp_sum += (e1.data[ik] * e2.data[kj]);
-                }
-                size_t ij = result_tensor.mult_dim_to_flat_index({i, j});
-                result_data[ij] = tmp_sum;
-            }
+    /**
+     * description: result = tensor * scalar
+     * input: tensor: Tensor, scalar: T
+     * output: result: Tensor
+    **/
+    Tensor<T> scalar_mul(Tensor<T>& tensor, T scalar) {
+        std::vector<T> result_data(tensor.data.size());
+        for(int i = 0; i < tensor.data.size(); i++) {
+            result_data[i] = tensor.data[i] * scalar;
         }
+        return Tensor<T>::initialize(result_data, tensor.shape);
+    }
 
-        // we need to initialize twice which seems unnecessary
-        return Tensor<T>::initialize(result_data, new_size);
+    /**
+     * description: result = tensor / scalar
+     * input: tensor: Tensor, scalar: T
+     * output: result: Tensor
+    **/
+    Tensor<T> scalar_div(Tensor<T>& tensor, T scalar) {
+        std::vector<T> result_data(tensor.data.size());
+        for(int i = 0; i < tensor.data.size(); i++) {
+            result_data[i] = tensor.data[i] / scalar;
+        }
+        return Tensor<T>::initialize(result_data, tensor.shape);
     }
 
 private:
-    // can only be applied to matrices that are size (TILE, TILE)
-    void tile_compute(std::vector<T>& e1, std::vector<T>& e2, std::vector<T>& res, size_t block_x, size_t block_y, size_t e1_col, size_t e2_col) {
-//        size_t X_TILE = std::min(TILE, e1_col - block_x);
-//        size_t Y_TILE = std::min(TILE, e2_col - block_y);
+    void tile_compute(std::vector<T>& e1, std::vector<T>& e2, std::vector<T>& res,
+                      size_t block_x, size_t block_y, size_t e1_cols, size_t e2_cols, size_t e1_rows) {
 
-        for(size_t i = 0; i < TILE; i++){
-            for(size_t j = 0; j < TILE; j++) {
+        // adjust for when SIZE % TILE != 0
+        size_t tile_height = std::min(TILE, e1_rows - block_x);
+        size_t tile_width = std::min(TILE, e2_cols - block_y);
+
+        for (size_t i = 0; i < tile_height; i++) {
+            for (size_t j = 0; j < tile_width; j++) {
                 T tmp_sum = 0;
-                for(size_t k = 0; k < TILE; k++) {
-                    tmp_sum += (e1[(i + block_x) * e1_col + k] * e2[k * e2_col + (j + block_y)]);
+                for (size_t k = 0; k < e1_cols; k++) {
+                    size_t index_e1 = (block_x + i) * e1_cols + k;
+                    size_t index_e2 = k * e2_cols + (block_y + j);
+                    tmp_sum += e1[index_e1] * e2[index_e2];
                 }
-                res[(block_x + i) * e2_col + (j + block_y)] += tmp_sum;
+                size_t index_res = (block_x + i) * e2_cols + (block_y + j);
+                res[index_res] += tmp_sum;
             }
         }
-    }    
-
-    // // Make our array contiguous. Many matrix operation are implemented by manipulating
-    // // shape, stride, and offset. However, some operations requrie our matrix to be compact..
-    // void compact(std::vector<int> input, std::vector<int32_t> shape, std::vector<int32_t> stride, size_t offset) {}
+    }
 };
 
 template <typename T>
@@ -261,7 +286,7 @@ void bind_tensor(pybind11::module& m, const std::string& class_name) {
         .def_readwrite("offset", &Tensor<T>::offset)
         .def_static("initialize", &Tensor<T>::initialize, "Initialize a Tensor",
                     pybind11::arg("data"), pybind11::arg("shape"))
-        .def("compact", &Tensor<T>::compact, "Compact a Tensor")
+//        .def("compact", &Tensor<T>::compact, "Compact a Tensor")
         .def("mult_dim_to_flat_index", &Tensor<T>::mult_dim_to_flat_index);
 }
 
@@ -273,7 +298,11 @@ void bind_operations(pybind11::module& m, const std::string& class_name) {
         .def("ewise_sub", &CPUBackend<T>::ewise_sub)
         .def("ewise_exp", &CPUBackend<T>::ewise_exp)
         .def("ewise_mul", &CPUBackend<T>::ewise_mul)
-        .def("mat_mul", &CPUBackend<T>::tiled_mat_mul);
+        .def("mat_mul", &CPUBackend<T>::tiled_mat_mul)
+        .def("scalar_add", &CPUBackend<T>::scalar_add)
+        .def("scalar_sub", &CPUBackend<T>::scalar_sub)
+        .def("scalar_mul", &CPUBackend<T>::scalar_mul)
+        .def("scalar_div", &CPUBackend<T>::scalar_div);
 }
 
 void bind_cpu(py::module &m) {

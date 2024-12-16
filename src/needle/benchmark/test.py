@@ -1,7 +1,7 @@
 import time
 from ..init import *
 
-def ThreeByThreeMatMulCheck():
+def benchmark():
     init_start_time = time.time()
     x = Needle.ones([256, 2048])
     y = Needle.ones([2048, 256])
@@ -17,4 +17,4 @@ def ThreeByThreeMatMulCheck():
     print(f"Execution Time: {mat_mul_elapsed_time:.6f} seconds")
 
 
-ThreeByThreeMatMulCheck()
+benchmark()
