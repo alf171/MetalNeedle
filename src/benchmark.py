@@ -1,5 +1,5 @@
 import time
-from ..init import *
+import Needle
 
 def benchmark():
     init_start_time = time.time()

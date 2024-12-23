@@ -1,5 +1,5 @@
 import numpy as np
-from .init import *
+import Needle
 
 def ThreeByThreeMatMulCheck():
 
@@ -40,7 +40,7 @@ def ThreeByThreeMatMulCheck():
 
 def ScalarOperations():
     x = Needle.ones([3,3])
-    z = (x + 3.0)
+    z = (x + 3)
 
     assert(z[0,0] == 4)
     assert(z[1,0] == 4)

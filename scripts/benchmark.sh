@@ -1,8 +1,6 @@
 #!/bin/bash
 
-# put __pycache__ into tmp dir
-CACHE_DIR=$pwd
-export PYTHONPYCACHEPREFIX="$CACHE_DIR/tmp"
+# TODO: currently need to run - export PYTHONPATH=/Users/alaffont/Desktop/projects/MetalNeedle/src:$PYTHONPATH
 
 # run testing script
-python3.13 -m src.needle.benchmark.test
+python3.13 -m src.benchmark

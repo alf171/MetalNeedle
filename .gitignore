@@ -1,8 +1,6 @@
-benchmark/*
+tst/*
 cpu_backend.so.dSYM/*
 tmp/*
-Needle/__pycache__/*
 .vscode/*
 .idea/*
-src/needle/__pycache__/*
-src/needle/__pycache__/base.cpython-313.pyc
+__pycache__/
