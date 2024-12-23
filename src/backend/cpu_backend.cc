@@ -172,9 +172,6 @@ public:
             throw std::invalid_argument("matmul shapes are not congruent");
         }
 
-        std::cout << "Matrix 1 shape: (" << e1.shape[0] << ", " << e1.shape[1] << ")" << std::endl;
-        std::cout << "Matrix 2 shape: (" << e2.shape[0] << ", " << e2.shape[1] << ")" << std::endl;
-
         // make matrices compact to have better caching properties
         e1.compact();
         e2.compact();
@@ -286,7 +283,7 @@ void bind_tensor(pybind11::module& m, const std::string& class_name) {
         .def_readwrite("offset", &Tensor<T>::offset)
         .def_static("initialize", &Tensor<T>::initialize, "Initialize a Tensor",
                     pybind11::arg("data"), pybind11::arg("shape"))
-//        .def("compact", &Tensor<T>::compact, "Compact a Tensor")
+        .def("compact", &Tensor<T>::compact, "Compact a Tensor")
         .def("mult_dim_to_flat_index", &Tensor<T>::mult_dim_to_flat_index);
 }
 

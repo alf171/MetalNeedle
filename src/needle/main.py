@@ -1,6 +1,6 @@
 import sys; sys.path.append("tmp")
 import backend;
-from src.util import flatten
+from src.util import flatten, cartesian_product
 from .base import TensorBackend
 
 
@@ -56,6 +56,27 @@ class  Needle(TensorBackend):
             else:
                 raise ValueError("dtype %s is not supported" % dtype)
 
+        def __getitem__(self, multi_dim_index):
+            if len(multi_dim_index) > len(self.shape):
+                raise ValueError("index shape exceeds tensor's dimensions")
+
+            res = []
+            for (index, dim) in zip(multi_dim_index, self.shape):
+                if isinstance(index, slice):
+                    # print(f"range: {range(*index.indices(dim))}")
+                    res.append(range(*index.indices(dim)))
+                elif isinstance(index, int):
+                    res.append([index])
+                else:
+                    raise TypeError(f"Unsupported index data type: ${type(index)}")
+
+            indices = cartesian_product(res)
+
+            # TODO: don't return list if we are dealing with a single element
+            # TOOD: fix shape since we have flatten in order to interact with contiguous memory
+            return [self.get_item(index) for index in indices]
+
+
         def get_item(self, multi_dim_index):
             flat_index = self._data.mult_dim_to_flat_index(multi_dim_index)
             return self._data.data[flat_index]
@@ -67,8 +88,10 @@ class  Needle(TensorBackend):
             result.dtype = self.dtype
             if isinstance(other, Needle.Tensor):
                 result._data = self._operations.ewise_add(self._data, other._data)
-            else:
+            elif isinstance(other, (int, float)):
                 result._data = self._operations.scalar_add(self._data, other)
+            else:
+                raise TypeError(f"Can't add Tensor of type {self.dtype} + {type(other)}")
             return result
 
 
