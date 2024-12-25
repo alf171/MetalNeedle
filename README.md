@@ -10,8 +10,9 @@ Inspired by taking the course 10-714, I am going to be porting needle to use met
 
 
 ## Run instructions 
-  - downloading metal (import torch; torch.backends.mps.is_available())
-  - adjust run.sh with your corresponding paths
+  - export PYTHONPATH=~$HOME/Desktop/projects/MetalNeedle/src:$PYTHONPATH
+  - ./scripts/c.sh to setup pybind stuff
+  - run ./scripts/uts.sh or /scripts/benchmark.sh
 
 ## TODO 
   - [ ] improve matmul

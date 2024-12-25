@@ -1,6 +1,7 @@
 import random
 from .tensor import Tensor
 
+# TODO: move initialization over to C++ (use _init)
 def rand(mean = 0, std = 1, dtype = "float32"):
     if dtype == "float32" or dtype == "float64":
         return random.uniform(mean - std, mean + std)

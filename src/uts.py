@@ -2,27 +2,14 @@ import numpy as np
 import Needle
 
 def ThreeByThreeMatMulCheck():
-
-    # Initialize input matrices
     x = Needle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     y = Needle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     z = x @ y
 
-    # Expected result
     expected_result = np.dot(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
                              np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]))
 
-    # Debugging helper
-    def debug_matrix(matrix, name):
-        print(f"\n{name} matrix:")
-        for i in range(len(matrix)):
-            print(matrix[i])
-
-    expected_flat = expected_result.flatten()
-    calculated_flat = [z[i, j] for i in range(3) for j in range(3)]
-
-    # print("\nExpected Result (Flattened):", expected_flat)
-    # print("Calculated Result (Flattened):", calculated_flat)
+    assert(z.shape == [3,3])
 
     for i in range(3):
         for j in range(3):
@@ -31,9 +18,6 @@ def ThreeByThreeMatMulCheck():
             assert calculated_value == expected_value, (
                 f"Value mismatch at ({i},{j}): Expected {expected_value}, Got {calculated_value}"
             )
-
-    # debug_matrix(expected_result.tolist(), "Expected")
-    # debug_matrix([[z[i, j] for j in range(3)] for i in range(3)], "Calculated")
 
     print("ThreeByThreeMatMulCheck passed!")
 
@@ -49,16 +33,23 @@ def ScalarOperations():
     print("ScalarOperations passed!")
 
 def SlicingOperations():
-    x = Needle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    x1 = Needle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 
-    y = (x[1,:])
-    assert(y[0] == 4)
-    assert(y[1] == 5)
-    assert(y[2] == 6)
+    y1 = (x1[1,:])
+    assert(y1[0] == 4)
+    assert(y1[1] == 5)
+    assert(y1[2] == 6)
+
+    x2 = Needle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+
+    y2 = (x2[:,1])
+    assert(y2[0] == 2)
+    assert(y2[1] == 5)
+    assert(y2[2] == 8)
 
     print("SlicingOperation passed!")
 
-
+# run UTs
 ThreeByThreeMatMulCheck()
 ScalarOperations()
 SlicingOperations()
