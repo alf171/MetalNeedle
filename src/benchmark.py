@@ -3,8 +3,8 @@ import Needle  # Assuming the Needle library is implemented correctly.
 
 def benchmark():
     init_start_time = time.time()
-    x = Needle.randn(shape=[2048, 2048], mean=5, std=1, dtype="int32")
-    y = Needle.randn(shape=[2048, 2048], mean=5, std=1, dtype="int32")
+    x = Needle.randn(shape=[2048, 2048], mean=5, std=1, dtype="float32")
+    y = Needle.randn(shape=[2048, 2048], mean=5, std=1, dtype="float32")
     init_end_time = time.time()
 
     mat_mul_start_time = time.time()
@@ -29,4 +29,4 @@ average_init_time = sum(init_times) / len(init_times)
 average_mat_mul_time = sum(mat_mul_times) / len(mat_mul_times)
 
 print(f"Init Time: {average_init_time:.6f} seconds")
-print(f"Execution Time: {average_mat_mul_time:.6f} seconds")
+print(f"Matmul Time: {average_mat_mul_time:.6f} seconds")

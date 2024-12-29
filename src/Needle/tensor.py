@@ -8,6 +8,7 @@ class Tensor:
         self.dtype = dtype
         self._tensor, self._operations = DeviceManager.set_dtype_tensor(dtype, self.device)
         self.shape = ShapeUtils.get_shape(data, device) if shape is None else shape
+        # this is actually a tensor so a little confusing
         self._data = ShapeUtils.create_data_struct(self._tensor, data, self.shape)
         self.ops = TensorOperations(self._operations)
 
@@ -18,12 +19,12 @@ class Tensor:
         self.requires_grad = requires_grad
 
     # allows caller to pipe in _data (C++ version of data)
-    def _init(self, data, shape = None):
+    def _init(self, data, device = None, shape = None, dtype = None, ops = None):
         result = Tensor.__new__(Tensor)
-        result.device = self.device
+        result.device = self.device if device is None else device
         result.shape = self.shape if shape is None else shape
-        result.dtype = self.dtype
-        result.ops = self.ops
+        result.dtype = self.dtype if dtype is None else dtype
+        result.ops = self.ops if ops is None else TensorOperations(ops)
         result._data = data
         return result
 

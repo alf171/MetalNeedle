@@ -1,5 +1,6 @@
 import random
 from .tensor import Tensor
+from .device import DeviceManager
 
 # TODO: move initialization over to C++ (use _init)
 def rand(mean = 0, std = 1, dtype = "float32"):
@@ -15,8 +16,12 @@ def generate_ndarray(shape, mean, std, dtype):
         return [rand(mean, std, dtype) for _ in range(shape[0])]
     return [generate_ndarray(shape[1:], mean, std, dtype) for _ in range(shape[0])]
 
-def randn(shape, mean = 0, std = 1, dtype="float32"):
-    return Tensor(data = generate_ndarray(shape, mean, std, dtype), shape = shape, dtype = dtype)
+def randn(shape, mean = 0, std = 1, dtype="float32", device="cpu"):
+    backendTensor, backendOps = DeviceManager.set_dtype_tensor(dtype, device)
+    rawData = backendTensor().randn(shape, mean, std)
+    _data = backendTensor().initialize(rawData, shape)
+    return Tensor._init(None, data=_data, device=device, shape=shape, dtype=dtype, ops=backendOps)
+    # return Tensor(tensor.randn(shape, mean, std), shape = shape, dtype = dtype)
 
 def generate_n(shape, dtype, n):
     if len(shape) == 1:

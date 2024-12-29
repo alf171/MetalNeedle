@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tensor.h"
+#include <random>
 
 template<typename T>
 Tensor<T> Tensor<T>::initialize(const std::vector<T>& data, const std::vector<size_t>& shape) {
@@ -13,6 +14,24 @@ Tensor<T> Tensor<T>::initialize(const std::vector<T>& data, const std::vector<si
     tensor.stride = calculate_stride(shape);
     tensor.offset = 0;
     return tensor;
+}
+
+template<typename T>
+std::vector<T> Tensor<T>::randn(const std::vector<int>& size, int mean, int std) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    std::normal_distribution<double> dist(mean, std);
+
+    size_t n = std::accumulate(size.begin(), size.end(), 1, std::multiplies<int>());
+    std::vector<T> data;
+    data.reserve(n);
+
+    for(size_t i = 0; i < n; ++i) {
+        data.push_back(static_cast<T>(dist(gen)));
+    }
+
+    return data;
 }
 
 // Make our array contiguous. Many matrix operation are implemented by manipulating
@@ -84,6 +103,7 @@ void bind_tensor(pybind11::module& m, const std::string& class_name) {
         .def_readwrite("offset", &Tensor<T>::offset)
         .def_static("initialize", &Tensor<T>::initialize, "Initialize a Tensor",
                     pybind11::arg("data"), pybind11::arg("shape"))
+        .def("randn", &Tensor<T>::randn)
         .def("compact", &Tensor<T>::compact, "Compact a Tensor")
         .def("mult_dim_to_flat_index", &Tensor<T>::mult_dim_to_flat_index);
 }

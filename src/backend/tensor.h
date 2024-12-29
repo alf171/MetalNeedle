@@ -12,6 +12,7 @@ struct Tensor {
     size_t offset;
 
     static Tensor<T> initialize(const std::vector<T>& data, const std::vector<size_t>& shape);
+    std::vector<T> randn(const std::vector<int>& size, int mean, int std);
     void compact();
     size_t mult_dim_to_flat_index(const std::vector<size_t>& dimension) const;
     std::vector<size_t> flat_index_to_mult_dim(const size_t index) const;

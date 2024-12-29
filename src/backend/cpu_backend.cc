@@ -120,24 +120,18 @@ public:
             throw std::invalid_argument("matmul shapes are not congruent");
         }
 
-        auto start_total = std::chrono::high_resolution_clock::now();
-        auto start_compact = std::chrono::high_resolution_clock::now();
-
         // make matrices compact to have better caching properties
         e1.compact();
         e2.compact();
-        auto end_compact = std::chrono::high_resolution_clock::now();
-        double compact_time = std::chrono::duration<double>(end_compact - start_compact).count();
 
-        // (m,n) @ (n,p) => (m,p)
         size_t e1_rows = e1.shape[0];
         size_t e1_cols = e1.shape[e1_last_dim];
         size_t e2_cols = e2.shape[e2_last_dim];
 
+        // (m,n) @ (n,p) => (m,p)
+        // TODO: this doesn't support dim > 2
         std::vector<size_t> result_shape = {e1_rows, e2_cols};
         std::vector<T> result_data(e1_rows * e2_cols, 0);
-
-        auto start_tiling = std::chrono::high_resolution_clock::now();
 
         #pragma omp parallel for collapse(2) schedule(dynamic)
         for(size_t block_x = 0; block_x < e1_rows; block_x += TILE) {
@@ -146,25 +140,12 @@ public:
             }
         }
 
-        auto end_tiling = std::chrono::high_resolution_clock::now();
-        double tiling_time = std::chrono::duration<double>(end_tiling - start_tiling).count();
-
-        auto end_total = std::chrono::high_resolution_clock::now();
-        double total_time = std::chrono::duration<double>(end_total - start_total).count();
-
-        std::cout << "Compact Time: " << compact_time << " seconds\n";
-        std::cout << "Tiling Time: " << tiling_time << " seconds\n";
-        std::cout << "Total Time: " << total_time << " seconds\n";
-
         Tensor<T> result_tensor = Tensor<T>::initialize(result_data, result_shape);
         return result_tensor;
     }
 
     /**
      * description: result = e1 + scalar for all e1 in tensor
-       * this method is not destructive i.e. it uses the tensor passed in
-       * unlike other ops which generate a new one
-       * TODO: this is a nasty habit so should fix
      * input: tensor: Tensor, scalar: T
      * output: result: Tensor
     **/
@@ -229,13 +210,14 @@ public:
     }
 
 private:
-    void tile_compute(std::vector<T>& e1, std::vector<T>& e2, std::vector<T>& res,
+    void tile_compute(const std::vector<T>& e1, const std::vector<T>& e2, std::vector<T>& res,
                       size_t block_x, size_t block_y, size_t e1_cols, size_t e2_cols, size_t e1_rows) {
 
         // adjust for when SIZE % TILE != 0
         size_t tile_height = std::min(TILE, e1_rows - block_x);
         size_t tile_width = std::min(TILE, e2_cols - block_y);
 
+        #pragma omp parallel for
         for (size_t j = 0; j < tile_width; j++) {
             for (size_t i = 0; i < tile_height; i++) {
                 T tmp_sum = 0;
@@ -245,25 +227,12 @@ private:
                     tmp_sum += e1[index_e1] * e2[index_e2];
                 }
                 size_t index_res = (block_x + i) * e2_cols + (block_y + j);
+                #pragma omp atomic
                 res[index_res] += tmp_sum;
             }
         }
     }
 };
-
-/*template <typename T>
-void bind_tensor(pybind11::module& m, const std::string& class_name) {
-    pybind11::class_<Tensor<T>>(m, class_name.c_str())
-        .def(pybind11::init<>())
-        .def_readwrite("data", &Tensor<T>::data)
-        .def_readwrite("shape", &Tensor<T>::shape)
-        .def_readwrite("stride", &Tensor<T>::stride)
-        .def_readwrite("offset", &Tensor<T>::offset)
-        .def_static("initialize", &Tensor<T>::initialize, "Initialize a Tensor",
-                    pybind11::arg("data"), pybind11::arg("shape"))
-        .def("compact", &Tensor<T>::compact, "Compact a Tensor")
-        .def("mult_dim_to_flat_index", &Tensor<T>::mult_dim_to_flat_index);
-}*/
 
 template <typename T>
 void bind_operations(pybind11::module& m, const std::string& class_name) {
@@ -282,6 +251,7 @@ void bind_operations(pybind11::module& m, const std::string& class_name) {
         .def("scalar_exp", &CPUBackend<T>::scalar_exp);
 }
 
+// could consider moving this
 void bind_cpu(py::module &m) {
     auto cpu = m.def_submodule("cpu");
     // operations

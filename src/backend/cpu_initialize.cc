@@ -1,4 +1,4 @@
 // TODO: support initialization via c++ methods
-#include <stdlib.h>
+#include <random>
 
 randn()
