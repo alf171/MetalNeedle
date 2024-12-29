@@ -1,7 +1,7 @@
 import sys; sys.path.append("tmp")
 import backend;
 
-class DeviceManager():
+class DeviceManager:
     @staticmethod
     def set_dtype_tensor(dtype, device):
         # set backend device

@@ -3,91 +3,17 @@
 #include <iostream>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <random>
 #include <vector>
+#include "tensor.h"
 
 namespace py = pybind11;
 // this number might have to be tuned to match width of asm instruction
+// without parallelism
 // TILE = 1 <2048, 2048> @ <2048, 2048> = 24.50
 // TILE = 8 <2048, 2048> @ <2048, 2048> = 24.47
 // TILE = 64 <2048, 2048> @ <2048, 2048> = 26.35
 #define TILE static_cast<size_t>(32)
-
-template<typename T>
-struct Tensor {
-    std::vector<T> data;
-    std::vector<size_t> shape;
-    std::vector<size_t> stride;
-    size_t offset;
-
-  static Tensor<T> initialize(const std::vector<T>& data, const std::vector<size_t>& shape) {
-        if (data.size() != calculate_size(shape)) {
-            throw std::invalid_argument("Data size does not match shape dimensions.");
-        }
-        Tensor<T> tensor;
-        tensor.data = data;
-        tensor.shape = shape;
-        tensor.stride = calculate_stride(shape); 
-        tensor.offset = 0;
-        return tensor;
-    }
-
-    // Make our array contiguous. Many matrix operation are implemented by manipulating
-    // shape, stride, and offset. However, some operations require our matrix to be compact..
-    void compact() {
-        size_t num_elements = 1;
-        for (size_t elem : shape) {
-            num_elements *= elem;
-        }
-        std::vector<T> new_data(num_elements);
-        for (size_t i = 0; i < num_elements; ++i) {
-            std::vector<size_t> multi_dim = flat_index_to_mult_dim(i);
-            size_t source_index = mult_dim_to_flat_index(multi_dim);
-            new_data[i] = data[source_index];
-        }
-        data = new_data;
-        stride = calculate_stride(shape);
-        offset = 0;
-    }
-
-
-private:
-    static size_t calculate_size(const std::vector<size_t>& shape) {
-        size_t r_size = 1;
-        for (size_t s : shape) { 
-            r_size *= s;
-        }
-        return r_size;
-    }
-
-    static std::vector<size_t> calculate_stride(const std::vector<size_t>& shape) {
-        std::vector<size_t> stride(shape.size());
-        size_t product = 1;
-        for(int i = shape.size() - 1; i >= 0; --i) {
-            stride[i] = product;
-            product *= shape[i];
-        }
-        return stride;
-    }
-
-public:
-    size_t mult_dim_to_flat_index(const std::vector<size_t>& dimension) const {
-        size_t result = offset;
-        for (int i = 0; i < shape.size(); i++) {
-            result += dimension[i] * stride[i];
-        }
-        return result;
-    }
-
-    std::vector<size_t> flat_index_to_mult_dim(const size_t index) const {
-        std::vector<size_t> result(shape.size());
-        size_t current = index;
-        for(int i = shape.size() - 1; i >= 0; --i) {
-            result[i] = current % shape[i];
-            current /= shape[i];
-        }
-        return result;
-    }
-};
 
 template<typename T>
 class CPUBackend {
@@ -325,7 +251,7 @@ private:
     }
 };
 
-template <typename T>
+/*template <typename T>
 void bind_tensor(pybind11::module& m, const std::string& class_name) {
     pybind11::class_<Tensor<T>>(m, class_name.c_str())
         .def(pybind11::init<>())
@@ -337,7 +263,7 @@ void bind_tensor(pybind11::module& m, const std::string& class_name) {
                     pybind11::arg("data"), pybind11::arg("shape"))
         .def("compact", &Tensor<T>::compact, "Compact a Tensor")
         .def("mult_dim_to_flat_index", &Tensor<T>::mult_dim_to_flat_index);
-}
+}*/
 
 template <typename T>
 void bind_operations(pybind11::module& m, const std::string& class_name) {

@@ -23,6 +23,7 @@ class Tensor:
         result.device = self.device
         result.shape = self.shape if shape is None else shape
         result.dtype = self.dtype
+        result.ops = self.ops
         result._data = data
         return result
 
