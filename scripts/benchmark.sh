@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# TODO: currently need to run - export PYTHONPATH=/Users/alaffont/Desktop/projects/MetalNeedle/src:$PYTHONPATH
-
 # run testing script
-python3.13 -m src.benchmark
+#python3.13 -m scripts.setup install > /dev/null 2>&1
+python3.13 -m src.benchmark.needle_matmul

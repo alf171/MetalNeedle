@@ -4,3 +4,6 @@ tmp/*
 .vscode/*
 .idea/*
 __pycache__/
+build/
+dist/
+src/MetalNeedle.egg-info

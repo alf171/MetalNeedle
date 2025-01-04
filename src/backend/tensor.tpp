@@ -34,6 +34,13 @@ std::vector<T> Tensor<T>::randn(const std::vector<int>& size, int mean, int std)
     return data;
 }
 
+template<typename T>
+std::vector<T> Tensor<T>::create(const std::vector<int>& size, T val) {
+    size_t n = std::accumulate(size.begin(), size.end(), 1, std::multiplies<int>());
+    std::vector<T> data(n, val);
+    return data;
+}
+
 // Make our array contiguous. Many matrix operation are implemented by manipulating
 // shape, stride, and offset. However, some operations require our matrix to be compact..
 template<typename T>
@@ -104,6 +111,7 @@ void bind_tensor(pybind11::module& m, const std::string& class_name) {
         .def_static("initialize", &Tensor<T>::initialize, "Initialize a Tensor",
                     pybind11::arg("data"), pybind11::arg("shape"))
         .def("randn", &Tensor<T>::randn)
+        .def("create", &Tensor<T>::create)
         .def("compact", &Tensor<T>::compact, "Compact a Tensor")
         .def("mult_dim_to_flat_index", &Tensor<T>::mult_dim_to_flat_index);
 }

@@ -17,7 +17,7 @@ namespace py = pybind11;
 // TILE = 1 <2048, 2048> @ <2048, 2048> = 24.50
 // TILE = 8 <2048, 2048> @ <2048, 2048> = 24.47
 // TILE = 64 <2048, 2048> @ <2048, 2048> = 26.35
-#define TILE static_cast<size_t>(32)
+#define TILE static_cast<size_t>(16)
 
 template<typename T>
 class CPUBackend {

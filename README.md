@@ -10,8 +10,8 @@ Inspired by taking the course 10-714, I am going to be porting needle to use met
 
 
 ## Run instructions 
-  - export PYTHONPATH=~$HOME/Desktop/projects/MetalNeedle/src:$PYTHONPATH
   - ./scripts/c.sh to setup pybind stuff
+  - run ./scripts/setup.sh allows python to find Needle package
   - run ./scripts/uts.sh or /scripts/benchmark.sh
 
 ## TODO 

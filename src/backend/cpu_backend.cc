@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <arm_neon.h>
 #include <chrono>
 #include <iostream>
 #include <pybind11/pybind11.h>
@@ -133,10 +134,19 @@ public:
         std::vector<size_t> result_shape = {e1_rows, e2_cols};
         std::vector<T> result_data(e1_rows * e2_cols, 0);
 
-        #pragma omp parallel for collapse(2) schedule(dynamic)
-        for(size_t block_x = 0; block_x < e1_rows; block_x += TILE) {
-            for(size_t block_y = 0; block_y < e2.shape[e2_last_dim]; block_y += TILE) {
-                tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1_cols, e2_cols, e1_rows);
+        if constexpr (std::is_same<T, float32_t>::value) {
+            #pragma omp parallel for collapse(2) schedule(dynamic)
+            for(size_t block_x = 0; block_x < e1_rows; block_x += TILE) {
+                for(size_t block_y = 0; block_y < e2.shape[e2_last_dim]; block_y += TILE) {
+                    simd_tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1_cols, e2_cols, e1_rows);
+                }
+            }
+        } else {
+            #pragma omp parallel for collapse(2) schedule(dynamic)
+            for(size_t block_x = 0; block_x < e1_rows; block_x += TILE) {
+                for(size_t block_y = 0; block_y < e2.shape[e2_last_dim]; block_y += TILE) {
+                    tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1_cols, e2_cols, e1_rows);
+                }
             }
         }
 
@@ -210,6 +220,7 @@ public:
     }
 
 private:
+    // TODO: support simd for float32
     void tile_compute(const std::vector<T>& e1, const std::vector<T>& e2, std::vector<T>& res,
                       size_t block_x, size_t block_y, size_t e1_cols, size_t e2_cols, size_t e1_rows) {
 
@@ -217,17 +228,51 @@ private:
         size_t tile_height = std::min(TILE, e1_rows - block_x);
         size_t tile_width = std::min(TILE, e2_cols - block_y);
 
-        #pragma omp parallel for
         for (size_t j = 0; j < tile_width; j++) {
             for (size_t i = 0; i < tile_height; i++) {
                 T tmp_sum = 0;
+
                 for (size_t k = 0; k < e1_cols; k++) {
                     size_t index_e1 = (block_x + i) * e1_cols + k;
                     size_t index_e2 = k * e2_cols + (block_y + j);
                     tmp_sum += e1[index_e1] * e2[index_e2];
                 }
                 size_t index_res = (block_x + i) * e2_cols + (block_y + j);
+                // TODO: can this be removed?
                 #pragma omp atomic
+                res[index_res] += tmp_sum;
+            }
+        }
+    }
+
+    // works exclusively for float
+    void simd_tile_compute(const std::vector<T>& e1, const std::vector<T>& e2, std::vector<T>& res,
+                      size_t block_x, size_t block_y, size_t e1_cols, size_t e2_cols, size_t e1_rows) {
+        size_t tile_height = std::min(TILE, e1_rows - block_x);
+        size_t tile_width = std::min(TILE, e2_cols - block_y);
+
+        for (size_t j = 0; j < tile_width; j++) {
+            for (size_t i = 0; i < tile_height; i++) {
+                T tmp_sum = 0;
+                float32x4_t acc = vdupq_n_f32(0.0);
+
+                size_t k = 0;
+                for (; k < e1_cols; k += 4) {
+                    size_t index_e1 = (block_x + i) * e1_cols + k;
+                    size_t index_e2 = k * e2_cols + (block_y + j);
+                    float32x4_t e1_vec = vld1q_f32(&e1[index_e1]);
+                    float32x4_t e2_vec = vld1q_f32(&e2[index_e2]);
+                    acc = vmlaq_f32(acc, e1_vec, e2_vec);
+                }
+                tmp_sum = vaddvq_f32(acc);
+
+                for (; k < e1_cols; k++) {
+                    size_t index_e1 = (block_x + i) * e1_cols + k;
+                    size_t index_e2 = k * e2_cols + (block_y + j);
+                    tmp_sum += e1[index_e1] * e2[index_e2];
+                }
+
+                size_t index_res = (block_x + i) * e2_cols + (block_y + j);
                 res[index_res] += tmp_sum;
             }
         }

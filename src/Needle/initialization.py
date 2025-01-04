@@ -1,35 +1,21 @@
-import random
 from .tensor import Tensor
 from .device import DeviceManager
-
-# TODO: move initialization over to C++ (use _init)
-def rand(mean = 0, std = 1, dtype = "float32"):
-    if dtype == "float32" or dtype == "float64":
-        return random.uniform(mean - std, mean + std)
-    elif dtype == "int32" or dtype == "int64":
-        return random.randint(mean - std, mean + std)
-    else:
-        raise ValueError("dtype %s is not supported" % dtype)
-
-def generate_ndarray(shape, mean, std, dtype):
-    if len(shape) == 1:
-        return [rand(mean, std, dtype) for _ in range(shape[0])]
-    return [generate_ndarray(shape[1:], mean, std, dtype) for _ in range(shape[0])]
 
 def randn(shape, mean = 0, std = 1, dtype="float32", device="cpu"):
     backendTensor, backendOps = DeviceManager.set_dtype_tensor(dtype, device)
     rawData = backendTensor().randn(shape, mean, std)
     _data = backendTensor().initialize(rawData, shape)
     return Tensor._init(None, data=_data, device=device, shape=shape, dtype=dtype, ops=backendOps)
-    # return Tensor(tensor.randn(shape, mean, std), shape = shape, dtype = dtype)
 
-def generate_n(shape, dtype, n):
-    if len(shape) == 1:
-        return [n] * shape[0]
-    return [generate_n(shape[1:], dtype, n) for _ in range(shape[0])]
+def ones(shape, dtype="float32", device="cpu"):
+    backendTensor, backendOps = DeviceManager.set_dtype_tensor(dtype, device)
+    rawData = backendTensor().create(shape, 1)
+    _data = backendTensor().initialize(rawData, shape)
+    return Tensor._init(None, data=_data, device=device, shape=shape, dtype=dtype, ops=backendOps)
 
-def ones(shape, dtype="float32"):
-    return Tensor(data = generate_n(shape, dtype, 1), shape=shape, dtype=dtype)
-
-def zeros(shape, dtype="float32"):
-    return Tensor(data = generate_n(shape, dtype, 0), shape=shape, dtype=dtype)
+# TODO: if slow, more over to C++
+def zeros(shape, dtype="float32", device="cpu"):
+    backendTensor, backendOps = DeviceManager.set_dtype_tensor(dtype, device)
+    rawData = backendTensor().create(shape, 0)
+    _data = backendTensor().initialize(rawData, shape)
+    return Tensor._init(None, data=_data, device=device, shape=shape, dtype=dtype, ops=backendOps)

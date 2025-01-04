@@ -1,8 +1,8 @@
-clang++ -g -O3 -Wall -shared -std=c++17 -fPIC \
+clang++ -g -O3 -Wall -shared -std=c++23 -fPIC -frtti \
     -I/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/include/python3.13 \
     -I/opt/homebrew/lib/python3.13/site-packages/pybind11/include \
     -I/opt/homebrew/opt/libomp/include \
-    -Isrc/backend/tensor.h\
+    -Isrc/backend/tensor.h \
     -L/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/lib \
     -L/opt/homebrew/opt/libomp/lib \
     -Xpreprocessor -fopenmp \

@@ -13,6 +13,7 @@ struct Tensor {
 
     static Tensor<T> initialize(const std::vector<T>& data, const std::vector<size_t>& shape);
     std::vector<T> randn(const std::vector<int>& size, int mean, int std);
+    std::vector<T> create(const std::vector<int>& size, T val);
     void compact();
     size_t mult_dim_to_flat_index(const std::vector<size_t>& dimension) const;
     std::vector<size_t> flat_index_to_mult_dim(const size_t index) const;
@@ -25,6 +26,6 @@ private:
 template <typename T>
 void bind_tensor(pybind11::module& m, const std::string& class_name);
 
-#include "tensor.tpp" // Include implementation here
+#include "tensor.tpp"
 
 #endif // TENSOR_H
