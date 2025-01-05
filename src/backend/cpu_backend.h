@@ -12,13 +12,6 @@
 
 namespace py = pybind11;
 
-// this number might have to be tuned to match width of asm instruction
-// without parallelism
-// TILE = 1 <2048, 2048> @ <2048, 2048> = 24.50
-// TILE = 8 <2048, 2048> @ <2048, 2048> = 24.47
-// TILE = 64 <2048, 2048> @ <2048, 2048> = 26.35
-#define TILE static_cast<size_t>(16)
-
 template<typename T>
 class CPUBackend {
 public:

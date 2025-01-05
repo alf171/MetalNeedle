@@ -9,12 +9,11 @@
 #include "tensor.h"
 
 namespace py = pybind11;
-// this number might have to be tuned to match width of asm instruction
-// without parallelism
-// TILE = 1 <2048, 2048> @ <2048, 2048> = 24.50
-// TILE = 8 <2048, 2048> @ <2048, 2048> = 24.47
-// TILE = 64 <2048, 2048> @ <2048, 2048> = 26.35
-#define TILE static_cast<size_t>(32)
+const size_t TILE = 128;
+
+#ifndef NTHREADS
+#define NTHREADS 16
+#endif
 
 template<typename T>
 class CPUBackend {
@@ -121,10 +120,6 @@ public:
             throw std::invalid_argument("matmul shapes are not congruent");
         }
 
-        // make matrices compact to have better caching properties
-        e1.compact();
-        e2.compact();
-
         size_t e1_rows = e1.shape[0];
         size_t e1_cols = e1.shape[e1_last_dim];
         size_t e2_cols = e2.shape[e2_last_dim];
@@ -135,14 +130,14 @@ public:
         std::vector<T> result_data(e1_rows * e2_cols, 0);
 
         if constexpr (std::is_same<T, float32_t>::value) {
-            #pragma omp parallel for collapse(2) schedule(dynamic)
+            #pragma omp parallel for collapse(2) num_threads(NTHREADS) schedule(static)
             for(size_t block_x = 0; block_x < e1_rows; block_x += TILE) {
                 for(size_t block_y = 0; block_y < e2.shape[e2_last_dim]; block_y += TILE) {
                     simd_tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1_cols, e2_cols, e1_rows);
                 }
             }
         } else {
-            #pragma omp parallel for collapse(2) schedule(dynamic)
+            #pragma omp parallel for collapse(2) schedule(static)
             for(size_t block_x = 0; block_x < e1_rows; block_x += TILE) {
                 for(size_t block_y = 0; block_y < e2.shape[e2_last_dim]; block_y += TILE) {
                     tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1_cols, e2_cols, e1_rows);
@@ -219,8 +214,41 @@ public:
         return Tensor<T>::initialize(result_data, tensor.shape);
     }
 
+    /**
+     * description: sum across axes into a new matrix
+     * input: tensor we are operating on
+     * output: result: Tensor
+    **/
+    Tensor<T> sum(Tensor<T>& tensor, std::vector<size_t> axes) {
+        std::vector<size_t> reduced_shape;
+        size_t res_size = 1;
+        for (size_t idx = 0; idx < tensor.shape.size(); idx++) {
+            if (std::find(axes.begin(), axes.end(), idx) == axes.end()) {
+                reduced_shape.push_back(tensor.shape[idx]);
+                res_size *= tensor.shape[idx];
+            }
+        }
+
+        std::vector<T> result_data(res_size, T(0));
+        Tensor<T> result = Tensor<T>::initialize(result_data, reduced_shape);
+
+        for(size_t i = 0; i < tensor.data.size(); i++) {
+
+            std::vector<size_t> multi_dim = tensor.flat_index_to_mult_dim(i);
+
+            std::vector<size_t> reduced_index;
+            for(size_t j = 0; j < (size_t)multi_dim.size(); j++) {
+                if(std::find(axes.begin(), axes.end(), j) == axes.end()) {
+                    reduced_index.push_back(multi_dim[j]);
+                }
+            }
+            size_t flat_index = result.mult_dim_to_flat_index(reduced_index);
+            result.data[flat_index] += tensor.data[i];
+        }
+        return result;
+    }
+
 private:
-    // TODO: support simd for float32
     void tile_compute(const std::vector<T>& e1, const std::vector<T>& e2, std::vector<T>& res,
                       size_t block_x, size_t block_y, size_t e1_cols, size_t e2_cols, size_t e1_rows) {
 
@@ -238,21 +266,20 @@ private:
                     tmp_sum += e1[index_e1] * e2[index_e2];
                 }
                 size_t index_res = (block_x + i) * e2_cols + (block_y + j);
-                // TODO: can this be removed?
                 #pragma omp atomic
                 res[index_res] += tmp_sum;
             }
         }
     }
 
-    // works exclusively for float
+    // works exclusively for float32
     void simd_tile_compute(const std::vector<T>& e1, const std::vector<T>& e2, std::vector<T>& res,
-                      size_t block_x, size_t block_y, size_t e1_cols, size_t e2_cols, size_t e1_rows) {
+                      const size_t block_x, const size_t block_y, const size_t e1_cols, const size_t e2_cols, const size_t e1_rows) {
         size_t tile_height = std::min(TILE, e1_rows - block_x);
         size_t tile_width = std::min(TILE, e2_cols - block_y);
 
-        for (size_t j = 0; j < tile_width; j++) {
-            for (size_t i = 0; i < tile_height; i++) {
+        for (size_t i = 0; i < tile_height; i++) {
+            for (size_t j = 0; j < tile_width; j++) {
                 T tmp_sum = 0;
                 float32x4_t acc = vdupq_n_f32(0.0);
 
@@ -273,6 +300,7 @@ private:
                 }
 
                 size_t index_res = (block_x + i) * e2_cols + (block_y + j);
+                #pragma omp atomic
                 res[index_res] += tmp_sum;
             }
         }
@@ -293,7 +321,8 @@ void bind_operations(pybind11::module& m, const std::string& class_name) {
         .def("scalar_sub", &CPUBackend<T>::scalar_sub)
         .def("scalar_mul", &CPUBackend<T>::scalar_mul)
         .def("scalar_div", &CPUBackend<T>::scalar_div)
-        .def("scalar_exp", &CPUBackend<T>::scalar_exp);
+        .def("scalar_exp", &CPUBackend<T>::scalar_exp)
+        .def("sum", &CPUBackend<T>::sum);
 }
 
 // could consider moving this

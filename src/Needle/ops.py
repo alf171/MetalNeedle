@@ -81,3 +81,6 @@ class TensorOperations:
 
     def matmul(self, data1, data2):
         return self.operations.mat_mul(data1, data2)
+
+    def sum(self, data, axes):
+        return self.operations.sum(data, axes)

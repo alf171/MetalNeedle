@@ -49,7 +49,25 @@ def SlicingOperations():
 
     print("SlicingOperation passed!")
 
+def SumOperation():
+    x1 = Needle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    x1.sum(0)
+    assert(x1[0] == 12)
+    assert(x1[1] == 15)
+    assert(x1[2] == 18)
+    assert(x1.shape == [3])
+
+    x2 = Needle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    x2.sum(1)
+    assert(x2.shape == [3])
+    assert(x2[0] == 6)
+    assert(x2[1] == 15)
+    assert(x2[2] == 24)
+
+    print("SumOperation passed!")
+
 # run UTs
 ThreeByThreeMatMulCheck()
 ScalarOperations()
 SlicingOperations()
+SumOperation()

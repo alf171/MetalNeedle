@@ -1,4 +1,5 @@
-clang++ -g -O3 -Wall -shared -std=c++23 -fPIC -frtti \
+clang++ -pg -O3 -march=native -ftree-vectorize -funroll-loops \
+    -Wall -shared -std=c++23 -fPIC -frtti \
     -I/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/include/python3.13 \
     -I/opt/homebrew/lib/python3.13/site-packages/pybind11/include \
     -I/opt/homebrew/opt/libomp/include \

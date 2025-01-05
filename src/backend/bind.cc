@@ -2,13 +2,6 @@
 #include <pybind11/stl.h>
 #include "gpu_backend.h"
 #include "cpu_backend.h"
-//#include <algorithm>
-//#include <chrono>
-//#include <iostream>
-//#include <pybind11/pybind11.h>
-//#include <random>
-//#include <vector>
-//#include "tensor.h"
 
 namespace py = pybind11;
 

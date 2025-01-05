@@ -29,6 +29,9 @@ class Tensor:
         return result
 
     def __getitem__(self, multi_dim_index):
+        if not isinstance(multi_dim_index, (list, tuple)):
+            multi_dim_index = [multi_dim_index]
+
         if len(multi_dim_index) > len(self.shape):
             raise ValueError("index shape exceeds tensor's dimensions")
 
@@ -52,6 +55,17 @@ class Tensor:
 
         # TODO: reshape back to original shape
         return [get_item(index) for index in indices]
+
+    # TODO: use keep dims and broadcast shape
+    # note: this is a destructive operation
+    def sum(self, axes, keepdim = False):
+        if axes is None or axes == []:
+            raise TypeError(f"Axes Cant be Null")
+        if not isinstance(axes, list):
+            axes = [axes]
+
+        self._data = self.ops.sum(self._data, axes)
+        self.shape = self._data.shape
 
     def __add__(self, other):
         if isinstance(other, Tensor):
