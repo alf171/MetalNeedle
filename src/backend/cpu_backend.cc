@@ -222,11 +222,18 @@ public:
     Tensor<T> sum(Tensor<T>& tensor, std::vector<size_t> axes) {
         std::vector<size_t> reduced_shape;
         size_t res_size = 1;
+
         for (size_t idx = 0; idx < tensor.shape.size(); idx++) {
             if (std::find(axes.begin(), axes.end(), idx) == axes.end()) {
                 reduced_shape.push_back(tensor.shape[idx]);
                 res_size *= tensor.shape[idx];
             }
+        }
+
+        // if we sum across all dims, shape should be [1] instead of []
+        bool reduced_all = (axes.size() == tensor.shape.size());
+        if (reduced_all) {
+            reduced_shape = {1};
         }
 
         std::vector<T> result_data(res_size, T(0));
@@ -242,7 +249,7 @@ public:
                     reduced_index.push_back(multi_dim[j]);
                 }
             }
-            size_t flat_index = result.mult_dim_to_flat_index(reduced_index);
+            size_t flat_index = reduced_all ? 0 : result.mult_dim_to_flat_index(reduced_index);
             result.data[flat_index] += tensor.data[i];
         }
         return result;

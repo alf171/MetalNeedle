@@ -64,6 +64,11 @@ def SumOperation():
     assert(x2[1] == 15)
     assert(x2[2] == 24)
 
+    x3 = Needle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    x3.sum([0,1])
+    assert(x3[0] == ((9*10)/2))
+    assert(x3.shape == [1])
+
     print("SumOperation passed!")
 
 # run UTs
