@@ -13,9 +13,7 @@ class Tensor:
         self.ops = TensorOperations(self._operations)
 
         # TODO: add automatic differentiation
-        self.grad = None
-        self._grad_fn = None
-        self._prev = None
+        self.node = None
         self.requires_grad = requires_grad
 
     # allows caller to pipe in _data (C++ version of data)
@@ -28,6 +26,7 @@ class Tensor:
         result._data = data
         return result
 
+    # TODO: support partial slicing with
     def __getitem__(self, multi_dim_index):
         if not isinstance(multi_dim_index, (list, tuple)):
             multi_dim_index = [multi_dim_index]
@@ -40,6 +39,8 @@ class Tensor:
             if isinstance(index, slice):
                 res.append(range(*index.indices(dim)))
             elif isinstance(index, int):
+                if not 0 <= index < dim:
+                    raise ValueError(f"index {index} out of bounds on dim {dim}")
                 res.append([index])
             else:
                 raise TypeError(f"Unsupported index data type: {type(index)}")
@@ -66,6 +67,25 @@ class Tensor:
 
         self._data = self.ops.sum(self._data, axes)
         self.shape = self._data.shape
+
+    def transpose(self, axis1=0, axis2=1):
+        self.shape[axis1], self.shape[axis2] = self.shape[axis2], self.shape[axis1]
+        self._data.shape[axis1], self._data.shape[axis2] = self._data.shape[axis2], self._data.shape[axis1]
+        self._data.stride[axis1], self._data.stride[axis2] = self._data.stride[axis2], self._data.stride[axis1]
+
+    def reshape(self, shape):
+        if ShapeUtils.product(shape) != ShapeUtils.product(self.shape):
+            raise TypeError(f"original dimension ({self.shape}) product != proposed ({shape})")
+
+        new_stride = []
+        acc = 1
+        for size in reversed(shape):
+            new_stride.insert(0, acc)
+            acc *= size
+
+        self.shape = shape
+        self._data.stride = new_stride
+        self._data.shape = shape
 
     def __add__(self, other):
         if isinstance(other, Tensor):

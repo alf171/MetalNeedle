@@ -1,3 +1,4 @@
+from functools import reduce
 
 class ShapeUtils:
     @staticmethod
@@ -33,3 +34,9 @@ class ShapeUtils:
                 res.append([start_item] + remaining_item)
 
         return res
+
+    @staticmethod
+    def product(lst):
+        return reduce(lambda x, y: x * y, lst, 1)
+
+

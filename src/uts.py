@@ -19,7 +19,7 @@ def ThreeByThreeMatMulCheck():
                 f"Value mismatch at ({i},{j}): Expected {expected_value}, Got {calculated_value}"
             )
 
-    print("ThreeByThreeMatMulCheck passed!")
+    print("Matmul passed!")
 
 
 def ScalarOperations():
@@ -30,7 +30,7 @@ def ScalarOperations():
     assert(z[1,0] == 4)
     assert(z[0,2] == 4)
 
-    print("ScalarOperations passed!")
+    print("Scalar Operations passed!")
 
 def SlicingOperations():
     x1 = Needle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
@@ -47,7 +47,7 @@ def SlicingOperations():
     assert(y2[1] == 5)
     assert(y2[2] == 8)
 
-    print("SlicingOperation passed!")
+    print("Slicing Operation passed!")
 
 def SumOperation():
     x1 = Needle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
@@ -69,10 +69,28 @@ def SumOperation():
     assert(x3[0] == ((9*10)/2))
     assert(x3.shape == [1])
 
-    print("SumOperation passed!")
+    print("Sum Operation passed!")
+
+def ReshapeOperations():
+    x = Needle.Tensor([[1,2,3], [4,5,6], [7,8,9]])
+    x.transpose()
+    assert(x[0] == 1)
+    assert(x[1] == 4)
+    assert(x[2] == 7)
+    assert(x[2,2] == 9)
+
+    x = Needle.Tensor([[1,2,3], [1,2,3], [1,2,3]])
+    x.reshape([9, 1])
+    assert(x[0,0] == 1)
+    assert(x[8,0] == 3)
+    x.transpose()
+    assert(x[0,8] == 3)
+
+    print("Reshape Operations passed!")
 
 # run UTs
 ThreeByThreeMatMulCheck()
 ScalarOperations()
 SlicingOperations()
 SumOperation()
+ReshapeOperations()
