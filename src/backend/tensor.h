@@ -17,7 +17,8 @@ struct Tensor {
     void compact();
     size_t mult_dim_to_flat_index(const std::vector<size_t>& dimension) const;
     std::vector<size_t> flat_index_to_mult_dim(const size_t index) const;
-    void swap(int i1, int i2);
+    void reshape(const std::vector<size_t>& new_shape);
+    void print() const;
 
 private:
     static size_t calculate_size(const std::vector<size_t>& shape);

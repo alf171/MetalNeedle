@@ -1,4 +1,5 @@
 import sys; sys.path.append("tmp")
+import re
 import backend
 
 class DeviceManager:
@@ -11,13 +12,20 @@ class DeviceManager:
 
         # put each behind a lambda for lazily evaluation
         backends = {
-            "int32": lambda: (curBackend.IntTensor, curBackend.IntOperation()),
-            "int64": lambda: (curBackend.LongTensor, curBackend.LongOperation),
-            "float32": lambda: (curBackend.FloatTensor, curBackend.FloatOperation()),
-            "float64": lambda: (curBackend.DoubleTensor, curBackend.DoubleOperation())
+            "int32": lambda: (curBackend.IntTensor(), curBackend.IntOperation()),
+            "int64": lambda: (curBackend.LongTensor(), curBackend.LongOperation()),
+            "float32": lambda: (curBackend.FloatTensor(), curBackend.FloatOperation()),
+            "float64": lambda: (curBackend.DoubleTensor(), curBackend.DoubleOperation())
         }
 
         if dtype not in backends:
             raise ValueError(f"Data type {dtype} is not supported")
         return backends[dtype]()
+
+    @staticmethod
+    def is_tensor(obj):
+        obj_type_str = str(type(obj))
+        # TODO: could have a slightly more robust tensor check :)
+        pattern = r"<class 'backend\.cpu\..*'>"
+        return bool(re.match(pattern, obj_type_str))
 

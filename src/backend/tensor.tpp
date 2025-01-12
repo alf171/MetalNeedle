@@ -35,17 +35,42 @@ std::vector<T> Tensor<T>::randn(const std::vector<int>& size, int mean, int std)
 }
 
 template<typename T>
+void Tensor<T>::print() const {
+    std::cout << "Tensor Information:\n";
+    std::cout << "Shape: [";
+    for (size_t i = 0; i < shape.size(); ++i) {
+        std::cout << shape[i] << (i < shape.size() - 1 ? ", " : "");
+    }
+    std::cout << "]\n";
+
+    std::cout << "Stride: [";
+    for (size_t i = 0; i < stride.size(); ++i) {
+        std::cout << stride[i] << (i < stride.size() - 1 ? ", " : "");
+    }
+    std::cout << "]\n";
+
+    std::cout << "Data: [";
+    for (size_t i = 0; i < data.size(); ++i) {
+        std::cout << data[i] << (i < data.size() - 1 ? ", " : "");
+    }
+    std::cout << "]\n";
+}
+
+template<typename T>
 std::vector<T> Tensor<T>::create(const std::vector<int>& size, T val) {
     size_t n = std::accumulate(size.begin(), size.end(), 1, std::multiplies<int>());
     std::vector<T> data(n, val);
     return data;
 }
 
-// template<typename T>
-// void Tensor<T>::swap(int i1, int i2) {
-//     std::swap(shape[i1], shape[i2]);
-//     std::swap(stride[i1], stride[i2]);
-// }
+template <typename T>
+void Tensor<T>::reshape(const std::vector<size_t>& new_shape) {
+    if (calculate_size(new_shape) != data.size()) {
+        throw std::invalid_argument("New shape must have the same number of elements.");
+    }
+    shape = new_shape;
+    stride = calculate_stride(new_shape);
+}
 
 // Make our array contiguous. Many matrix operation are implemented by manipulating
 // shape, stride, and offset. However, some operations require our matrix to be compact..
@@ -118,7 +143,8 @@ void bind_tensor(pybind11::module& m, const std::string& class_name) {
                     pybind11::arg("data"), pybind11::arg("shape"))
         .def("randn", &Tensor<T>::randn, "Generate a random Tensor")
         .def("create", &Tensor<T>::create)
+        .def("print", &Tensor<T>::print)
         .def("compact", &Tensor<T>::compact, "Compact a Tensor")
-//         .def("swap", &Tensor<T>::swap)
+        .def("reshape", &Tensor<T>::reshape, "Reshape a Tensor")
         .def("mult_dim_to_flat_index", &Tensor<T>::mult_dim_to_flat_index);
 }

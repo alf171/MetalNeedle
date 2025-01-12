@@ -1,4 +1,6 @@
 # later utilities for complete AD library
+from .device import DeviceManager
+
 LAZY_MODE = False
 TENSOR_COUNTER = 0
 
@@ -7,44 +9,129 @@ class TensorOperations:
         self.operations = operations
 
     def add(self, tensor1, tensor2):
+        t1 = DataOperations(tensor1._data, self.operations)
         def _backward(grad):
             if tensor1.requires_grad:
-                tensor1.grad = (grad * 1) + (tensor1.grad or 0)
+                tensor1.grad = grad + (tensor1.grad or 0)
             if tensor2.requires_grad:
-                tensor2.grad = (grad * 1) + (tensor2.grad or 0)
+                tensor2.grad = grad + (tensor2.grad or 0)
 
-        data = self.operations.ewise_add(tensor1._data, tensor2._data)
+        data = t1 + tensor2._data
         return (data, _backward)
 
     def scalar_add(self, tensor1, value):
-        return self.operations.scalar_add(tensor1._data, value)
+        t1 = DataOperations(tensor1._data, self.operations)
+        def _backward(grad):
+            if tensor1.requires_grad:
+                tensor1.grad = grad + (tensor1.grad or 0)
 
-    def sub(self, data1, data2):
-        return self.operations.ewise_add(data1, data2)
+        data = t1 + value
+        return (data, _backward)
 
-    def scalar_sub(self, data1, value):
-        return self.operations.scalar_add(data1, value)
+    def sub(self, tensor1, tensor2):
+        t1 = DataOperations(tensor1._data, self.operations)
+        def _backward(grad):
+            if tensor1.requires_grad:
+                tensor1.grad = grad + (tensor1.grad or 0)
+            if tensor2.requires_grad:
+                tensor2.grad = (-1 * grad) + (tensor2.grad or 0)
 
-    def mul(self, data1, data2):
-        return self.operations.ewise_mul(data1, data2)
+        data = t1 - tensor2._data
+        return (data, _backward)
 
-    def scalar_mul(self, data1, value):
-        return self.operations.scalar_mul(data1, value)
+    def scalar_sub(self, tensor1, value):
+        t1 = DataOperations(tensor1._data, self.operations)
+        def _backward(grad):
+            if tensor1.requires_grad:
+                tensor1.grad = grad + (tensor1.grad or 0)
+        data = t1 - value
+        return (data, _backward)
 
-    def div(self, data1, data2):
-        return self.operations.ewise_div(data1, data2)
+    def mul(self, tensor1, tensor2):
+        t1 = DataOperations(tensor1._data, self.operations)
+        t2 = DataOperations(tensor2._data, self.operations)
+        def _backward(grad):
+            if tensor1.requires_grad:
+                tensor1.grad = DataOperations((t2 * grad), self.operations) + (tensor1.grad or 0)
+            if tensor2.requires_grad:
+                tensor2.grad = DataOperations((t1 * grad), self.operations) + (tensor2.grad or 0)
 
-    def scalar_div(self, data1, value):
-        return self.operations.scalar_div(data1, value)
+        data = t1 * tensor2._data
+        return (data, _backward)
 
-    def div(self, data1, data2):
-        return self.operations.ewise_exp(data1, data2)
+    def scalar_mul(self, tensor1, value):
+        def _backward(grad):
+            if tensor1.requires_grad:
+                tensor1.grad = (grad * value) + (tensor1.grad or 0)
+        data = self.operations.scalar_mul(tensor1._data, value)
+        return (data, _backward)
 
-    def scalar_div(self, data1, value):
-        return self.operations.scalar_exp(data1, value)
+    # TODO: add grad
+    def div(self, tensor1, tensor2):
+        return self.operations.ewise_div(tensor1._data, tensor2._data)
 
-    def matmul(self, data1, data2):
-        return self.operations.mat_mul(data1, data2)
+    # TODO: add grad
+    def scalar_div(self, tensor1, value):
+        return self.operations.scalar_div(tensor1._data, value)
 
-    def sum(self, data, axes):
-        return self.operations.sum(data, axes)
+    # TODO: add grad
+    def exp(self, tensor1, tensor2):
+        return self.operations.ewise_exp(tensor1._data, tensor2._data)
+
+    # TODO: add grad
+    def scalar_exp(self, tensor1, value):
+        return self.operations.scalar_exp(tensor1._data, value)
+
+    # TODO: add grad
+    def matmul(self, tensor1, tensor2):
+        return self.operations.mat_mul(tensor1._data, tensor2._data)
+
+    # TODO: add grad
+    def sum(self, tensor1, axes):
+        return self.operations.sum(tensor1._data, axes)
+
+class DataOperations:
+    def __init__(self, tensor, operations):
+        self.tensor = tensor
+        self.operations = operations
+
+    def __add__(self, value):
+        if DeviceManager.is_tensor(value):
+            return self.operations.ewise_add(self.tensor, value)
+        elif isinstance(value, (int, float)):
+            return self.operations.scalar_add(self.tensor, value)
+        raise TypeError("invalid add")
+
+    def __sub__(self, value):
+        if DeviceManager.is_tensor(value):
+            return self.operations.ewise_sub(self.tensor, value)
+        elif isinstance(value, (int, float)):
+            return self.operations.scalar_sub(self.tensor, value)
+        raise TypeError("invalid sub")
+
+    def __mul__(self, value):
+        if DeviceManager.is_tensor(value):
+            return self.operations.ewise_mul(self.tensor, value)
+        elif isinstance(value, (int, float)):
+            return self.operations.scalar_mul(self.tensor, value)
+        raise TypeError("invalid mul")
+
+    def __truediv__(self, value):
+        if DeviceManager.is_tensor(value):
+            return self.operations.ewise_div(self.tensor, value)
+        elif isinstance(value, (int, float)):
+            return self.operations.scalar_div(self.tensor, value)
+        raise TypeError("invalid div")
+
+    def __pow__(self, value):
+        if DeviceManager.is_tensor(value):
+            return self.operations.ewise_exp(self.tensor, value)
+        elif isinstance(value, (int, float)):
+            return self.operations.scalar_exp(self.tensor, value)
+        raise TypeError("invalid exp")
+
+    def __matmul__(self, value):
+        return self.operations.mat_mul(self.tensor, value)
+
+    def sum(self, axes):
+        return self.operations.sum(self.tensor, axes)

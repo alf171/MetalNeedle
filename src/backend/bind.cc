@@ -12,6 +12,6 @@ void bind_gpu(py::module &m) {
 }
 
 PYBIND11_MODULE(backend, m) {
-    // bind_gpu(m);
+    bind_gpu(m);
     bind_cpu(m);
 }
