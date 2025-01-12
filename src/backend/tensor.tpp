@@ -41,6 +41,12 @@ std::vector<T> Tensor<T>::create(const std::vector<int>& size, T val) {
     return data;
 }
 
+// template<typename T>
+// void Tensor<T>::swap(int i1, int i2) {
+//     std::swap(shape[i1], shape[i2]);
+//     std::swap(stride[i1], stride[i2]);
+// }
+
 // Make our array contiguous. Many matrix operation are implemented by manipulating
 // shape, stride, and offset. However, some operations require our matrix to be compact..
 template<typename T>
@@ -110,8 +116,9 @@ void bind_tensor(pybind11::module& m, const std::string& class_name) {
         .def_readwrite("offset", &Tensor<T>::offset)
         .def_static("initialize", &Tensor<T>::initialize, "Initialize a Tensor",
                     pybind11::arg("data"), pybind11::arg("shape"))
-        .def("randn", &Tensor<T>::randn)
+        .def("randn", &Tensor<T>::randn, "Generate a random Tensor")
         .def("create", &Tensor<T>::create)
         .def("compact", &Tensor<T>::compact, "Compact a Tensor")
+//         .def("swap", &Tensor<T>::swap)
         .def("mult_dim_to_flat_index", &Tensor<T>::mult_dim_to_flat_index);
 }

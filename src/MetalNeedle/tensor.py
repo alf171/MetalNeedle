@@ -7,20 +7,20 @@ class Tensor:
         self.device = device
         self.dtype = dtype
         self._tensor, self._operations = DeviceManager.set_dtype_tensor(dtype, self.device)
-        self.shape = ShapeUtils.get_shape(data, device) if shape is None else shape
         # this is actually a tensor so a little confusing
-        self._data = ShapeUtils.create_data_struct(self._tensor, data, self.shape)
+        _shape = ShapeUtils.get_shape(data, device) if shape is None else shape
+        self._data = ShapeUtils.create_data_struct(self._tensor, data, _shape)
         self.ops = TensorOperations(self._operations)
 
-        # TODO: add automatic differentiation
-        self.node = None
+        # autograd related
         self.requires_grad = requires_grad
+        self.grad = None
+        self.grad_fn = None
 
     # allows caller to pipe in _data (C++ version of data)
     def _init(self, data, device = None, shape = None, dtype = None, ops = None):
         result = Tensor.__new__(Tensor)
         result.device = self.device if device is None else device
-        result.shape = self.shape if shape is None else shape
         result.dtype = self.dtype if dtype is None else dtype
         result.ops = self.ops if ops is None else TensorOperations(ops)
         result._data = data
@@ -31,11 +31,11 @@ class Tensor:
         if not isinstance(multi_dim_index, (list, tuple)):
             multi_dim_index = [multi_dim_index]
 
-        if len(multi_dim_index) > len(self.shape):
+        if len(multi_dim_index) > len(self._data.shape):
             raise ValueError("index shape exceeds tensor's dimensions")
 
         res = []
-        for (index, dim) in zip(multi_dim_index, self.shape):
+        for (index, dim) in zip(multi_dim_index, self._data.shape):
             if isinstance(index, slice):
                 res.append(range(*index.indices(dim)))
             elif isinstance(index, int):
@@ -66,16 +66,15 @@ class Tensor:
             axes = [axes]
 
         self._data = self.ops.sum(self._data, axes)
-        self.shape = self._data.shape
 
     def transpose(self, axis1=0, axis2=1):
-        self.shape[axis1], self.shape[axis2] = self.shape[axis2], self.shape[axis1]
         self._data.shape[axis1], self._data.shape[axis2] = self._data.shape[axis2], self._data.shape[axis1]
         self._data.stride[axis1], self._data.stride[axis2] = self._data.stride[axis2], self._data.stride[axis1]
+        # help(self._tensor.swap)
 
     def reshape(self, shape):
-        if ShapeUtils.product(shape) != ShapeUtils.product(self.shape):
-            raise TypeError(f"original dimension ({self.shape}) product != proposed ({shape})")
+        if ShapeUtils.product(shape) != ShapeUtils.product(self._data.shape):
+            raise TypeError(f"original dimension ({self._data.shape}) product != proposed ({shape})")
 
         new_stride = []
         acc = 1
@@ -83,15 +82,22 @@ class Tensor:
             new_stride.insert(0, acc)
             acc *= size
 
-        self.shape = shape
         self._data.stride = new_stride
         self._data.shape = shape
 
     def __add__(self, other):
+        # print("HERE")
         if isinstance(other, Tensor):
-            return self._init(self.ops.add(self._data, other._data))
+            (_data, _backward) = self.ops.add(self, other)
+            res = self._init(_data)
+            print(res)
+            res.grad_fn = _backward
+            res.parents = [self, other]
+            return res
         elif isinstance(other, (int, float)):
-            return self._init(self.ops.scalar_add(self._data, other))
+            res = self._init(self.ops.scalar_add(self, other))
+            res.parents = [self, other]
+            return res
         raise TypeError(f"Can't add Tensor of type {self.dtype} with {type(other)}")
 
     def __sub__(self, other):
@@ -117,7 +123,7 @@ class Tensor:
 
     def __matmul__(self, other):
         if isinstance(other, Tensor):
-            new_shape = self.shape[:-1] + other.shape[1:];
+            new_shape = self._data.shape[:-1] + other._data.shape[1:];
             return self._init(self.ops.matmul(self._data, other._data), new_shape)
         raise TypeError(f"Can't divide Tensor of type {self.dtype} with {type(other)}")
 
@@ -128,8 +134,7 @@ class Tensor:
             return self._init(self.ops.scalar_exp(self._data, other._data))
         raise TypeError(f"Can't exponentiate Tensor of type {self.dtype} with {type(other)}")
 
-    # print shape and dtype in addition to default stuff
     def __str__(self):
-        shape = ', '.join(str(x) for x in self.shape)
+        shape = ', '.join(str(x) for x in self._data.shape)
         return f"<{self.__class__.__module__}.{self.__class__.__name__}> (size: [{shape}], dtype={self.dtype})"
 

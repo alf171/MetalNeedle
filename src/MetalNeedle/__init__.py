@@ -1,4 +1,4 @@
-from .ops import ops
+# from .ops import ops
 from .tensor import Tensor
 from .initialization import ones, zeros, randn
 # from .gradients import Gradient
