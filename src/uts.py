@@ -10,7 +10,7 @@ def ThreeByThreeMatMulCheck():
     expected_result = np.dot(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
                              np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]))
 
-    assert(z._data.shape == [3,3])
+    assert(z._data.shape() == [3,3])
 
     for i in range(3):
         for j in range(3):
@@ -60,11 +60,11 @@ def SumOperation():
     assert(x1[0] == 12)
     assert(x1[1] == 15)
     assert(x1[2] == 18)
-    assert(x1._data.shape == [3])
+    assert(x1._data.shape() == [3])
 
     x2 = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     x2.sum(1)
-    assert(x2._data.shape == [3])
+    assert(x2._data.shape() == [3])
     assert(x2[0] == 6)
     assert(x2[1] == 15)
     assert(x2[2] == 24)
@@ -72,7 +72,7 @@ def SumOperation():
     x3 = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     x3.sum([0,1])
     assert(x3[0] == ((9*10)/2))
-    assert(x3._data.shape == [1])
+    assert(x3._data.shape() == [1])
 
     print("Sum Operation passed!")
 
@@ -91,7 +91,7 @@ def ReshapeOperations():
     # print(x._data.shape)
     x.transpose()
     # TODO: fix the fact that self._data.shape can't be changed from outside of C++ :/
-    x._data.shape[0] = 3
+    x._data.shape()[0] = 3
     # print(x._data.shape)
     # assert(x[0,8] == 3)
 
@@ -100,7 +100,7 @@ def ReshapeOperations():
 def Autograd():
     x = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], requires_grad=True)
     y = x + x
-    # (y.grad_fn(4))
+    # (y.grad_fn.tensor(4))
     # assert(x.grad == 8)
 
     z = y * y

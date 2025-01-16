@@ -1,8 +1,8 @@
 tst/*
 cpu_backend.so.dSYM/*
 tmp/*
-.vscode/*
 .idea/*
+.vscode
 __pycache__/
 build/
 dist/
