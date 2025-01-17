@@ -8,7 +8,7 @@ class Tensor:
         self.device = device
         self.dtype = dtype
         _tensor, _operations = DeviceManager.set_dtype_tensor(dtype, self.device)
-        self._data = TensorData(data, _tensor)
+        self._data = TensorData(data, _tensor, _operations)
         self.ops = TensorOperations(_operations)
         # autograd related
         self.requires_grad = requires_grad
@@ -27,7 +27,7 @@ class Tensor:
         result.device = self.device if device is None else device
         result.dtype = self.dtype if dtype is None else dtype
         result.ops = self.ops if ops is None else TensorOperations(ops)
-        result._data = TensorData.create(data)
+        result._data = TensorData.create(data, result.ops)
         result.requires_grad = self.requires_grad if requires_grad is None else requires_grad
         result.grad = None
         return result
