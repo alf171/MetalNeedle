@@ -5,34 +5,39 @@ from .data import TensorData
 
 class Tensor:
     def __init__(self, data, device="cpu", dtype="int32", requires_grad=False):
-        self.device = device
-        self.dtype = dtype
+        self.device: str = device
+        self.dtype: str = dtype
         _tensor, _operations = DeviceManager.set_dtype_tensor(dtype, self.device)
-        self._data = TensorData(data, _tensor, _operations)
+        self._data: TensorData = TensorData(data, _tensor, _operations)
         self.ops = TensorOperations(_operations)
         # autograd related
-        self.requires_grad = requires_grad
+        self.parents: list[TensorData] = []
+        self.requires_grad: bool = requires_grad
         self.grad = None
         self.grad_fn = None
 
     @staticmethod
-    def create():
-        Tensor.__new__(Tensor)
-        pass
-
-    # this should be static
-    # allows caller to pipe in _data (C++ version of data)
-    def _init(self, data, device = None, dtype = None, ops = None, requires_grad = None):
+    def create(data, device: str, dtype: str, ops, requires_grad=False):
         result = Tensor.__new__(Tensor)
-        result.device = self.device if device is None else device
-        result.dtype = self.dtype if dtype is None else dtype
-        result.ops = self.ops if ops is None else TensorOperations(ops)
+        result.device = device
+        result.dtype = dtype
+        result.ops = TensorOperations(ops)
         result._data = TensorData.create(data, result.ops)
-        result.requires_grad = self.requires_grad if requires_grad is None else requires_grad
+        result.requires_grad = requires_grad
         result.grad = None
         return result
 
-    # TODO: support partial slicing with
+    def _init(self, data):
+        result = Tensor.__new__(Tensor)
+        result.device = self.device
+        result.dtype = self.dtype
+        result.ops = self.ops
+        result._data = TensorData.create(data, result.ops)
+        result.requires_grad = self.requires_grad
+        result.grad = None
+        return result
+
+    # TODO: support partial slicing and return a tensor if sum(size) > 1
     def __getitem__(self, multi_dim_index):
         if not isinstance(multi_dim_index, (list, tuple)):
             multi_dim_index = [multi_dim_index]
@@ -66,7 +71,7 @@ class Tensor:
 
     # TODO: use keep dims and broadcast shape
     # note: this is a destructive operation
-    def sum(self, axes, keepdim = False):
+    def sum(self, axes: list[int], keepdim = False):
         if axes is None or axes == []:
             raise TypeError(f"Axes Cant be Null")
         if not isinstance(axes, list):
@@ -78,7 +83,7 @@ class Tensor:
         self._data.shape()[axis1], self._data.shape()[axis2] = self._data.shape()[axis2], self._data.shape()[axis1]
         self._data.stride()[axis1], self._data.stride()[axis2] = self._data.stride()[axis2], self._data.stride()[axis1]
 
-    def reshape(self, shape):
+    def reshape(self, shape: list[int]):
         if ShapeUtils.product(shape) != ShapeUtils.product(self._data.shape()):
             raise TypeError(f"original dimension ({self._data.shape()}) product != proposed ({shape})")
 
@@ -97,13 +102,13 @@ class Tensor:
             (_data, _backward) = self.ops.add(self, other)
             res = self._init(_data)
             res.grad_fn = _backward
-            res.parents = [self, other]
+            res.parents = [self._data, other._data]
             return res
         elif isinstance(other, (int, float)):
             (_data, _backward) = self.ops.scalar_add(self, other)
             res = self._init(_data)
             res.grad_fn = _backward
-            res.parents = [self, other]
+            res.parents = [self._data]
             return res
         raise TypeError(f"Can't add Tensor of type {self.dtype} with {type(other)}")
 
@@ -111,13 +116,13 @@ class Tensor:
         if isinstance(other, Tensor):
             (_data, _backward) = self.ops.sub(self, other)
             res = self._init(_data)
-            res.parents = [self, other]
+            res.parents = [self._data, other._data]
             res.grad_fn = _backward
             return res
         elif isinstance(other, (int, float)):
             (_data, _backward) = self.ops.scalar_sub(self, other)
             res = self._init(_data)
-            res.parents = [self]
+            res.parents = [self._data]
             res.grad_fn = _backward
             return res
         raise TypeError(f"Can't subtract Tensor of type {self.dtype} with {type(other)}")
@@ -127,13 +132,13 @@ class Tensor:
             (_data, _backward) = self.ops.mul(self, other)
             res = self._init(_data)
             res.grad_fn = _backward
-            res.parents = [self, other]
+            res.parents = [self._data, other._data]
             return res
         elif isinstance(other, (int, float)):
             (_data, _backward) = self.ops.scalar_mul(self, other)
             res = self._init(_data)
             res.grad_fn = _backward
-            res.parents = [self]
+            res.parents = [self._data]
             return res
         raise TypeError(f"Can't multiply Tensor of type {self.dtype} with {type(other)}")
 
@@ -146,8 +151,7 @@ class Tensor:
 
     def __matmul__(self, other):
         if isinstance(other, Tensor):
-            new_shape = self._data.shape()[:-1] + other._data.shape()[1:]
-            return self._init(self.ops.matmul(self, other), new_shape)
+            return self._init(self.ops.matmul(self, other))
         raise TypeError(f"Can't divide Tensor of type {self.dtype} with {type(other)}")
 
     def __pow__(self, other):

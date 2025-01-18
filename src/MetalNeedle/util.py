@@ -6,7 +6,7 @@ class ShapeUtils:
         return [item for sublist in array for item in (ShapeUtils.flatten(sublist) if isinstance(sublist, list) else [sublist])]
 
     @staticmethod
-    def get_shape(data):
+    def get_shape(data) -> list[int]:
         if isinstance(data, list):
             shape = []
             current_level = data

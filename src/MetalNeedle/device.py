@@ -4,22 +4,27 @@ import backend
 
 class DeviceManager:
     @staticmethod
-    def set_dtype_tensor(dtype, device):
-        # set backend device
+    def set_dtype_tensor(dtype: str, device: str):
+        # Validate device
         if device not in ["cpu", "mps"]:
             raise ValueError(f"device {device} is not supported")
-        curBackend = backend.cpu if device == "cpu" else backend.gpu
 
-        # put each behind a lambda for lazily evaluation
+        # Dynamically fetch backend attribute
+        curBackend = getattr(backend, device, None)
+        if curBackend is None:
+            raise AttributeError(f"backend does not have attribute {device}")
+
+        # Define backends with lazy evaluation
         backends = {
             "int32": lambda: (curBackend.IntTensor(), curBackend.IntOperation()),
             "int64": lambda: (curBackend.LongTensor(), curBackend.LongOperation()),
             "float32": lambda: (curBackend.FloatTensor(), curBackend.FloatOperation()),
-            "float64": lambda: (curBackend.DoubleTensor(), curBackend.DoubleOperation())
+            "float64": lambda: (curBackend.DoubleTensor(), curBackend.DoubleOperation()),
         }
 
         if dtype not in backends:
-            raise ValueError(f"Data type {dtype} is not supported")
+            raise ValueError(f"dtype {dtype} is not supported")
+
         return backends[dtype]()
 
     @staticmethod

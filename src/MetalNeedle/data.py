@@ -3,7 +3,7 @@ from .util import ShapeUtils
 
 
 class TensorData:
-    def __init__(self, data, _tensor, _operations):
+    def __init__(self, data: list[int], _tensor, _operations):
         _shape = ShapeUtils.get_shape(data)
         self.tensor = ShapeUtils.create_data_struct(_tensor, data, _shape)
         self.operations = _operations
