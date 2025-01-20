@@ -18,3 +18,9 @@ Inspired by taking the course 10-714, I am going to be porting needle to use met
   - [ ] support autograd with computation graphs
   - [ ] support metal or other gpu hardware
   - [ ] train first AI model (wavenet maybe?)
+
+## Data layout
+Tensor -> TensorData -> rawTensor -> data
+
+## Operations
+Tensor -> TensorOperations -> TensorData -> C++ operations on data
