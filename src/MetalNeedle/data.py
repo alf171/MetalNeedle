@@ -9,9 +9,9 @@ class TensorData:
         self.operations = _operations
 
     @staticmethod
-    def create(data, operations):
+    def create(rawTensor, operations):
         result = TensorData.__new__(TensorData)
-        result.rawTensor = data
+        result.rawTensor = rawTensor
         result.operations = operations
         return result
 
@@ -38,41 +38,68 @@ class TensorData:
 
     def __add__(self, value):
         if DeviceManager.is_tensor(value):
-            return self.operations.ewise_add(self.rawTensor, value)
+            rawTensor = self.operations.ewise_add(self.rawTensor, value)
+            return TensorData.create(rawTensor, self.operations)
+        elif isinstance(value, TensorData):
+            rawTensor = self.operations.ewise_add(self.rawTensor, value.rawTensor)
+            return TensorData.create(rawTensor, self.operations)
         elif isinstance(value, (int, float)):
-            return self.operations.scalar_add(self.rawTensor, value)
+            rawTensor = self.operations.scalar_add(self.rawTensor, value)
+            return TensorData.create(rawTensor, self.operations)
         raise TypeError("invalid add")
 
     def __sub__(self, value):
         if DeviceManager.is_tensor(value):
-            return self.operations.ewise_sub(self.rawTensor, value)
+            rawTensor = self.operations.ewise_sub(self.rawTensor, value)
+            return TensorData.create(rawTensor, self.operations)
+        elif isinstance(value, TensorData):
+            rawTensor = self.operations.ewise_sub(self.rawTensor, value.rawTensor)
+            return TensorData.create(rawTensor, self.operations)
         elif isinstance(value, (int, float)):
-            return self.operations.scalar_sub(self.rawTensor, value)
+            rawTensor = self.operations.scalar_sub(self.rawTensor, value)
+            return TensorData.create(rawTensor, self.operations)
         raise TypeError("invalid sub")
 
     def __mul__(self, value):
         if DeviceManager.is_tensor(value):
-            return self.operations.ewise_mul(self.rawTensor, value)
+            rawTensor = self.operations.ewise_mul(self.rawTensor, value)
+            return TensorData.create(rawTensor, self.operations)
+        elif isinstance(value, TensorData):
+            rawTensor = self.operations.ewise_mul(self.rawTensor, value.rawTensor)
+            return TensorData.create(rawTensor, self.operations)
         elif isinstance(value, (int, float)):
-            return self.operations.scalar_mul(self.rawTensor, value)
+            rawTensor = self.operations.scalar_mul(self.rawTensor, value)
+            return TensorData.create(rawTensor, self.operations)
         raise TypeError("invalid mul")
 
     def __truediv__(self, value):
         if DeviceManager.is_tensor(value):
-            return self.operations.ewise_div(self.rawTensor, value)
+            rawTensor = self.operations.ewise_div(self.rawTensor, value)
+            return TensorData.create(rawTensor, self.operations)
+        elif isinstance(value, TensorData):
+            rawTensor = self.operations.ewise_div(self.rawTensor, value.rawTensor)
+            return TensorData.create(rawTensor, self.operations)
         elif isinstance(value, (int, float)):
-            return self.operations.scalar_div(self.rawTensor, value)
+            rawTensor = self.operations.scalar_div(self.rawTensor, value)
+            return TensorData.create(rawTensor, self.operations)
         raise TypeError("invalid div")
 
     def __pow__(self, value):
         if DeviceManager.is_tensor(value):
-            return self.operations.ewise_exp(self.rawTensor, value)
+            rawTensor = self.operations.ewise_exp(self.rawTensor, value)
+            return TensorData.create(rawTensor, self.operations)
+        elif isinstance(value, TensorData):
+            rawTensor = self.operations.ewise_exp(self.rawTensor, value.rawTensor)
+            return TensorData.create(rawTensor, self.operations)
         elif isinstance(value, (int, float)):
-            return self.operations.scalar_exp(self.rawTensor, value)
+            rawTensor = self.operations.scalar_exp(self.rawTensor, value)
+            return TensorData.create(rawTensor, self.operations)
         raise TypeError("invalid exp")
 
     def __matmul__(self, value):
-        return self.operations.mat_mul(self.rawTensor, value)
+        rawTensor = self.operations.mat_mul(self.rawTensor, value.rawTensor)
+        return TensorData.create(rawTensor, self.operations)
 
     def sum(self, axes):
-        return self.operations.sum(self.rawTensor, axes)
+        rawTensor = self.operations.sum(self.rawTensor, axes)
+        return TensorData.create(rawTensor, self.operations)

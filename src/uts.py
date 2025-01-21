@@ -1,7 +1,7 @@
-import sys
 import numpy as np
 import MetalNeedle
 
+# TODO: use pytest
 def ThreeByThreeMatMulCheck():
     x = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     y = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])

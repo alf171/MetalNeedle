@@ -20,7 +20,7 @@ Inspired by taking the course 10-714, I am going to be porting needle to use met
   - [ ] train first AI model (wavenet maybe?)
 
 ## Data layout
-Tensor -> TensorData -> rawTensor -> data
+Tensor -> TensorData -> rawTensor (C++ tensor) -> data
 
 ## Operations
 Tensor -> TensorOperations -> TensorData -> C++ operations on data
