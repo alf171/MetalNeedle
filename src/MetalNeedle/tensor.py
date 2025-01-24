@@ -10,7 +10,7 @@ class Tensor:
         # TODO: try to deprecate these fields
         self._tensor, self._operations = DeviceManager.set_dtype_tensor(self.dtype, self.device)
         self.tensorData: TensorData = TensorData(data, self._tensor, self._operations)
-        self.ops = TensorOperations(self._operations)
+        self.ops = TensorOperations
         # autograd related
         self.parents: list[TensorData] = []
         self.requires_grad: bool = requires_grad
@@ -23,7 +23,7 @@ class Tensor:
         result.device = device
         result.dtype = dtype
         result._tensor, result._operations = DeviceManager.set_dtype_tensor(dtype, device)
-        result.ops = TensorOperations(ops)
+        result.ops = TensorOperations
         result.tensorData = TensorData.create(data, ops)
         result.requires_grad = requires_grad
         result.grad = None
@@ -70,23 +70,14 @@ class Tensor:
         if len(indices) == 1:
             return get_item(indices[0])
 
-        # TODO: reshape back to original shape
-        # could also consider returning back a Tensor
+        # could also consider returning back a Tensor if sum(tensor.size()) > 1
         return [get_item(index) for index in indices]
 
-    # TODO: use keep dims and broadcast shape
-    # note: this is a destructive operation
-    def sum(self, axes: list[int], keepdim = False):
-        if axes is None or axes == []:
-            raise TypeError(f"Axes Cant be Null")
-        if not isinstance(axes, list):
-            axes = [axes]
+    def transpose(self):
+        self.swap(0, 1)
 
-        self.tensorData._init(self.ops.sum(self, axes))
-
-    def transpose(self, axis1=0, axis2=1):
-        self.tensorData.shape()[axis1], self.tensorData.shape()[axis2] = self.tensorData.shape()[axis2], self.tensorData.shape()[axis1]
-        self.tensorData.stride()[axis1], self.tensorData.stride()[axis2] = self.tensorData.stride()[axis2], self.tensorData.stride()[axis1]
+    def swap(self, axis1, axis2):
+        self.ops.swap(self.tensorData, axis1, axis2)
 
     def reshape(self, shape: list[int]):
         if ShapeUtils.product(shape) != ShapeUtils.product(self.tensorData.shape()):
@@ -154,19 +145,41 @@ class Tensor:
             return res
         raise TypeError(f"Can't divide Tensor of type {self.dtype} with {type(other)}")
 
-    # TODO: use backward
     def __pow__(self, other):
         if isinstance(other, Tensor):
-            return self._init(self.ops.exp(self, other))
+            (tensorData, _backward) = self.ops.exp(self, other)
+            res = self._init(tensorData, _backward)
+            res.parents = [self.tensorData, other.tensorData]
+            return res
         if isinstance(other, (int, float)):
-            return self._init(self.ops.scalar_exp(self, other))
+            (tensorData, _backward) = self.ops.scalar_exp(self, other)
+            res = self._init(tensorData, _backward)
+            res.parents = [self.tensorData]
+            return res
         raise TypeError(f"Can't exponentiate Tensor of type {self.dtype} with {type(other)}")
 
-    # TODO: use backward
     def __matmul__(self, other):
         if isinstance(other, Tensor):
-            return self._init(self.ops.matmul(self, other))
+            (tensorData, _backward) = self.ops.matmul(self, other)
+            res = self._init(tensorData, _backward)
+            res.parents = [self.tensorData, other.tensorData]
+            return res
+
         raise TypeError(f"Can't divide Tensor of type {self.dtype} with {type(other)}")
+
+    # TODO: use backwards
+    # TODO: use keep dims and broadcast shape
+    # note: this is a destructive operation
+    def sum(self, axes: list[int], keepdim = False):
+        if axes is None or axes == []:
+            raise TypeError(f"Axes Cant be Null")
+        if not isinstance(axes, list):
+            axes = [axes]
+
+        (tensorData, _backward) = self.ops.sum(self, axes)
+        res = self._init(tensorData, _backward)
+        # do we need parents for this
+        return res
 
     def __str__(self):
         shape = ', '.join(str(x) for x in self.tensorData.shape())

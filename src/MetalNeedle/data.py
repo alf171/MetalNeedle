@@ -103,3 +103,7 @@ class TensorData:
     def sum(self, axes):
         rawTensor = self.operations.sum(self.rawTensor, axes)
         return TensorData.create(rawTensor, self.operations)
+
+    def swap(self, axis1, axis2):
+        self.rawTensor.shape[axis1], self.rawTensor.shape[axis2] = self.rawTensor.shape[axis2], self.rawTensor.shape[axis1]
+        self.rawTensor.stride[axis1], self.rawTensor.stride[axis2] = self.rawTensor.stride[axis2], self.rawTensor.stride[axis1]
