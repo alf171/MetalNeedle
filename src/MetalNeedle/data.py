@@ -7,6 +7,7 @@ class TensorData:
         _shape = ShapeUtils.get_shape(data)
         self.rawTensor = ShapeUtils.create_data_struct(_tensor, data, _shape)
         self.operations = _operations
+        self.tensor = _tensor
 
     @staticmethod
     def create(rawTensor, operations):
@@ -128,3 +129,6 @@ class TensorData:
     def swap(self, axis1, axis2):
         self.rawTensor.shape[axis1], self.rawTensor.shape[axis2] = self.rawTensor.shape[axis2], self.rawTensor.shape[axis1]
         self.rawTensor.stride[axis1], self.rawTensor.stride[axis2] = self.rawTensor.stride[axis2], self.rawTensor.stride[axis1]
+
+    def ones_like(self):
+        pass

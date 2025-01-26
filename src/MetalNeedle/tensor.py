@@ -18,13 +18,14 @@ class Tensor:
         self.grad_fn = None
 
     @staticmethod
-    def create(data, device: str, dtype: str, ops, requires_grad=False):
+    def create(data, device: str, dtype: str, _tensor, _ops, requires_grad=False):
         result = Tensor.__new__(Tensor)
         result.device = device
         result.dtype = dtype
-        result._tensor, result._operations = DeviceManager.set_dtype_tensor(dtype, device)
         result.ops = TensorOperations
-        result.tensorData = TensorData.create(data, ops)
+        result._tensor = _tensor
+        result._operations =  _ops
+        result.tensorData = TensorData.create(data, _ops)
         result.requires_grad = requires_grad
         result.grad = None
         return result
@@ -181,8 +182,7 @@ class Tensor:
         self.grad_fn = _backward
 
     def broadcast(self, newShape: list[int]):
-        (tensorData, _backward) = self.ops.broadcast(self.tensorData, newShape)
-        self.tensorData._init(tensorData)
+        _backward = self.ops.broadcast(self.tensorData, newShape)
         self.grad_fn = _backward
 
     def __str__(self):

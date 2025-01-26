@@ -125,7 +125,8 @@ class TensorOperations:
     @staticmethod
     def sum(tensor1, axes):
         def _backward(grad):
-            pass
+            if tensor1.requires_grad:
+                tensor1.grad = grad.broadcast(tensor1.tensorData.shape()) + (tensor1.grad or 0)
 
         tensorData = tensor1.tensorData.sum(axes)
         return (tensorData.rawTensor, _backward)
