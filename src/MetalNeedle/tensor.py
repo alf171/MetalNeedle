@@ -170,16 +170,20 @@ class Tensor:
     # TODO: use backwards
     # TODO: use keep dims and broadcast shape
     # note: this is a destructive operation
-    def sum(self, axes: list[int], keepdim = False):
+    def sum(self, axes: int or list[int], keepdim = False):
         if axes is None or axes == []:
             raise TypeError(f"Axes Cant be Null")
         if not isinstance(axes, list):
             axes = [axes]
 
         (tensorData, _backward) = self.ops.sum(self, axes)
-        res = self._init(tensorData, _backward)
-        # do we need parents for this
-        return res
+        self.tensorData._init(tensorData)
+        self.grad_fn = _backward
+
+    def broadcast(self, newShape: list[int]):
+        (tensorData, _backward) = self.ops.broadcast(self.tensorData, newShape)
+        self.tensorData._init(tensorData)
+        self.grad_fn = _backward
 
     def __str__(self):
         shape = ', '.join(str(x) for x in self.tensorData.shape())

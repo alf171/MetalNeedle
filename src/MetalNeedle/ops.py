@@ -139,3 +139,17 @@ class TensorOperations:
 
         tensor1.swap(axis1, axis2)
         return _backward
+
+    @staticmethod
+    # destructive operation
+    def broadcast(tensor1, newShape):
+        def _backward(grad):
+            if tensor1.requires_grad:
+                sum_dims = []
+                for i, (ts, ns) in enumerate(zip(tensor1.shape(), newShape)):
+                    if ts != ns:
+                        sum_dims.append(i)
+                tensor1.grad = grad.sum(sum_dims) + (tensor1.grad or 0)
+
+        tensor1.broadcast(newShape)
+        return _backward

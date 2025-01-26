@@ -100,7 +100,28 @@ class TensorData:
         rawTensor = self.operations.mat_mul(self.rawTensor, value.rawTensor)
         return TensorData.create(rawTensor, self.operations)
 
-    def sum(self, axes):
+    def broadcast(self, new_shape: list[int]):
+        current_shape = self.shape()[:]
+        new_stride = []
+        if len(current_shape) > len(new_shape):
+            raise ValueError("Cannot broadcast to smaller dimensions")
+
+        for i in range(1, len(new_shape) + 1):
+            curr_dim = current_shape[-i] if i <= len(current_shape) else 1
+            target_dim = new_shape[-i]
+
+            if curr_dim == 1 and target_dim > 1:
+                new_stride.insert(0, 0)
+            elif curr_dim == target_dim:
+                stride_item = self.stride()[-i]
+                new_stride.insert(0,  stride_item)
+            else:
+                raise ValueError(f"Incompatible broadcast: {curr_dim} to {target_dim}")
+
+        self.rawTensor.stride = new_stride
+        self.rawTensor.shape = new_shape
+
+    def sum(self, axes: list[int]):
         rawTensor = self.operations.sum(self.rawTensor, axes)
         return TensorData.create(rawTensor, self.operations)
 

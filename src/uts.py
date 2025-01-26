@@ -76,6 +76,17 @@ def SumOperation():
 
     print("Sum Operation passed!")
 
+def BroadcastOperation():
+    x1 = MetalNeedle.Tensor([1, 2, 3])
+    x1.reshape([1,3])
+    x1.broadcast([3,3])
+    for i in range(3):
+        assert(x1[i,0] == 1)
+        assert(x1[i,1] == 2)
+        assert (x1[i,2] == 3)
+
+    print("Broadcast Operation passed!")
+
 def ReshapeOperations():
     x = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     x.transpose()
@@ -114,5 +125,6 @@ ThreeByThreeMatMulCheck()
 ScalarOperations()
 SlicingOperations()
 SumOperation()
+BroadcastOperation()
 ReshapeOperations()
 Autograd()

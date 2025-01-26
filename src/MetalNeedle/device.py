@@ -33,4 +33,3 @@ class DeviceManager:
         # TODO: could have a slightly more robust tensor check :)
         pattern = r"<class 'backend\.cpu\..*'>"
         return bool(re.match(pattern, obj_type_str))
-
