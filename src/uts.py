@@ -101,7 +101,6 @@ def ReshapeOperations():
     assert(x[8,0] == 3)
     # print(x.tensorData.shape)
     x.transpose()
-    # TODO: fix the fact that self.tensorData.shape can't be changed from outside of C++ :/
     x.tensorData.shape()[0] = 3
     # print(x.tensorData.shape)
     # assert(x[0,8] == 3)
@@ -116,8 +115,10 @@ def Autograd():
 
     z = y * y
     z.grad_fn(4)
-    # y.grad.print()
 
+def test():
+    x = MetalNeedle.Tensor([1,2,3])
+    # print(x.tensorData.ones_like().data())
 
 
 # run UTs
@@ -128,3 +129,4 @@ SumOperation()
 BroadcastOperation()
 ReshapeOperations()
 Autograd()
+test()

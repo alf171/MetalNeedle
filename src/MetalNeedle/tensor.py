@@ -25,7 +25,7 @@ class Tensor:
         result.ops = TensorOperations
         result._tensor = _tensor
         result._operations =  _ops
-        result.tensorData = TensorData.create(data, _ops)
+        result.tensorData = TensorData.create(data, _tensor, _ops)
         result.requires_grad = requires_grad
         result.grad = None
         return result
@@ -37,7 +37,7 @@ class Tensor:
         result.ops = self.ops
         result._operations = self._operations
         result._tensor = self._tensor
-        result.tensorData = TensorData.create(data, self._operations)
+        result.tensorData = TensorData.create(data, self._tensor, self._operations)
         result.requires_grad = self.requires_grad
         result.grad_fn = _backward
         result.grad = None

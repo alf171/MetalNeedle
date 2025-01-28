@@ -120,8 +120,6 @@ class TensorOperations:
         tensorData = tensor1.tensorData @ tensor2.tensorData
         return (tensorData.rawTensor, _backward)
 
-    # TODO: add grad
-    # we need broadcasting for this
     @staticmethod
     def sum(tensor1, axes):
         def _backward(grad):
@@ -150,7 +148,7 @@ class TensorOperations:
                 for i, (ts, ns) in enumerate(zip(tensor1.shape(), newShape)):
                     if ts != ns:
                         sum_dims.append(i)
-                tensor1.grad = grad.sum(sum_dims) + (tensor1.grad or 0)
+                tensor1.grad = grad.ones_like().sum(sum_dims) + (tensor1.grad or 0)
 
         tensor1.broadcast(newShape)
         return _backward

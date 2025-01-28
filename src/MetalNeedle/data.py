@@ -10,9 +10,10 @@ class TensorData:
         self.tensor = _tensor
 
     @staticmethod
-    def create(rawTensor, operations):
+    def create(rawTensor, tensor, operations):
         result = TensorData.__new__(TensorData)
         result.rawTensor = rawTensor
+        result.tensor = tensor
         result.operations = operations
         return result
 
@@ -31,6 +32,9 @@ class TensorData:
     def setStride(self, shape):
         self.rawTensor.stride = shape
 
+    def data(self):
+        return self.rawTensor.data
+
     def __getitem__(self, index):
         return self.rawTensor.data[index]
 
@@ -40,66 +44,66 @@ class TensorData:
     def __add__(self, value):
         if DeviceManager.is_tensor(value):
             rawTensor = self.operations.ewise_add(self.rawTensor, value)
-            return TensorData.create(rawTensor, self.operations)
+            return TensorData.create(rawTensor, self.tensor, self.operations)
         elif isinstance(value, TensorData):
             rawTensor = self.operations.ewise_add(self.rawTensor, value.rawTensor)
-            return TensorData.create(rawTensor, self.operations)
+            return TensorData.create(rawTensor, self.tensor, self.operations)
         elif isinstance(value, (int, float)):
             rawTensor = self.operations.scalar_add(self.rawTensor, value)
-            return TensorData.create(rawTensor, self.operations)
+            return TensorData.create(rawTensor, self.tensor, self.operations)
         raise TypeError("invalid add")
 
     def __sub__(self, value):
         if DeviceManager.is_tensor(value):
             rawTensor = self.operations.ewise_sub(self.rawTensor, value)
-            return TensorData.create(rawTensor, self.operations)
+            return TensorData.create(rawTensor, self.tensor, self.operations)
         elif isinstance(value, TensorData):
             rawTensor = self.operations.ewise_sub(self.rawTensor, value.rawTensor)
-            return TensorData.create(rawTensor, self.operations)
+            return TensorData.create(rawTensor, self.tensor, self.operations)
         elif isinstance(value, (int, float)):
             rawTensor = self.operations.scalar_sub(self.rawTensor, value)
-            return TensorData.create(rawTensor, self.operations)
+            return TensorData.create(rawTensor, self.tensor, self.operations)
         raise TypeError("invalid sub")
 
     def __mul__(self, value):
         if DeviceManager.is_tensor(value):
             rawTensor = self.operations.ewise_mul(self.rawTensor, value)
-            return TensorData.create(rawTensor, self.operations)
+            return TensorData.create(rawTensor, self.tensor, self.operations)
         elif isinstance(value, TensorData):
             rawTensor = self.operations.ewise_mul(self.rawTensor, value.rawTensor)
-            return TensorData.create(rawTensor, self.operations)
+            return TensorData.create(rawTensor, self.tensor, self.operations)
         elif isinstance(value, (int, float)):
             rawTensor = self.operations.scalar_mul(self.rawTensor, value)
-            return TensorData.create(rawTensor, self.operations)
+            return TensorData.create(rawTensor, self.tensor, self.operations)
         raise TypeError("invalid mul")
 
     def __truediv__(self, value):
         if DeviceManager.is_tensor(value):
             rawTensor = self.operations.ewise_div(self.rawTensor, value)
-            return TensorData.create(rawTensor, self.operations)
+            return TensorData.create(rawTensor, self.tensor, self.operations)
         elif isinstance(value, TensorData):
             rawTensor = self.operations.ewise_div(self.rawTensor, value.rawTensor)
-            return TensorData.create(rawTensor, self.operations)
+            return TensorData.create(rawTensor, self.tensor, self.operations)
         elif isinstance(value, (int, float)):
             rawTensor = self.operations.scalar_div(self.rawTensor, value)
-            return TensorData.create(rawTensor, self.operations)
+            return TensorData.create(rawTensor, self.tensor, self.operations)
         raise TypeError("invalid div")
 
     def __pow__(self, value):
         if DeviceManager.is_tensor(value):
             rawTensor = self.operations.ewise_exp(self.rawTensor, value)
-            return TensorData.create(rawTensor, self.operations)
+            return TensorData.create(rawTensor, self.tensor, self.operations)
         elif isinstance(value, TensorData):
             rawTensor = self.operations.ewise_exp(self.rawTensor, value.rawTensor)
-            return TensorData.create(rawTensor, self.operations)
+            return TensorData.create(rawTensor, self.tensor, self.operations)
         elif isinstance(value, (int, float)):
             rawTensor = self.operations.scalar_exp(self.rawTensor, value)
-            return TensorData.create(rawTensor, self.operations)
+            return TensorData.create(rawTensor, self.tensor, self.operations)
         raise TypeError("invalid exp")
 
     def __matmul__(self, value):
         rawTensor = self.operations.mat_mul(self.rawTensor, value.rawTensor)
-        return TensorData.create(rawTensor, self.operations)
+        return TensorData.create(rawTensor, self.tensor, self.operations)
 
     def broadcast(self, new_shape: list[int]):
         current_shape = self.shape()[:]
@@ -124,11 +128,13 @@ class TensorData:
 
     def sum(self, axes: list[int]):
         rawTensor = self.operations.sum(self.rawTensor, axes)
-        return TensorData.create(rawTensor, self.operations)
+        return TensorData.create(rawTensor, self.operations, self.tensor)
 
     def swap(self, axis1, axis2):
         self.rawTensor.shape[axis1], self.rawTensor.shape[axis2] = self.rawTensor.shape[axis2], self.rawTensor.shape[axis1]
         self.rawTensor.stride[axis1], self.rawTensor.stride[axis2] = self.rawTensor.stride[axis2], self.rawTensor.stride[axis1]
 
     def ones_like(self):
-        pass
+        ones_data = self.tensor.create(self.shape(), 1)
+        _data = self.tensor.initialize(ones_data, self.shape())
+        return TensorData.create(_data, self.tensor, self.operations)
