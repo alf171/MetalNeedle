@@ -122,6 +122,7 @@ public:
 
         size_t e1_rows = e1.shape[0];
         size_t e1_cols = e1.shape[e1_last_dim];
+        size_t e2_rows = e2.shape[0];
         size_t e2_cols = e2.shape[e2_last_dim];
 
         // (m,n) @ (n,p) => (m,p)
@@ -129,11 +130,19 @@ public:
         std::vector<size_t> result_shape = {e1_rows, e2_cols};
         std::vector<T> result_data(e1_rows * e2_cols, 0);
 
+        // TODO: double check correctness
+        std::vector<T> e2_transposed(e2.data.size());
+        for (size_t i = 0; i < e2_rows; i++) {
+            for (size_t j = 0; j < e2_cols; j++) {
+                e2_transposed[j * e2_rows + i] = e2.data[i * e2_cols + j];
+            }
+        }
+
         if constexpr (std::is_same<T, float32_t>::value) {
             #pragma omp parallel for collapse(2) num_threads(NTHREADS) schedule(static)
             for(size_t block_x = 0; block_x < e1_rows; block_x += TILE) {
                 for(size_t block_y = 0; block_y < e2.shape[e2_last_dim]; block_y += TILE) {
-                    simd_tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1_cols, e2_cols, e1_rows);
+                    simd_tile_compute(e1.data, e2_transposed, result_data, block_x, block_y, e1_cols, e2_rows, e1_rows);
                 }
             }
         } else {
@@ -288,17 +297,21 @@ private:
         for (size_t i = 0; i < tile_height; i++) {
             for (size_t j = 0; j < tile_width; j++) {
                 T tmp_sum = 0;
-                float32x4_t acc = vdupq_n_f32(0.0);
+                float32x4_t acc1 = vdupq_n_f32(0.0);
+                float32x4_t acc2 = vdupq_n_f32(0.0);
 
                 size_t k = 0;
-                for (; k < e1_cols; k += 4) {
+                for (; k < e1_cols - 7; k += 8) {
                     size_t index_e1 = (block_x + i) * e1_cols + k;
                     size_t index_e2 = k * e2_cols + (block_y + j);
-                    float32x4_t e1_vec = vld1q_f32(&e1[index_e1]);
-                    float32x4_t e2_vec = vld1q_f32(&e2[index_e2]);
-                    acc = vmlaq_f32(acc, e1_vec, e2_vec);
+                    float32x4_t e1_vec1 = vld1q_f32(&e1[index_e1]);
+                    float32x4_t e1_vec2 = vld1q_f32(&e1[index_e1+4]);
+                    float32x4_t e2_vec1 = vld1q_f32(&e2[index_e2]);
+                    float32x4_t e2_vec2 = vld1q_f32(&e2[index_e2+4]);
+                    acc1 = vmlaq_f32(acc1, e1_vec1, e2_vec1);
+                    acc2 = vmlaq_f32(acc2, e1_vec2, e2_vec2);
                 }
-                tmp_sum = vaddvq_f32(acc);
+                tmp_sum = vaddvq_f32(acc1) + vaddvq_f32(acc2);
 
                 for (; k < e1_cols; k++) {
                     size_t index_e1 = (block_x + i) * e1_cols + k;
@@ -307,7 +320,7 @@ private:
                 }
 
                 size_t index_res = (block_x + i) * e2_cols + (block_y + j);
-                #pragma omp atomic
+//                #pragma omp atomic
                 res[index_res] += tmp_sum;
             }
         }

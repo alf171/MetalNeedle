@@ -1,10 +1,10 @@
 import time
-import Needle
+import MetalNeedle
 
 def benchmark(i):
     init_start_time = time.time()
-    x = Needle.randn(shape=[2048, 2048], mean=0, std=1, dtype="float32")
-    y = Needle.randn(shape=[2048, 2048], mean=0, std=1, dtype="float32")
+    x = MetalNeedle.randn(shape=[2048, 2048], mean=0, std=1, dtype="float32")
+    y = MetalNeedle.randn(shape=[2048, 2048], mean=0, std=1, dtype="float32")
     init_end_time = time.time()
 
     init_elapsed_time = init_end_time - init_start_time
@@ -18,7 +18,7 @@ def benchmark(i):
 
     return init_elapsed_time, mat_mul_elapsed_time
 
-i = 1
+i = 10
 init_time, mat_mul_time = benchmark(i)
 
 print(f"Init Time: {init_time:.6f} seconds")
