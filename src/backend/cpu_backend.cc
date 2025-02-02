@@ -130,29 +130,30 @@ public:
         std::vector<size_t> result_shape = {e1_rows, e2_cols};
         std::vector<T> result_data(e1_rows * e2_cols, 0);
 
-        // TODO: double check correctness
         std::vector<T> e2_transposed(e2.data.size());
+        #pragma omp parallel for collapse(2) schedule(static)
         for (size_t i = 0; i < e2_rows; i++) {
             for (size_t j = 0; j < e2_cols; j++) {
                 e2_transposed[j * e2_rows + i] = e2.data[i * e2_cols + j];
             }
         }
 
-        if constexpr (std::is_same<T, float32_t>::value) {
-            #pragma omp parallel for collapse(2) num_threads(NTHREADS) schedule(static)
-            for(size_t block_x = 0; block_x < e1_rows; block_x += TILE) {
-                for(size_t block_y = 0; block_y < e2.shape[e2_last_dim]; block_y += TILE) {
-                    simd_tile_compute(e1.data, e2_transposed, result_data, block_x, block_y, e1_cols, e2_rows, e1_rows);
-                }
-            }
-        } else {
-            #pragma omp parallel for collapse(2) schedule(static)
-            for(size_t block_x = 0; block_x < e1_rows; block_x += TILE) {
-                for(size_t block_y = 0; block_y < e2.shape[e2_last_dim]; block_y += TILE) {
-                    tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1_cols, e2_cols, e1_rows);
-                }
-            }
+//        if constexpr (std::is_same<T, float32_t>::value) {
+////            #pragma omp parallel for collapse(2) num_threads(NTHREADS) schedule(static)
+//            for(size_t block_x = 0; block_x < e1_rows; block_x += TILE) {
+//                for(size_t block_y = 0; block_y < e2_cols; block_y += TILE) {
+//                    simd_tile_compute(e1.data, e2_transposed, result_data,
+//                                        block_x, block_y, e1_cols, e2_rows, e1_rows);
+//                }
+//            }
+//        } else {
+    #pragma omp parallel for collapse(2) schedule(static)
+    for(size_t block_x = 0; block_x < e1_rows; block_x += TILE) {
+        for(size_t block_y = 0; block_y < e2.shape[e2_last_dim]; block_y += TILE) {
+            tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1_cols, e2_cols, e1_rows);
         }
+    }
+//    }
 
         Tensor<T> result_tensor = Tensor<T>::initialize(result_data, result_shape);
         return result_tensor;
@@ -290,7 +291,8 @@ private:
 
     // works exclusively for float32
     void simd_tile_compute(const std::vector<T>& e1, const std::vector<T>& e2, std::vector<T>& res,
-                      const size_t block_x, const size_t block_y, const size_t e1_cols, const size_t e2_cols, const size_t e1_rows) {
+                      const size_t block_x, const size_t block_y, const size_t e1_cols, const size_t e1_rows,
+                      const size_t e2_cols) {
         size_t tile_height = std::min(TILE, e1_rows - block_x);
         size_t tile_width = std::min(TILE, e2_cols - block_y);
 
@@ -305,8 +307,8 @@ private:
                     size_t index_e1 = (block_x + i) * e1_cols + k;
                     size_t index_e2 = k * e2_cols + (block_y + j);
                     float32x4_t e1_vec1 = vld1q_f32(&e1[index_e1]);
-                    float32x4_t e1_vec2 = vld1q_f32(&e1[index_e1+4]);
                     float32x4_t e2_vec1 = vld1q_f32(&e2[index_e2]);
+                    float32x4_t e1_vec2 = vld1q_f32(&e1[index_e1+4]);
                     float32x4_t e2_vec2 = vld1q_f32(&e2[index_e2+4]);
                     acc1 = vmlaq_f32(acc1, e1_vec1, e2_vec1);
                     acc2 = vmlaq_f32(acc2, e1_vec2, e2_vec2);
@@ -320,7 +322,6 @@ private:
                 }
 
                 size_t index_res = (block_x + i) * e2_cols + (block_y + j);
-//                #pragma omp atomic
                 res[index_res] += tmp_sum;
             }
         }

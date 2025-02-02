@@ -1,6 +1,5 @@
 import time
 import numpy as np
-# print(np.__config__.show())
 
 def benchmark(i):
     init_start_time = time.time()

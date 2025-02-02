@@ -43,6 +43,12 @@ class Tensor:
         result.grad = None
         return result
 
+    def shape(self):
+        return self.tensorData.rawTensor.shape
+
+    def data(self):
+        return self.tensorData.rawTensor.data
+
     # TODO: support partial slicing and return a tensor if sum(size) > 1
     def __getitem__(self, multi_dim_index):
         if not isinstance(multi_dim_index, (list, tuple)):
