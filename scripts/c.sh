@@ -1,4 +1,4 @@
-clang++ -O3 -march=native -ftree-vectorize -funroll-loops -flto \
+clang++ -arch arm64 -march=native -ftree-vectorize -funroll-loops -flto \
     -Wall -shared -std=c++23 -fPIC -frtti \
     -I/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/include/python3.13 \
     -I/opt/homebrew/lib/python3.13/site-packages/pybind11/include \
@@ -10,5 +10,5 @@ clang++ -O3 -march=native -ftree-vectorize -funroll-loops -flto \
     -Xpreprocessor -fopenmp \
     -lpython3.13 -lomp \
     -framework Metal -framework Foundation -framework MetalKit \
-    -o tmp/backend$(python3.13-config --extension-suffix) \
+    -stdlib=libc++ -fno-objc-arc -o tmp/backend$(python3.13-config --extension-suffix) \
     src/backend/bind.cc src/backend/cpu/backend.cc src/backend/metal/backend.cc

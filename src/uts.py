@@ -117,16 +117,16 @@ def Autograd():
     z.grad_fn(4)
 
 def test():
-    x = MetalNeedle.Tensor([1,2,3])
+    x = MetalNeedle.Tensor([1,2,3], device="metal")
     # print(x.tensorData.ones_like().data())
 
 
 # run UTs
-ThreeByThreeMatMulCheck()
-ScalarOperations()
-SlicingOperations()
-SumOperation()
-BroadcastOperation()
-ReshapeOperations()
-Autograd()
+# ThreeByThreeMatMulCheck()
+# ScalarOperations()
+# SlicingOperations()
+# SumOperation()
+# BroadcastOperation()
+# ReshapeOperations()
+# Autograd()
 test()

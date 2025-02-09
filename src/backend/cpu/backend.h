@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CPU_BACKEND_H
+#define CPU_BACKEND_H
 
 #include <algorithm>
 #include <chrono>
@@ -34,3 +35,5 @@ private:
 };
 
 void bind_cpu(py::module &m);
+
+#endif

@@ -326,7 +326,8 @@ private:
 
 template <typename T>
 void bind_operations(pybind11::module& m, const std::string& class_name) {
-    py::class_<CPUBackend<T>>(m, class_name.c_str())
+    py::class_<CPUBackend<T>>(m, (class_name + "_cpu").c_str())
+//    py::class_<CPUBackend<T>>(m, class_name.c_str())
         .def(py::init<>())
         .def("ewise_add", &CPUBackend<T>::ewise_add)
         .def("ewise_sub", &CPUBackend<T>::ewise_sub)
