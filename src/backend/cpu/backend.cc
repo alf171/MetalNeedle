@@ -11,10 +11,6 @@
 namespace py = pybind11;
 const size_t TILE = 128;
 
-#ifndef NTHREADS
-#define NTHREADS 16
-#endif
-
 template<typename T>
 class CPUBackend {
 public:
@@ -139,7 +135,7 @@ public:
         }
 
 //        if constexpr (std::is_same<T, float32_t>::value) {
-////            #pragma omp parallel for collapse(2) num_threads(NTHREADS) schedule(static)
+////            #pragma omp parallel for collapse(2) schedule(static)
 //            for(size_t block_x = 0; block_x < e1_rows; block_x += TILE) {
 //                for(size_t block_y = 0; block_y < e2_cols; block_y += TILE) {
 //                    simd_tile_compute(e1.data, e2_transposed, result_data,

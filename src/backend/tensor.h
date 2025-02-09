@@ -1,5 +1,4 @@
-#ifndef TENSOR_H
-#define TENSOR_H
+#pragma once
 
 #include <pybind11/pybind11.h>
 #include <vector>
@@ -29,5 +28,3 @@ template <typename T>
 void bind_tensor(pybind11::module& m, const std::string& class_name);
 
 #include "tensor.tpp"
-
-#endif // TENSOR_H

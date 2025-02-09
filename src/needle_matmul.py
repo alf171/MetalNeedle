@@ -2,16 +2,14 @@ import time
 import numpy as np
 import MetalNeedle
 
-TILE = 64
+TILE = 128
 def benchmark(i):
-    # Initialize random matrices
     init_start_time = time.time()
     x = MetalNeedle.randn(shape=[TILE, TILE], mean=0, std=1, dtype="float32")
     y = MetalNeedle.randn(shape=[TILE, TILE], mean=0, std=1, dtype="float32")
     init_end_time = time.time()
     init_elapsed_time = init_end_time - init_start_time
 
-    # Perform matrix multiplication using MetalNeedle
     mat_mul_start_time = time.time()
     for _ in range(i):
         z = x @ y
