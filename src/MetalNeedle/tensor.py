@@ -165,6 +165,12 @@ class Tensor:
             return res
         raise TypeError(f"Can't exponentiate Tensor of type {self.dtype} with {type(other)}")
 
+    def log(self):
+        (tensorData, _backward) = self.ops.scalar_log(self)
+        res = self._init(tensorData, _backward)
+        res.parents = [self.tensorData]
+        return res
+
     def __matmul__(self, other):
         if isinstance(other, Tensor):
             (tensorData, _backward) = self.ops.matmul(self, other)

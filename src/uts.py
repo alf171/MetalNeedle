@@ -1,5 +1,10 @@
 import numpy as np
+import math
 import MetalNeedle
+
+def assertAlmostEquals(value1, value2):
+    epsilon = 1e-5
+    assert(value1 - value2 < epsilon, f"Expected {value1}, got {value2}")
 
 # TODO: use pytest
 def ThreeByThreeMatMulCheck():
@@ -36,6 +41,9 @@ def ScalarOperations():
     z = (z / 2)
     assert(z[1,1] == 18)
     print("Scalar Operations passed!")
+
+    z = z.log()
+    assertAlmostEquals(z[1,1], math.log(18))
 
 def SlicingOperations():
     x1 = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
@@ -122,11 +130,11 @@ def test():
 
 
 # run UTs
-# ThreeByThreeMatMulCheck()
-# ScalarOperations()
-# SlicingOperations()
-# SumOperation()
-# BroadcastOperation()
-# ReshapeOperations()
-# Autograd()
-test()
+ThreeByThreeMatMulCheck()
+ScalarOperations()
+SlicingOperations()
+SumOperation()
+BroadcastOperation()
+ReshapeOperations()
+Autograd()
+# test()

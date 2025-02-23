@@ -5,5 +5,5 @@
 
 PYBIND11_MODULE(backend, m) {
     bind_cpu(m);
-    bind_metal(m);
+//    bind_metal(m);
 }

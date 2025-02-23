@@ -221,6 +221,19 @@ public:
     }
 
     /**
+     * description: result = log(tensor)
+     * input: tensor: Tensor
+     * output: result: Tensor
+    **/
+    Tensor<T> log(Tensor<T>& tensor) {
+        std::vector<T> result_data(tensor.data.size());
+        for(int i = 0; i < tensor.data.size(); i++) {
+            result_data[i] = std::log(tensor.data[i]);
+        }
+        return Tensor<T>::initialize(result_data, tensor.shape);
+    }
+
+    /**
      * description: sum across axes into a new matrix
      * input: tensor we are operating on
      * output: result: Tensor
@@ -326,8 +339,7 @@ private:
 
 template <typename T>
 void bind_operations(pybind11::module& m, const std::string& class_name) {
-    py::class_<CPUBackend<T>>(m, (class_name + "_cpu").c_str())
-//    py::class_<CPUBackend<T>>(m, class_name.c_str())
+    py::class_<CPUBackend<T>>(m, class_name.c_str())
         .def(py::init<>())
         .def("ewise_add", &CPUBackend<T>::ewise_add)
         .def("ewise_sub", &CPUBackend<T>::ewise_sub)
@@ -340,6 +352,7 @@ void bind_operations(pybind11::module& m, const std::string& class_name) {
         .def("scalar_mul", &CPUBackend<T>::scalar_mul)
         .def("scalar_div", &CPUBackend<T>::scalar_div)
         .def("scalar_exp", &CPUBackend<T>::scalar_exp)
+        .def("log", &CPUBackend<T>::log)
         .def("sum", &CPUBackend<T>::sum);
 }
 

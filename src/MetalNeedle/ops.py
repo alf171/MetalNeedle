@@ -108,6 +108,15 @@ class TensorOperations:
         tensorData = tensor1.tensorData ** value
         return (tensorData.rawTensor, _backward)
 
+    @staticmethod
+    def scalar_log(tensor1):
+        def _backward(grad):
+            if tensor1.requires_grad:
+                tensor1.grad = (grad / tensor1.tensorData) + (tensor1.grad or 0)
+
+        tensorData = tensor1.tensorData.log()
+        return (tensorData.rawTensor, _backward)
+
     # TODO: should be transposed
     @staticmethod
     def matmul(tensor1, tensor2):

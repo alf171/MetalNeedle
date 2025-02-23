@@ -28,6 +28,7 @@ public:
     Tensor<T> scalar_mul(Tensor<T>& tensor, T scalar);
     Tensor<T> scalar_div(Tensor<T>& tensor, T scalar);
     Tensor<T> scalar_exp(Tensor<T>& tensor, T scalar);
+    Tensor<T> log(Tensor<T>& tensor);
 
 private:
     void tile_compute(const std::vector<T>& e1, const std::vector<T>& e2, std::vector<T>& res,

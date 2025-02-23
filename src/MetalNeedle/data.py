@@ -101,6 +101,10 @@ class TensorData:
             return TensorData.create(rawTensor, self.tensor, self.operations)
         raise TypeError("invalid exp")
 
+    def log(self):
+        rawTensor = self.operations.ewise_log(self.rawTensor)
+        return TensorData.create(rawTensor, self.tensor, self.operations)
+
     def __matmul__(self, value):
         rawTensor = self.operations.mat_mul(self.rawTensor, value.rawTensor)
         return TensorData.create(rawTensor, self.tensor, self.operations)
