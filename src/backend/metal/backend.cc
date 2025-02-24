@@ -6,26 +6,79 @@
 #define MTL_PRIVATE_IMPLEMENTATION
 #define CA_PRIVATE_IMPLEMENTATION
 #include <Metal/Metal.hpp>
+#include <unistd.h>
 #include "backend.h"
 
 namespace py = pybind11;
 
+// Explicit instantiation of the static members for each type
 template<typename T>
-MetalBackend<T>::MetalBackend() {
-    device = MTL::CreateSystemDefaultDevice();
-    if (!device) {
-        std::cerr << "Failed to load device" << std::endl;
+MTL::Device* MetalBackend<T>::device = nullptr;
+
+template<typename T>
+MTL::CommandQueue* MetalBackend<T>::commandQueue = nullptr;
+
+template<typename T>
+MTL::Library* MetalBackend<T>::opLibrary = nullptr;
+
+// Explicit instantiation for the types you're using
+template class MetalBackend<int>;
+template class MetalBackend<float>;
+template class MetalBackend<double>;
+template class MetalBackend<long long>;
+
+template<typename T>
+auto copyToBuffer = [](MTL::Device* device, const std::vector<T>& data, const char* bufferName) -> MTL::Buffer* {
+    size_t byteSize = data.size() * sizeof(T);
+    std::cout << "Creating buffer for " << bufferName << " with size: " << byteSize << std::endl;
+    
+    MTL::Buffer* buffer = device->newBuffer(byteSize, MTL::ResourceStorageModeShared);
+    if (!buffer) {
+        std::cerr << "Error: Failed to create buffer for " << bufferName << "!" << std::endl;
         exit(1);
     }
-
-    commandQueue = device->newCommandQueue();
-
-    NS::Error* error = nullptr;
-    NS::String* shaderPath = NS::String::string("backend.metal", NS::UTF8StringEncoding);
-    opLibrary = device->newLibrary(shaderPath, nullptr, &error);
-    if (!opLibrary) {
-        std::cerr << "Failed to load Metal library: " << error->localizedDescription()->utf8String() << std::endl;
+    
+    void* contents = buffer->contents();
+    if (!contents) {
+        std::cerr << "Error: Failed to get contents for " << bufferName << " buffer!" << std::endl;
         exit(1);
+    }
+    
+    std::memcpy(contents, data.data(), byteSize);
+    return buffer;
+};
+
+template<typename T, typename BufferType>
+void metal_print(BufferType* buffer) {
+    T* data_buffer = static_cast<T*>(buffer->contents());
+    std::cout << "First few input values: " << std::endl;
+    for (int i = 0; i < 5; i++) {
+        std::cout << ", Buffer[" << i << "]: " << data_buffer[i] << std::endl;
+    }
+}
+
+template<typename T>
+MetalBackend<T>::MetalBackend() {
+    if (!device) {
+        device = MTL::CreateSystemDefaultDevice();
+        if (!device) {
+            std::cerr << "Failed to load device" << std::endl;
+            exit(1);
+        }
+        commandQueue = device->newCommandQueue();
+        if (!commandQueue) {
+            std::cerr << "Failed to create command queue" << std::endl;
+            exit(1);
+        }
+        NS::Error* error = nullptr;
+        auto filepath = NS::String::string("./tmp/metal_backend.metallib", NS::ASCIIStringEncoding);
+        opLibrary = device->newLibrary(filepath, &error);
+        if (!opLibrary) {
+            std::cerr << "Failed to load Metal library: " << error->localizedDescription()->utf8String() << std::endl;
+            exit(1);
+        } else {
+            std::cout << "Successfully loaded Metal library" << std::endl;
+        }
     }
 };
 
@@ -35,44 +88,57 @@ Tensor<T> MetalBackend<T>::ewise_add(Tensor<T>& e1, Tensor<T>& e2) {
         throw std::invalid_argument("Tensors must have same shapes for ewise operations");
     }
 
-    MTL::Buffer *buffer_e1 = device->newBuffer(e1.data.size() * sizeof(T), MTL::ResourceStorageModeShared);
-    std::memcpy(buffer_e1->contents(), e1.data.data(), e1.data.size() * sizeof(T));
-    MTL::Buffer *buffer_e2 = device->newBuffer(e2.data.size() * sizeof(T), MTL::ResourceStorageModeShared);
-    std::memcpy(buffer_e2->contents(), e2.data.data(), e2.data.size() * sizeof(T));
-
-    MTL::Buffer *buffer_res = device->newBuffer(e2.data.size(), MTL::ResourceStorageModeShared);
+    MTL::Buffer* buffer_e1 = copyToBuffer<T>(device, e1.data, "e1");
+    MTL::Buffer* buffer_e2 = copyToBuffer<T>(device, e2.data, "e2");
+    MTL::Buffer* buffer_res = copyToBuffer<T>(device, e2.data, "result");
+    metal_print<T>(buffer_e1);
+    metal_print<T>(buffer_e2);
 
     NS::Error* error = nullptr;
-    MTL::Function* computeFunction = opLibrary->newFunction(NS::String::string("metal_ewise_add", NS::UTF8StringEncoding));
+    auto str = NS::String::string("metal_ewise_add", NS::ASCIIStringEncoding);
+    MTL::Function* computeFunction = opLibrary->newFunction(str);
+    if (computeFunction == nullptr) {
+        std::cerr << "Failed to find function 'metal_ewise_add' in the Metal library" << std::endl;
+        exit(1);
+    }
+    
     MTL::ComputePipelineState* pipelineState = device->newComputePipelineState(computeFunction, &error);
+    computeFunction->release();
 
     if (error) {
         std::cerr << "Failed to create pipeline state: " << error->localizedDescription()->utf8String() << std::endl;
         exit(1);
     }
 
-    // Create command buffer and encoder
     MTL::CommandBuffer* commandBuffer = commandQueue->commandBuffer();
     MTL::ComputeCommandEncoder* encoder = commandBuffer->computeCommandEncoder();
 
-     // set the encoder for the fn call
-     encoder->setBuffer(buffer_e1, 0, 0);
-     encoder->setBuffer(buffer_e2, 1, 0);
-     encoder->setBuffer(buffer_res, 2, 0);
+    encoder->setComputePipelineState(pipelineState);
+    encoder->setBuffer(buffer_e1, 0, 0);
+    encoder->setBuffer(buffer_e2, 1, 0);
+    encoder->setBuffer(buffer_res, 2, 0);
 
-     // set the threading
-     MTL::Size gridSize(e1.data.size(), 1, 1);
-     MTL::Size threadgroupSize(64, 1, 1); // Assume a 64-thread block
-     encoder->dispatchThreads(gridSize, threadgroupSize);
+    MTL::Size gridSize(e1.data.size(), 1, 1);
+    MTL::Size threadgroupSize(64, 1, 1);
+    encoder->dispatchThreads(gridSize, threadgroupSize);
 
-     encoder->endEncoding();
-     commandBuffer->commit();
-     commandBuffer->waitUntilCompleted();
+    encoder->endEncoding();
+    commandBuffer->commit();
+    commandBuffer->waitUntilCompleted();
 
-     T* result_data = static_cast<T*>(buffer_res->contents());
-     std::vector<T> res(result_data, result_data + e1.data.size());
-     return Tensor<T>::initialize(res, e1.shape);
+    metal_print<T>(buffer_res);
+    std::vector<T> res(static_cast<T*>(buffer_res->contents()), 
+                      static_cast<T*>(buffer_res->contents()) + e1.data.size());
+
+    // Cleanup
+    buffer_e1->release();
+    buffer_e2->release();
+    buffer_res->release();
+    pipelineState->release();
+
+    return Tensor<T>::initialize(res, e1.shape);
 }
+
 
 //template<typename T>
 //void MetalAdder::sendComputeCommand() {

@@ -16,10 +16,9 @@ template<typename T>
 class MetalBackend {
 public:
     MetalBackend();
-    MTL::Device* device;
-    // The command queue used to pass commands to the device.
-    MTL::CommandQueue* commandQueue;
-    MTL::Library* opLibrary;
+    static MTL::Device* device;
+    static MTL::CommandQueue* commandQueue;
+    static MTL::Library* opLibrary;
     // operations
     Tensor<T> ewise_add(Tensor<T>& e1, Tensor<T>& e2);
 //    Tensor<T> ewise_sub(Tensor<T>& e1, Tensor<T>& e2);

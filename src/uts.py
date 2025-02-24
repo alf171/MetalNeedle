@@ -4,7 +4,7 @@ import MetalNeedle
 
 def assertAlmostEquals(value1, value2):
     epsilon = 1e-5
-    assert(value1 - value2 < epsilon, f"Expected {value1}, got {value2}")
+    assert(value1 - value2 < epsilon)
 
 # TODO: use pytest
 def ThreeByThreeMatMulCheck():
@@ -125,16 +125,21 @@ def Autograd():
     z.grad_fn(4)
 
 def test():
-    x = MetalNeedle.Tensor([1,2,3], device="metal")
+    x = MetalNeedle.ones([64, 64], device="metal", dtype='float32')
+    print(x[0,0])
+    y = MetalNeedle.ones([64, 64], device="metal", dtype='float32')
+    print(y[0,0])
+    z = x + y
+    print(z[0,0])
     # print(x.tensorData.ones_like().data())
 
 
 # run UTs
-ThreeByThreeMatMulCheck()
-ScalarOperations()
-SlicingOperations()
-SumOperation()
-BroadcastOperation()
-ReshapeOperations()
-Autograd()
-# test()
+# ThreeByThreeMatMulCheck()
+# ScalarOperations()
+# SlicingOperations()
+# SumOperation()
+# BroadcastOperation()
+# ReshapeOperations()
+# Autograd()
+test()

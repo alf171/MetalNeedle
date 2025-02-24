@@ -10,8 +10,6 @@ class DeviceManager:
             raise ValueError(f"device {device} is not supported")
 
         # Dynamically fetch backend attribute
-        print(dir(backend))
-        print(dir(backend.metal))
         curBackend = getattr(backend, device, None)
         if curBackend is None:
             raise AttributeError(f"backend does not have attribute {device}")

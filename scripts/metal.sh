@@ -1,2 +1,2 @@
-xcrun -sdk macosx metal -c src/backend/gpu_backend.metal -o tmp/gpu_backend.air
-xcrun -sdk macosx metallib tmp/gpu_backend.air -o tmp/gpu_backend.metallib
+xcrun -sdk macosx metal -c src/backend/metal/backend.metal -o tmp/metal_backend.air
+xcrun -sdk macosx metallib tmp/metal_backend.air -o tmp/metal_backend.metallib

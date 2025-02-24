@@ -2,6 +2,7 @@ tst/*
 cpu_backend.so.dSYM/*
 tmp/*
 .idea/*
+.vscode/*
 __pycache__/
 build/
 dist/
