@@ -123,23 +123,23 @@ def Autograd():
 
     z = y * y
     z.grad_fn(4)
+    print("Autograd passed!")
 
-def test():
+def MetalAddTest():
     x = MetalNeedle.ones([32, 32], device="metal", dtype='float32')
-    print(x[0,0])
     y = MetalNeedle.ones([32, 32], device="metal", dtype='float32')
-    print(y[0,0])
     z = x + y
-    print(z[0,0])
-    # print(x.tensorData.ones_like().data())
+    assert(z[15,2] == 2)
+    print("Metal add passed!")
 
 
 # run UTs
-# ThreeByThreeMatMulCheck()
-# ScalarOperations()
-# SlicingOperations()
-# SumOperation()
-# BroadcastOperation()
-# ReshapeOperations()
-# Autograd()
-test()
+if __name__ == "__main__":
+    ThreeByThreeMatMulCheck()
+    ScalarOperations()
+    SlicingOperations()
+    SumOperation()
+    BroadcastOperation()
+    ReshapeOperations()
+    Autograd()
+    MetalAddTest()

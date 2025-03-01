@@ -4,6 +4,6 @@
 #include "metal/backend.h"
 
 PYBIND11_MODULE(backend, m) {
-//    bind_cpu(m);
+    bind_cpu(m);
     bind_metal(m);
 }

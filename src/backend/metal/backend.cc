@@ -27,15 +27,6 @@ template class MetalBackend<float>;
 template class MetalBackend<double>;
 template class MetalBackend<long long>;
 
-template<typename T, typename BufferType>
-void metal_print(BufferType* buffer) {
-    T* data_buffer = static_cast<T*>(buffer->contents());
-    std::cout << "First few input values: " << std::endl;
-    for (int i = 0; i < 5; i++) {
-        std::cout << ", Buffer[" << i << "]: " << data_buffer[i] << std::endl;
-    }
-}
-
 template<typename T>
 MetalBackend<T>::MetalBackend() {
     if (!device) {
@@ -55,14 +46,12 @@ MetalBackend<T>::MetalBackend() {
         if (!opLibrary) {
             std::cerr << "Failed to load Metal library: " << error->localizedDescription()->utf8String() << std::endl;
             exit(1);
-        } else {
-            std::cout << "Successfully loaded Metal library" << std::endl;
         }
     }
 };
 
 template<typename T>
-Tensor<T> MetalBackend<T>::ewise_add(Tensor<T>& e1, Tensor<T>& e2) {
+MetalTensor<T> MetalBackend<T>::ewise_add(MetalTensor<T>& e1, MetalTensor<T>& e2) {
     if (e1.shape != e2.shape) {
         throw std::invalid_argument("Tensors must have same shapes for ewise operations");
     }
@@ -74,9 +63,6 @@ Tensor<T> MetalBackend<T>::ewise_add(Tensor<T>& e1, Tensor<T>& e2) {
     std::memcpy(buffer_e2->contents(), e2.data.data(), num_elements * sizeof(T));
 
     MTL::Buffer* buffer_res = device->newBuffer(num_elements * sizeof(T), MTL::ResourceStorageModeShared);
-
-    metal_print<T>(buffer_e1);
-    metal_print<T>(buffer_e2);
 
     NS::Error* error = nullptr;
     auto str = NS::String::string("metal_ewise_add", NS::ASCIIStringEncoding);
@@ -115,7 +101,6 @@ Tensor<T> MetalBackend<T>::ewise_add(Tensor<T>& e1, Tensor<T>& e2) {
     commandBuffer->commit();
     commandBuffer->waitUntilCompleted();
 
-    metal_print<T>(buffer_res);
     std::vector<T> res(static_cast<T*>(buffer_res->contents()), 
                       static_cast<T*>(buffer_res->contents()) + e1.data.size());
 
@@ -124,7 +109,7 @@ Tensor<T> MetalBackend<T>::ewise_add(Tensor<T>& e1, Tensor<T>& e2) {
     buffer_res->release();
     pipelineState->release();
 
-    return Tensor<T>::initialize(res, e1.shape);
+    return MetalTensor<T>::initialize(res, e1.shape);
 }
 
 
@@ -166,8 +151,8 @@ void bind_metal(py::module &m) {
     bind_metal_operations<float>(metal, "FloatOperation");
     bind_metal_operations<double>(metal, "DoubleOperation");
     // data
-    bind_tensor<int32_t>(metal, "IntTensor");
-    bind_tensor<int64_t>(metal, "LongTensor");
-    bind_tensor<float>(metal, "FloatTensor");
-    bind_tensor<double>(metal, "DoubleTensor");
+    bind_metal_tensor<int32_t>(metal, "IntTensor");
+    bind_metal_tensor<int64_t>(metal, "LongTensor");
+    bind_metal_tensor<float>(metal, "FloatTensor");
+    bind_metal_tensor<double>(metal, "DoubleTensor");
 }

@@ -3,7 +3,7 @@ clang++ -g -arch arm64 -march=native -ftree-vectorize -funroll-loops -flto \
     -I/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/include/python3.13 \
     -I/opt/homebrew/lib/python3.13/site-packages/pybind11/include \
     -I/opt/homebrew/opt/libomp/include \
-    -Isrc/backend \
+    -Isrc/backend/cpu \
     -I./metal-cpp \
     -L/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/lib \
     -L/opt/homebrew/opt/libomp/lib \
