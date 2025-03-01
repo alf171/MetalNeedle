@@ -125,9 +125,9 @@ def Autograd():
     z.grad_fn(4)
 
 def test():
-    x = MetalNeedle.ones([64, 64], device="metal", dtype='float32')
+    x = MetalNeedle.ones([32, 32], device="metal", dtype='float32')
     print(x[0,0])
-    y = MetalNeedle.ones([64, 64], device="metal", dtype='float32')
+    y = MetalNeedle.ones([32, 32], device="metal", dtype='float32')
     print(y[0,0])
     z = x + y
     print(z[0,0])

@@ -9,6 +9,10 @@ Inspired by taking the course 10-714, I am going to be porting needle to use met
   - [ ] compiler stuff?
   - [ ] multi device stuff (https://colossalai.org/docs/concepts/paradigms_of_parallelism/)
 
+## prereqs
+  - setup poetry and install dependencies
+  - currently use numpy, pytorch (for correctness and benchmarking), and pybind11 (for C++ support)
+
 ## Run instructions 
   - ./scripts/c.sh to setup pybind stuff
   - run ./scripts/setup.sh allows python to find Needle package

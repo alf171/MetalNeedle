@@ -27,27 +27,6 @@ template class MetalBackend<float>;
 template class MetalBackend<double>;
 template class MetalBackend<long long>;
 
-template<typename T>
-auto copyToBuffer = [](MTL::Device* device, const std::vector<T>& data, const char* bufferName) -> MTL::Buffer* {
-    size_t byteSize = data.size() * sizeof(T);
-    std::cout << "Creating buffer for " << bufferName << " with size: " << byteSize << std::endl;
-    
-    MTL::Buffer* buffer = device->newBuffer(byteSize, MTL::ResourceStorageModeShared);
-    if (!buffer) {
-        std::cerr << "Error: Failed to create buffer for " << bufferName << "!" << std::endl;
-        exit(1);
-    }
-    
-    void* contents = buffer->contents();
-    if (!contents) {
-        std::cerr << "Error: Failed to get contents for " << bufferName << " buffer!" << std::endl;
-        exit(1);
-    }
-    
-    std::memcpy(contents, data.data(), byteSize);
-    return buffer;
-};
-
 template<typename T, typename BufferType>
 void metal_print(BufferType* buffer) {
     T* data_buffer = static_cast<T*>(buffer->contents());
@@ -88,9 +67,14 @@ Tensor<T> MetalBackend<T>::ewise_add(Tensor<T>& e1, Tensor<T>& e2) {
         throw std::invalid_argument("Tensors must have same shapes for ewise operations");
     }
 
-    MTL::Buffer* buffer_e1 = copyToBuffer<T>(device, e1.data, "e1");
-    MTL::Buffer* buffer_e2 = copyToBuffer<T>(device, e2.data, "e2");
-    MTL::Buffer* buffer_res = copyToBuffer<T>(device, e2.data, "result");
+    size_t num_elements = e1.data.size();
+    MTL::Buffer* buffer_e1 = device->newBuffer(num_elements * sizeof(T), MTL::ResourceStorageModeShared);
+    MTL::Buffer* buffer_e2 = device->newBuffer(num_elements * sizeof(T), MTL::ResourceStorageModeShared);
+    std::memcpy(buffer_e1->contents(), e1.data.data(), num_elements * sizeof(T));
+    std::memcpy(buffer_e2->contents(), e2.data.data(), num_elements * sizeof(T));
+
+    MTL::Buffer* buffer_res = device->newBuffer(num_elements * sizeof(T), MTL::ResourceStorageModeShared);
+
     metal_print<T>(buffer_e1);
     metal_print<T>(buffer_e2);
 
@@ -101,7 +85,7 @@ Tensor<T> MetalBackend<T>::ewise_add(Tensor<T>& e1, Tensor<T>& e2) {
         std::cerr << "Failed to find function 'metal_ewise_add' in the Metal library" << std::endl;
         exit(1);
     }
-    
+
     MTL::ComputePipelineState* pipelineState = device->newComputePipelineState(computeFunction, &error);
     computeFunction->release();
 
@@ -115,14 +99,19 @@ Tensor<T> MetalBackend<T>::ewise_add(Tensor<T>& e1, Tensor<T>& e2) {
 
     encoder->setComputePipelineState(pipelineState);
     encoder->setBuffer(buffer_e1, 0, 0);
-    encoder->setBuffer(buffer_e2, 1, 0);
-    encoder->setBuffer(buffer_res, 2, 0);
+    encoder->setBuffer(buffer_e2, 0, 1);
+    encoder->setBuffer(buffer_res, 0, 2);
 
-    MTL::Size gridSize(e1.data.size(), 1, 1);
-    MTL::Size threadgroupSize(64, 1, 1);
-    encoder->dispatchThreads(gridSize, threadgroupSize);
+    MTL::Size gridSize = MTL::Size::Make(num_elements, 1, 1);
+    NS::UInteger threadGroupSize = pipelineState->maxTotalThreadsPerThreadgroup();
+    if (threadGroupSize > num_elements) {
+        threadGroupSize = num_elements;
+    }
+    MTL::Size safeThreadSize = MTL::Size::Make(threadGroupSize, 1, 1);
 
+    encoder->dispatchThreads(gridSize, safeThreadSize);
     encoder->endEncoding();
+
     commandBuffer->commit();
     commandBuffer->waitUntilCompleted();
 
@@ -130,7 +119,6 @@ Tensor<T> MetalBackend<T>::ewise_add(Tensor<T>& e1, Tensor<T>& e2) {
     std::vector<T> res(static_cast<T*>(buffer_res->contents()), 
                       static_cast<T*>(buffer_res->contents()) + e1.data.size());
 
-    // Cleanup
     buffer_e1->release();
     buffer_e2->release();
     buffer_res->release();
