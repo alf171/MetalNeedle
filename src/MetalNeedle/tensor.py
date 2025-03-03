@@ -12,7 +12,7 @@ class Tensor:
         self.tensorData: TensorData = TensorData(data, self._tensor, self._operations)
         self.ops = TensorOperations
         # autograd related
-        self.parents: list[TensorData] = []
+        self.parents: list[Tensor] = []
         self.requires_grad: bool = requires_grad
         self.grad = None
         self.grad_fn = None
@@ -28,6 +28,7 @@ class Tensor:
         result.tensorData = TensorData.create(data, _tensor, _ops)
         result.requires_grad = requires_grad
         result.grad = None
+        result.grad_fn = None
         return result
 
     def _init(self, data, _backward = None):
@@ -104,12 +105,12 @@ class Tensor:
         if isinstance(other, Tensor):
             (tensorData, _backward) = self.ops.add(self, other)
             res = self._init(tensorData, _backward)
-            res.parents = [self.tensorData, other.tensorData]
+            res.parents = [self, other]
             return res
         elif isinstance(other, (int, float)):
             (tensorData, _backward) = self.ops.scalar_add(self, other)
             res = self._init(tensorData, _backward)
-            res.parents = [self.tensorData]
+            res.parents = [self]
             return res
         raise TypeError(f"Can't add Tensor of type {self.dtype} with {type(other)}")
 
@@ -117,12 +118,12 @@ class Tensor:
         if isinstance(other, Tensor):
             (tensorData, _backward) = self.ops.sub(self, other)
             res = self._init(tensorData, _backward)
-            res.parents = [self.tensorData, other.tensorData]
+            res.parents = [self, other]
             return res
         elif isinstance(other, (int, float)):
             (tensorData, _backward) = self.ops.scalar_sub(self, other)
             res = self._init(tensorData, _backward)
-            res.parents = [self.tensorData]
+            res.parents = [self]
             return res
         raise TypeError(f"Can't subtract Tensor of type {self.dtype} with {type(other)}")
 
@@ -130,12 +131,12 @@ class Tensor:
         if isinstance(other, Tensor):
             (tensorData, _backward) = self.ops.mul(self, other)
             res = self._init(tensorData, _backward)
-            res.parents = [self.tensorData, other.tensorData]
+            res.parents = [self, other]
             return res
         elif isinstance(other, (int, float)):
             (tensorData, _backward) = self.ops.scalar_mul(self, other)
             res = self._init(tensorData, _backward)
-            res.parents = [self.tensorData]
+            res.parents = [self]
             return res
         raise TypeError(f"Can't multiply Tensor of type {self.dtype} with {type(other)}")
 
@@ -143,12 +144,12 @@ class Tensor:
         if isinstance(other, Tensor):
             (tensorData, _backward) = self.ops.div(self, other)
             res = self._init(tensorData, _backward)
-            res.parents = [self.tensorData, other.tensorData]
+            res.parents = [self, other]
             return res
         elif isinstance(other, (int, float)):
             (tensorData, _backward) = self.ops.scalar_div(self, other)
             res = self._init(tensorData, _backward)
-            res.parents = [self.tensorData]
+            res.parents = [self]
             return res
         raise TypeError(f"Can't divide Tensor of type {self.dtype} with {type(other)}")
 
@@ -156,26 +157,26 @@ class Tensor:
         if isinstance(other, Tensor):
             (tensorData, _backward) = self.ops.exp(self, other)
             res = self._init(tensorData, _backward)
-            res.parents = [self.tensorData, other.tensorData]
+            res.parents = [self, other]
             return res
         if isinstance(other, (int, float)):
             (tensorData, _backward) = self.ops.scalar_exp(self, other)
             res = self._init(tensorData, _backward)
-            res.parents = [self.tensorData]
+            res.parents = [self]
             return res
         raise TypeError(f"Can't exponentiate Tensor of type {self.dtype} with {type(other)}")
 
     def log(self):
         (tensorData, _backward) = self.ops.scalar_log(self)
         res = self._init(tensorData, _backward)
-        res.parents = [self.tensorData]
+        res.parents = [self]
         return res
 
     def __matmul__(self, other):
         if isinstance(other, Tensor):
             (tensorData, _backward) = self.ops.matmul(self, other)
             res = self._init(tensorData, _backward)
-            res.parents = [self.tensorData, other.tensorData]
+            res.parents = [self, other]
             return res
 
         raise TypeError(f"Can't divide Tensor of type {self.dtype} with {type(other)}")
@@ -196,6 +197,19 @@ class Tensor:
     def broadcast(self, newShape: list[int]):
         _backward = self.ops.broadcast(self.tensorData, newShape)
         self.grad_fn = _backward
+
+    def backward(self, grad=None):
+        if grad is None:
+            grad = self.tensorData.ones_like()
+
+        self.grad = grad if self.grad is None else self.grad + grad
+
+        if self.grad_fn is not None:
+            self.grad_fn(self.grad)
+
+        for parent in self.parents:
+            if hasattr(parent, 'requires_grad') and parent.requires_grad:
+                parent.backward(self.grad)
 
     def __str__(self):
         shape = ', '.join(str(x) for x in self.tensorData.shape())

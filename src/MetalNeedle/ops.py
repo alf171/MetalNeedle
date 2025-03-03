@@ -9,6 +9,7 @@ class TensorOperations:
         def _backward(grad):
             if tensor1.requires_grad:
                 tensor1.grad = grad + (tensor1.grad or 0)
+            # else condition handles identical tensors being added
             if tensor2.requires_grad:
                 tensor2.grad = grad + (tensor2.grad or 0)
 
@@ -48,6 +49,7 @@ class TensorOperations:
         def _backward(grad):
             if tensor1.requires_grad:
                 tensor1.grad = (tensor2.tensorData * grad) + (tensor1.grad or 0)
+            # else condition handles identical tensors being multiplied
             if tensor2.requires_grad:
                 tensor2.grad = (tensor1.tensorData * grad) + (tensor2.grad or 0)
 

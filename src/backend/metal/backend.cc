@@ -11,7 +11,6 @@
 
 namespace py = pybind11;
 
-// Explicit instantiation of the static members for each type
 template<typename T>
 MTL::Device* MetalBackend<T>::device = nullptr;
 

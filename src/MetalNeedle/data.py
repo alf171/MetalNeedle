@@ -36,7 +36,11 @@ class TensorData:
         return self.rawTensor.data
 
     def __getitem__(self, index):
-        return self.rawTensor.data[index]
+        if isinstance(index, int):
+            return self.rawTensor.data[index]
+        elif instance(index, List):
+            return self.mult_dim_to_flat_index(index)
+        raise TypeError("index must be a list or int")
 
     def mult_dim_to_flat_index(self, idx):
         return self.rawTensor.mult_dim_to_flat_index(idx)
@@ -102,7 +106,7 @@ class TensorData:
         raise TypeError("invalid exp")
 
     def log(self):
-        rawTensor = self.operations.ewise_log(self.rawTensor)
+        rawTensor = self.operations.log(self.rawTensor)
         return TensorData.create(rawTensor, self.tensor, self.operations)
 
     def __matmul__(self, value):
