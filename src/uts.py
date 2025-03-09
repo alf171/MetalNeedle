@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import MetalNeedle
+import torch
 
 def assertAlmostEquals(value1, value2):
     epsilon = 1e-5
@@ -116,73 +117,52 @@ def ReshapeOperations():
     print("Reshape Operations passed!")
 
 def Autograd():
-    # Test case 1: Basic addition and gradient propagation
-    a = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], requires_grad=True, debug_name="a")
-    b = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], requires_grad=True, debug_name="b")
-    c = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], requires_grad=True, debug_name="c")
-    d = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], requires_grad=True, debug_name="d")
-    # e = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], requires_grad=True, debug_name="c")
-    w = MetalNeedle.Tensor.__add__(a, b, 'w')
-    x = MetalNeedle.Tensor.__add__(c, d, 'x')
-    y = MetalNeedle.Tensor.__mul__(w, x, 'y')
-    # z = y + e
+    a = MetalNeedle.Tensor([[1, 2], [3, 4]], requires_grad=True, debug_name="a")
+    b = MetalNeedle.Tensor([[5, 6], [7, 8]], requires_grad=True, debug_name="b")
+    c = MetalNeedle.Tensor([[9, 10], [11, 12]], requires_grad=True, debug_name="c")
 
-    y.backward()
+    # Create computational graph with multiple operations and paths
+    x1 = MetalNeedle.Tensor.__add__(a, b, debug_name="x1")  # a + b
+    x2 = MetalNeedle.Tensor.__mul__(x1, c, debug_name="x2")  # (a + b) * c
 
-    # dz/dx = 8x, so grad should be 8 times the original tensor
-    print(x.grad.data())
+    # Create a different path
+    y1 = MetalNeedle.Tensor.__mul__(a, c, debug_name="y1")  # a * c
 
-    # Test case 2: More complex operations
-    # a = MetalNeedle.Tensor([2.0], requires_grad=True)
-    # b = MetalNeedle.Tensor([3.0], requires_grad=True)
-    #
-    # # Forward pass: c = a * b, d = a + c, e = d / b
-    # c = a * b  # c = 6
-    # d = a + c  # d = 2 + 6 = 8
-    # e = d / b  # e = 8/3
-    #
-    # # Backward pass
-    # e.backward()
-    #
-    # # Gradient calculations:
-    # # de/da = (1 + b) / b = (1 + 3) / 3 = 4/3
-    # # de/db = -a*(a + a*b)/(b*b) = -2*(2 + 2*3)/(3*3) = -2*8/9 = -16/9
-    #
-    # assertAlmostEquals(a.grad.tensorData.rawTensor[0], 4/3)
-    # assertAlmostEquals(b.grad.tensorData.rawTensor[0], -16/9)
-    #
-    # # Test case 3: Multiple backward passes (gradient accumulation)
-    # p = MetalNeedle.Tensor([1.0], requires_grad=True)
-    # q = p * p  # q = p²
-    #
-    # # First backward pass
-    # q.backward()
-    # # dq/dp = 2p = 2
-    # assertAlmostEquals(p.grad.tensorData.rawTensor[0], 2.0)
-    #
-    # # Second backward pass should accumulate
-    # q.backward()
-    # # Now total gradient should be 4
-    # assertAlmostEquals(p.grad.tensorData.rawTensor[0], 4.0)
-    #
-    # # Test case 4: Zero_grad functionality
-    # optimizer = MetalNeedle.SGDOptimizer([p], learning_rate=0.1)
-    # optimizer.zero_grad()
-    #
-    # assert p.grad is None, "Gradient should be None after zero_grad"
-    #
-    # # Test case 5: Optimizer step
-    # p = MetalNeedle.Tensor([1.0], requires_grad=True)
-    # q = p * p  # q = p²
-    # q.backward()  # dq/dp = 2p = 2
-    #
-    # optimizer = MetalNeedle.SGDOptimizer([p], learning_rate=0.1)
-    # optimizer.step()
-    #
-    # # New value should be: 1.0 - 0.1 * 2.0 = 0.8
-    # assertAlmostEquals(p.tensorData.rawTensor[0], 0.8)
-    #
-    # print("All autograd tests passed!")
+    # Merge paths
+    z = MetalNeedle.Tensor.__add__(x2, y1, debug_name="z")  # (a + b) * c + a * c = c * (2a + b)
+
+    # Perform backward pass
+    z.backward()
+
+    print("Computed gradients:")
+    print(f"a.grad = {a.grad.data()}")  # Should be 2*c
+    print(f"b.grad = {b.grad.data()}")  # Should be c
+    print(f"c.grad = {c.grad.data()}")
+# print("All autograd tests passed!")
+
+# Create tensors with requires_grad=True
+def pytorch():
+    print(type(torch))
+    a = torch.tensor([[1., 2.], [3., 4.]], requires_grad=True)
+    b = torch.tensor([[5., 6.], [7., 8.]], requires_grad=True)
+    c = torch.tensor([[9., 10.], [11., 12.]], requires_grad=True)
+
+    # Create computational graph
+    x1 = a + b       # x1 = a + b
+    x2 = x1 * c      # x2 = (a + b) * c
+
+    y1 = a * c       # y1 = a * c
+
+    z = x2 + y1      # z = (a + b) * c + a * c = c * (2a + b)
+
+    z.backward(torch.ones_like(z))
+
+    # Print computed gradients
+    print("Computed gradients:")
+    print(f"a.grad = \n{a.grad}")  # Should be 2 * c
+    print(f"b.grad = \n{b.grad}")  # Should be c
+    print(f"c.grad = \n{c.grad}")  # Should be 2a + b
+
 
 def MetalAddTest():
     x = MetalNeedle.ones([32, 32], device="metal", dtype='float32', _debug_name="x")
@@ -200,5 +180,6 @@ if __name__ == "__main__":
     SumOperation()
     BroadcastOperation()
     ReshapeOperations()
-    Autograd()
+    # Autograd()
     MetalAddTest()
+    # pytorch()

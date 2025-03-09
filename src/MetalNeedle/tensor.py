@@ -4,14 +4,13 @@ from .device import DeviceManager
 from .data import TensorData
 
 class Tensor:
-    def __init__(self, data, device="cpu", dtype="int32", requires_grad=False, debug_name=None):
+    def __init__(self, data, device="cpu", dtype="int32", requires_grad=False):
         self.device: str = device
         self.dtype: str = dtype
         # TODO: try to deprecate these fields
         self._tensor, self._operations = DeviceManager.set_dtype_tensor(self.dtype, self.device)
         self.tensorData: TensorData = TensorData(data, self._tensor, self._operations)
         self.ops = TensorOperations
-        self._debug_name = debug_name
         # autograd related
         self.parents: list[Tensor] = []
         self.requires_grad: bool = requires_grad
@@ -33,11 +32,11 @@ class Tensor:
             _tensor=backendTensor,
             _ops=backendOps,
             requires_grad=self.requires_grad,
-            _debug_name=f"{self._debug_name}_clone" if self._debug_name else "cloned_tensor"
+            _debug_name=f"{self._debug_name()}_clone" if self._debug_name else "cloned_tensor"
         )
 
     @staticmethod
-    def create(rawTensor, device: str, dtype: str, _tensor, _ops, requires_grad=False, _debug_name=None):
+    def create(rawTensor, device: str, dtype: str, _tensor, _ops, requires_grad=False):
         result = Tensor.__new__(Tensor)
         result.device = device
         result.dtype = dtype
@@ -48,10 +47,9 @@ class Tensor:
         result.requires_grad = requires_grad
         result.grad = None
         result.grad_fn = None
-        result._debug_name = _debug_name
         return result
 
-    def _init(self, data, _backward = None, debug_name = None):
+    def _init(self, data, _grad_fn = None):
         result = Tensor.__new__(Tensor)
         result.device = self.device
         result.dtype = self.dtype
@@ -60,9 +58,8 @@ class Tensor:
         result._tensor = self._tensor
         result.tensorData = data
         result.requires_grad = self.requires_grad
-        result.grad_fn = _backward
+        result.grad_fn = _grad_fn
         result.grad = None
-        result._debug_name = debug_name
         return result
 
     def shape(self):
@@ -70,6 +67,9 @@ class Tensor:
 
     def data(self):
         return self.tensorData.data()
+
+    def _debug_name(self):
+        return self.tensorData._debug_name
 
     # TODO: support partial slicing and return a tensor if sum(size) > 1
     def __getitem__(self, multi_dim_index):
@@ -121,82 +121,82 @@ class Tensor:
         self.tensorData.setShape(shape)
         self.tensorData.setStride(new_stride)
 
-    def __add__(self, other, _debug_name=None):
+    def __add__(self, other, debug_name=None):
         # do we not assert shape is same
         if isinstance(other, Tensor):
-            (tensorData, _backward) = self.ops.add(self, other)
-            res = self._init(tensorData, _backward, _debug_name)
+            (tensorData, _grad_fn) = self.ops.add(self, other)
+            res = self._init(tensorData, _grad_fn, debug_name)
             res.parents = [self, other]
             return res
         elif isinstance(other, (int, float)):
-            (tensorData, _backward) = self.ops.scalar_add(self, other)
-            res = self._init(tensorData, _backward)
+            (tensorData, _grad_fn) = self.ops.scalar_add(self, other)
+            res = self._init(tensorData, _grad_fn)
             res.parents = [self]
             return res
         raise TypeError(f"Can't add Tensor of type {self.dtype} with {type(other)}")
 
     def __sub__(self, other):
         if isinstance(other, Tensor):
-            (tensorData, _backward) = self.ops.sub(self, other)
-            res = self._init(tensorData, _backward)
+            (tensorData, _grad_fn) = self.ops.sub(self, other)
+            res = self._init(tensorData, _grad_fn)
             res.parents = [self, other]
             return res
         elif isinstance(other, (int, float)):
-            (tensorData, _backward) = self.ops.scalar_sub(self, other)
-            res = self._init(tensorData, _backward)
+            (tensorData, _grad_fn) = self.ops.scalar_sub(self, other)
+            res = self._init(tensorData, _grad_fn)
             res.parents = [self]
             return res
         raise TypeError(f"Can't subtract Tensor of type {self.dtype} with {type(other)}")
 
     def __mul__(self, other, debug_name=None):
         if isinstance(other, Tensor):
-            (tensorData, _backward) = self.ops.mul(self, other)
-            res = self._init(tensorData, _backward, debug_name)
+            (tensorData, _grad_fn) = self.ops.mul(self, other)
+            res = self._init(tensorData, _grad_fn, debug_name)
             res.parents = [self, other]
             return res
         elif isinstance(other, (int, float)):
-            (tensorData, _backward) = self.ops.scalar_mul(self, other)
-            res = self._init(tensorData, _backward, debug_name)
+            (tensorData, _grad_fn) = self.ops.scalar_mul(self, other)
+            res = self._init(tensorData, _grad_fn, debug_name)
             res.parents = [self]
             return res
         raise TypeError(f"Can't multiply Tensor of type {self.dtype} with {type(other)}")
 
     def __truediv__(self, other):
         if isinstance(other, Tensor):
-            (tensorData, _backward) = self.ops.div(self, other)
-            res = self._init(tensorData, _backward)
+            (tensorData, _grad_fn) = self.ops.div(self, other)
+            res = self._init(tensorData, _grad_fn)
             res.parents = [self, other]
             return res
         elif isinstance(other, (int, float)):
-            (tensorData, _backward) = self.ops.scalar_div(self, other)
-            res = self._init(tensorData, _backward)
+            (tensorData, _grad_fn) = self.ops.scalar_div(self, other)
+            res = self._init(tensorData, _grad_fn)
             res.parents = [self]
             return res
         raise TypeError(f"Can't divide Tensor of type {self.dtype} with {type(other)}")
 
     def __pow__(self, other):
         if isinstance(other, Tensor):
-            (tensorData, _backward) = self.ops.exp(self, other)
-            res = self._init(tensorData, _backward)
+            (tensorData, _grad_fn) = self.ops.exp(self, other)
+            res = self._init(tensorData, _grad_fn)
             res.parents = [self, other]
             return res
         if isinstance(other, (int, float)):
-            (tensorData, _backward) = self.ops.scalar_exp(self, other)
-            res = self._init(tensorData, _backward)
+            (tensorData, _grad_fn) = self.ops.scalar_exp(self, other)
+            res = self._init(tensorData, _grad_fn)
             res.parents = [self]
             return res
         raise TypeError(f"Can't exponentiate Tensor of type {self.dtype} with {type(other)}")
 
     def log(self):
-        (tensorData, _backward) = self.ops.scalar_log(self)
-        res = self._init(tensorData, _backward)
+        (tensorData, _grad_fn) = self.ops.scalar_log(self)
+        res = self._init(tensorData, _grad_fn)
         res.parents = [self]
         return res
 
     def __matmul__(self, other):
         if isinstance(other, Tensor):
-            (tensorData, _backward) = self.ops.matmul(self, other)
-            res = self._init(tensorData, _backward)
+            (tensorData, _grad_fn) = self.ops.matmul(self, other)
+            res = self._init(tensorData, _grad_fn)
             res.parents = [self, other]
             return res
 
@@ -209,38 +209,37 @@ class Tensor:
         if not isinstance(axes, list):
             axes = [axes]
 
-        (tensorData, _backward) = self.ops.sum(self, axes, keepdim)
+        (tensorData, _grad_fn) = self.ops.sum(self, axes, keepdim)
         self.tensorData._init(tensorData.rawTensor)
-        self.grad_fn = _backward
+        self.grad_fn =  _grad_fn
 
     def broadcast(self, newShape: list[int]):
-        _backward = self.ops.broadcast(self.tensorData, newShape)
-        self.grad_fn = _backward
+        _grad_fn = self.ops.broadcast(self.tensorData, newShape)
+        self.grad_fn = _grad_fn
 
     def backward(self, grad=None):
-        # print(f"[TENSOR BACKWARD] Starting backward for tensor with debug_name: {self._debug_name}")
+        print(f"[TENSOR BACKWARD] Starting backward for tensor with debug_name: {self._debug_name}")
 
         if grad is None:
             grad = self.tensorData.ones_like()
-            # print(f"[TENSOR BACKWARD] Created default gradient: {grad.data() if hasattr(grad, 'data') else grad}")
+            print(f"[TENSOR BACKWARD] Created default gradient: {grad.data() if hasattr(grad, 'data') else grad}")
         else:
-            pass
-            # print(f"[TENSOR BACKWARD] Received gradient: {grad.data() if hasattr(grad, 'data') else grad}")
+            print(f"[TENSOR BACKWARD] Received gradient: {grad.data() if hasattr(grad, 'data') else grad}")
 
-        # print(f"[TENSOR BACKWARD] Current grad: {self.grad.data() if self.grad is not None else None}")
+        print(f"[TENSOR BACKWARD] Current grad: {self.grad.data() if self.grad is not None else None}")
 
         self.grad = grad if self.grad is None else self.grad + grad
 
-        # print(f"[TENSOR BACKWARD] Updated grad: {self.grad.data() if self.grad is not None else None}")
+        print(f"[TENSOR BACKWARD] Updated grad: {self.grad.data() if self.grad is not None else None}")
 
         if self.grad_fn is not None:
-            # print(f"[TENSOR BACKWARD] Calling grad_fn")
+            print(f"[TENSOR BACKWARD] Calling grad_fn")
             self.grad_fn(self.grad)
-            # print(f"[TENSOR BACKWARD] After grad_fn call")
+            print(f"[TENSOR BACKWARD] After grad_fn call")
 
-        for i, parent in enumerate(self.parents):
-            if hasattr(parent, 'requires_grad') and parent.requires_grad:
-                # print(f"[TENSOR BACKWARD] Propagating to parent {i} with debug_name: {parent._debug_name}")
+        for parent in self.parents:
+            if hasattr(parent, 'backward') and hasattr(parent, 'requires_grad') and parent.requires_grad:
+                print(f"[TENSOR BACKWARD] Propagating to parent with debug_name: {parent._debug_name}")
                 parent.backward(self.grad)
 
     def __str__(self):

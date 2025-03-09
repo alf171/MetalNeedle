@@ -4,7 +4,7 @@ TENSOR_COUNTER = 0
 class TensorOperations:
     @staticmethod
     def add(tensor1: 'Tensor', tensor2: 'Tensor'):
-        def _backward(grad):
+        def grad_fn(grad):
             TensorOperations._log_before_grad("ADD", grad, tensor1, tensor2)
             if tensor1.requires_grad:
                 tensor1.grad = grad.clone() + (tensor1.grad or 0)
@@ -13,61 +13,64 @@ class TensorOperations:
             TensorOperations._log_after_grad("ADD", tensor1, tensor2)
 
         tensorData = tensor1.tensorData + tensor2.tensorData
-        return (tensorData, _backward)
+        return (tensorData, grad_fn)
 
     @staticmethod
     def scalar_add(tensor1, value):
-        def _backward(grad):
+        def grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.grad = grad + (tensor1.grad or 0)
 
         tensorData = tensor1.tensorData + value
-        return (tensorData, _backward)
+        return (tensorData, grad_fn)
 
     @staticmethod
     def sub(tensor1, tensor2):
-        def _backward(grad):
+        def grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.grad = grad + (tensor1.grad or 0)
             if tensor2.requires_grad:
                 tensor2.grad = (-1 * grad) + (tensor2.grad or 0)
 
         tensorData  = tensor1.tensorData - tensor2.tensorData
-        return (tensorData, _backward)
+        return (tensorData, grad_fn)
 
     @staticmethod
     def scalar_sub(tensor1, value):
-        def _backward(grad):
+        def grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.grad = grad + (tensor1.grad or 0)
         tensorData = tensor1.tensorData - value
-        return (tensorData, _backward)
+        return (tensorData, _grad_fn)
 
     @staticmethod
     def mul(tensor1, tensor2):
-        def _backward(grad):
-            TensorOperations._log_before_grad("MUL", grad, tensor1, tensor2)
+        def _grad_fn(grad):
+            # TensorOperations._log_before_grad("MUL", grad, tensor1, tensor2)
+            print("HERE!!!")
             if tensor1.requires_grad:
+                print(f"type1: {type(grad)}")
                 tensor1.grad = (tensor2.tensorData * grad.clone()) + (tensor1.grad or 0)
             if tensor2.requires_grad:
+                print(f"type2: {type(grad)}")
                 tensor2.grad = (tensor1.tensorData * grad.clone()) + (tensor2.grad or 0)
             TensorOperations._log_after_grad("MUL", tensor1, tensor2)
 
         tensorData = tensor1.tensorData * tensor2.tensorData
-        return (tensorData, _backward)
+        return (tensorData, _grad_fn)
 
     @staticmethod
     def scalar_mul(tensor1, value):
-        def _backward(grad):
+        def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.grad = (grad * value) + (tensor1.grad or 0)
 
         tensorData = tensor1.tensorData * value
-        return (tensorData, _backward)
+        return (tensorData, _grad_fn)
 
     @staticmethod
     def div(tensor1, tensor2):
-        def _backward(grad):
+        def _grad_fn(grad):
             # da(A/B) = 1/B
             if tensor1.requires_grad:
                 tensor1.grad = (grad / tensor2.tensorData) + (tensor1.grad or 0)
@@ -76,19 +79,19 @@ class TensorOperations:
                 tensor2.grad = (-grad * tensor1.tensorData) / (tensor2.tensorData ** 2) + (tensor1.grad or 0)
 
         tensorData = tensor1.tensorData / tensor2.tensorData
-        return (tensorData, _backward)
+        return (tensorData, _grad_fn)
 
     @staticmethod
     def scalar_div(tensor1, value):
-        def _backward(grad):
+        def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.grad = (grad / value) + (tensor1.grad or 0)
         tensorData = tensor1.tensorData / value
-        return (tensorData, _backward)
+        return (tensorData, _grad_fn)
 
     @staticmethod
     def exp(tensor1, tensor2):
-        def _backward(grad):
+        def _grad_fn(grad):
             # dx(x^y) = y * x^(y-1)
             if tensor1.requires_grad:
                 tensor1.grad = (grad * tensor2.tensorData * (tensor1.tensorData ** tensor2.tensorData)) + (tensor1.grad or 0)
@@ -98,62 +101,62 @@ class TensorOperations:
                 pass
 
         tensorData = tensor1.tensorData ** tensor2.tensorData
-        return (tensorData, _backward)
+        return (tensorData, _grad_fn)
 
 
     @staticmethod
     def scalar_exp(tensor1, value):
-        def _backward(grad):
+        def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.grad = (grad * (value * tensor1.tensorData ** (value-1))) + (tensor1.grad or 0)
 
         tensorData = tensor1.tensorData ** value
-        return (tensorData, _backward)
+        return (tensorData, _grad_fn)
 
     @staticmethod
     def scalar_log(tensor1):
-        def _backward(grad):
+        def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.grad = (grad / tensor1.tensorData) + (tensor1.grad or 0)
 
         tensorData = tensor1.tensorData.log()
-        return (tensorData, _backward)
+        return (tensorData, _grad_fn)
 
     # TODO: should be transposed
     @staticmethod
     def matmul(tensor1, tensor2):
-        def _backward(grad):
+        def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.grad = (tensor2.grad @ grad) + (tensor1.grad + 0)
             if tensor2.requires_grad:
                 tensor1.grad = (grad @ tensor1.grad) + (tensor1.grad + 0)
 
         tensorData = tensor1.tensorData @ tensor2.tensorData
-        return (tensorData, _backward)
+        return (tensorData, _grad_fn)
 
     @staticmethod
     def sum(tensor1, axes, keepDims):
-        def _backward(grad):
+        def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.grad = grad.broadcast(tensor1.tensorData.shape()) + (tensor1.grad or 0)
 
         tensorData = tensor1.tensorData.sum(axes, keepDims)
-        return (tensorData, _backward)
+        return (tensorData, _grad_fn)
 
-    # destructive so we only send _backwards back
+    # destructive so we only send grad_fn back
     @staticmethod
     def swap(tensor1, axis1, axis2):
-        def _backward(grad):
+        def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.grad = grad.swap(axis1, axis2) + (tensor1.grad or 0)
 
         tensor1.swap(axis1, axis2)
-        return _backward
+        return _grad_fn
 
     @staticmethod
     # destructive operation
     def broadcast(tensor1, newShape):
-        def _backward(grad):
+        def _grad_fn(grad):
             if tensor1.requires_grad:
                 sum_dims = []
                 for i, (ts, ns) in enumerate(zip(tensor1.shape(), newShape)):
@@ -162,11 +165,10 @@ class TensorOperations:
                 tensor1.grad = grad.ones_like().sum(sum_dims) + (tensor1.grad or 0)
 
         tensor1.broadcast(newShape)
-        return _backward
+        return _grad_fn
 
     @staticmethod
     def _log_before_grad(op, grad, tensor1, tensor2):
-        print(grad)
         # Log information about the incoming gradient
         print(f"[{op} BACKWARD] Gradient shape: {grad.shape() if hasattr(grad, 'shape') else 'scalar'}")
         print(f"[{op} BACKWARD] Gradient value: {grad.data() if hasattr(grad, 'data') else grad}")

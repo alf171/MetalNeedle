@@ -3,18 +3,20 @@ from .util import ShapeUtils
 
 
 class TensorData:
-    def __init__(self, data: list[int], _tensor, _operations):
+    def __init__(self, data: list[int], _tensor, _operations, debug_name=None):
         _shape = ShapeUtils.get_shape(data)
         self.rawTensor = ShapeUtils.create_data_struct(_tensor, data, _shape)
         self.operations = _operations
         self.tensor = _tensor
+        self._debug_name = debug_name
 
     @staticmethod
-    def create(rawTensor, tensor, operations):
+    def create(rawTensor, tensor, operations, debug_name=None):
         result = TensorData.__new__(TensorData)
         result.rawTensor = rawTensor
         result.tensor = tensor
         result.operations = operations
+        result.debug_name = debug_name
         return result
 
     def clone(self):
@@ -23,6 +25,7 @@ class TensorData:
         result.rawTensor = new_raw_tensor
         result.tensor = self.tensor
         result.operations = self.operations
+        result.debug_name = self._debug_name + "_clone" if self._debug_name is not None else "tensor_clone"
         return result
 
     def _init(self, tensor):
@@ -154,3 +157,4 @@ class TensorData:
         ones_data = self.tensor.create(self.shape(), 1)
         _data = self.tensor.initialize(ones_data, self.shape())
         return TensorData.create(_data, self.tensor, self.operations)
+
