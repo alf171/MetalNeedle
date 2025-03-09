@@ -15,7 +15,7 @@ class Tensor:
         # autograd related
         self.parents: list[Tensor] = []
         self.requires_grad: bool = requires_grad
-        self.grad = None
+        self.grad: TensorData or None = None
         self.grad_fn = None
 
     def clone(self):
@@ -26,10 +26,8 @@ class Tensor:
             Tensor: A new tensor with identical values but separate memory
         """
         backendTensor, backendOps = DeviceManager.set_dtype_tensor(self.dtype, self.device)
-        original_data = self.data()
-        new_data = backendTensor.initialize(original_data, self.shape())
         return Tensor.create(
-            rawTensor=new_data,
+            rawTensor=self.data.clone(),
             device=self.device,
             dtype=self.dtype,
             _tensor=backendTensor,
@@ -53,7 +51,7 @@ class Tensor:
         result._debug_name = _debug_name
         return result
 
-    def _init(self, data, _backward = None):
+    def _init(self, data, _backward = None, debug_name = None):
         result = Tensor.__new__(Tensor)
         result.device = self.device
         result.dtype = self.dtype
@@ -64,7 +62,7 @@ class Tensor:
         result.requires_grad = self.requires_grad
         result.grad_fn = _backward
         result.grad = None
-        result._debug_name = None
+        result._debug_name = debug_name
         return result
 
     def shape(self):
@@ -123,11 +121,11 @@ class Tensor:
         self.tensorData.setShape(shape)
         self.tensorData.setStride(new_stride)
 
-    def __add__(self, other):
+    def __add__(self, other, _debug_name=None):
         # do we not assert shape is same
         if isinstance(other, Tensor):
             (tensorData, _backward) = self.ops.add(self, other)
-            res = self._init(tensorData, _backward)
+            res = self._init(tensorData, _backward, _debug_name)
             res.parents = [self, other]
             return res
         elif isinstance(other, (int, float)):
@@ -150,15 +148,15 @@ class Tensor:
             return res
         raise TypeError(f"Can't subtract Tensor of type {self.dtype} with {type(other)}")
 
-    def __mul__(self, other):
+    def __mul__(self, other, debug_name=None):
         if isinstance(other, Tensor):
             (tensorData, _backward) = self.ops.mul(self, other)
-            res = self._init(tensorData, _backward)
+            res = self._init(tensorData, _backward, debug_name)
             res.parents = [self, other]
             return res
         elif isinstance(other, (int, float)):
             (tensorData, _backward) = self.ops.scalar_mul(self, other)
-            res = self._init(tensorData, _backward)
+            res = self._init(tensorData, _backward, debug_name)
             res.parents = [self]
             return res
         raise TypeError(f"Can't multiply Tensor of type {self.dtype} with {type(other)}")
@@ -232,6 +230,7 @@ class Tensor:
         # print(f"[TENSOR BACKWARD] Current grad: {self.grad.data() if self.grad is not None else None}")
 
         self.grad = grad if self.grad is None else self.grad + grad
+
         # print(f"[TENSOR BACKWARD] Updated grad: {self.grad.data() if self.grad is not None else None}")
 
         if self.grad_fn is not None:
@@ -243,13 +242,6 @@ class Tensor:
             if hasattr(parent, 'requires_grad') and parent.requires_grad:
                 # print(f"[TENSOR BACKWARD] Propagating to parent {i} with debug_name: {parent._debug_name}")
                 parent.backward(self.grad)
-            else:
-                pass
-                # If no grad_fn, we're at a leaf node or something went wrong
-                # print(f"[WARNING] No grad_fn for tensor with debug_name: {self._debug_name}")
-
-    def copy(self):
-        pass
 
     def __str__(self):
         shape = ', '.join(str(x) for x in self.tensorData.shape())

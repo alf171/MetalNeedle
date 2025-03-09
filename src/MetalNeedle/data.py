@@ -17,6 +17,14 @@ class TensorData:
         result.operations = operations
         return result
 
+    def clone(self):
+        new_raw_tensor = self.tensor.initialize(self.data(), self.shape())
+        result = TensorData.__new__(TensorData)
+        result.rawTensor = new_raw_tensor
+        result.tensor = self.tensor
+        result.operations = self.operations
+        return result
+
     def _init(self, tensor):
         self.rawTensor = tensor
 

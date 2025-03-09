@@ -5,13 +5,12 @@ class TensorOperations:
     @staticmethod
     def add(tensor1: 'Tensor', tensor2: 'Tensor'):
         def _backward(grad):
-            # TensorOperations._log_before_grad("ADD", grad, tensor1, tensor2)
+            TensorOperations._log_before_grad("ADD", grad, tensor1, tensor2)
             if tensor1.requires_grad:
-                tensor1.grad = grad + (tensor1.grad or 0)
-            # else condition handles identical tensors being added
+                tensor1.grad = grad.clone() + (tensor1.grad or 0)
             if tensor2.requires_grad:
-                tensor2.grad = grad + (tensor2.grad or 0)
-            # TensorOperations._log_after_grad("ADD", tensor1, tensor2)
+                tensor2.grad = grad.clone() + (tensor2.grad or 0)
+            TensorOperations._log_after_grad("ADD", tensor1, tensor2)
 
         tensorData = tensor1.tensorData + tensor2.tensorData
         return (tensorData, _backward)
@@ -47,13 +46,12 @@ class TensorOperations:
     @staticmethod
     def mul(tensor1, tensor2):
         def _backward(grad):
-            # TensorOperations._log_before_grad("MUL", grad, tensor1, tensor2)
+            TensorOperations._log_before_grad("MUL", grad, tensor1, tensor2)
             if tensor1.requires_grad:
-                tensor1.grad = (tensor2.tensorData * grad) #+ (tensor1.grad or 0)
-            # else condition handles identical tensors being multiplied
+                tensor1.grad = (tensor2.tensorData * grad.clone()) + (tensor1.grad or 0)
             if tensor2.requires_grad:
-                tensor2.grad = (tensor1.tensorData * grad.clone()) #+ (tensor2.grad or 0)
-            # TensorOperations._log_after_grad("MUL", tensor1, tensor2)
+                tensor2.grad = (tensor1.tensorData * grad.clone()) + (tensor2.grad or 0)
+            TensorOperations._log_after_grad("MUL", tensor1, tensor2)
 
         tensorData = tensor1.tensorData * tensor2.tensorData
         return (tensorData, _backward)
@@ -168,6 +166,7 @@ class TensorOperations:
 
     @staticmethod
     def _log_before_grad(op, grad, tensor1, tensor2):
+        print(grad)
         # Log information about the incoming gradient
         print(f"[{op} BACKWARD] Gradient shape: {grad.shape() if hasattr(grad, 'shape') else 'scalar'}")
         print(f"[{op} BACKWARD] Gradient value: {grad.data() if hasattr(grad, 'data') else grad}")

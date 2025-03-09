@@ -121,23 +121,16 @@ def Autograd():
     b = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], requires_grad=True, debug_name="b")
     c = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], requires_grad=True, debug_name="c")
     d = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], requires_grad=True, debug_name="d")
-    x = a + b  # y = 2x
-    y = c + d  # y = 2x
-    z = x * y  # z = 4x²
+    # e = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], requires_grad=True, debug_name="c")
+    w = MetalNeedle.Tensor.__add__(a, b, 'w')
+    x = MetalNeedle.Tensor.__add__(c, d, 'x')
+    y = MetalNeedle.Tensor.__mul__(w, x, 'y')
+    # z = y + e
 
-    z_clone = z.clone()
-    z += 1
-    print(z)
-    print(z_clone)
-    # z.backward()
+    y.backward()
 
     # dz/dx = 8x, so grad should be 8 times the original tensor
-    # print(a.grad.data())
-    # print(x.grad.data())
-    # print(x.grad)
-    # for i in range(3):
-    #     for j in range(3):
-    #         assertAlmostEquals(x.grad[3*i + j], expected_grad[i][j])
+    print(x.grad.data())
 
     # Test case 2: More complex operations
     # a = MetalNeedle.Tensor([2.0], requires_grad=True)
