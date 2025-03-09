@@ -134,8 +134,8 @@ class TensorData:
         self.rawTensor.stride = new_stride
         self.rawTensor.shape = new_shape
 
-    def sum(self, axes: list[int]):
-        _data = self.operations.sum(self.rawTensor, axes)
+    def sum(self, axes: list[int], keepDims):
+        _data = self.operations.sum(self.rawTensor, axes, keepDims)
         return TensorData.create(_data, self.tensor, self.operations)
 
     def swap(self, axis1, axis2):

@@ -4,29 +4,49 @@ from .device import DeviceManager
 from .data import TensorData
 
 class Tensor:
-    def __init__(self, data, device="cpu", dtype="int32", requires_grad=False, _debug_name=None):
+    def __init__(self, data, device="cpu", dtype="int32", requires_grad=False, debug_name=None):
         self.device: str = device
         self.dtype: str = dtype
         # TODO: try to deprecate these fields
         self._tensor, self._operations = DeviceManager.set_dtype_tensor(self.dtype, self.device)
         self.tensorData: TensorData = TensorData(data, self._tensor, self._operations)
         self.ops = TensorOperations
-        self._debug_name = _debug_name
+        self._debug_name = debug_name
         # autograd related
         self.parents: list[Tensor] = []
         self.requires_grad: bool = requires_grad
         self.grad = None
         self.grad_fn = None
 
+    def clone(self):
+        """
+        Creates a deep copy of the tensor with completely independent memory.
+
+        Returns:
+            Tensor: A new tensor with identical values but separate memory
+        """
+        backendTensor, backendOps = DeviceManager.set_dtype_tensor(self.dtype, self.device)
+        original_data = self.data()
+        new_data = backendTensor.initialize(original_data, self.shape())
+        return Tensor.create(
+            rawTensor=new_data,
+            device=self.device,
+            dtype=self.dtype,
+            _tensor=backendTensor,
+            _ops=backendOps,
+            requires_grad=self.requires_grad,
+            _debug_name=f"{self._debug_name}_clone" if self._debug_name else "cloned_tensor"
+        )
+
     @staticmethod
-    def create(data, device: str, dtype: str, _tensor, _ops, requires_grad=False, _debug_name=None):
+    def create(rawTensor, device: str, dtype: str, _tensor, _ops, requires_grad=False, _debug_name=None):
         result = Tensor.__new__(Tensor)
         result.device = device
         result.dtype = dtype
         result.ops = TensorOperations
         result._tensor = _tensor
         result._operations =  _ops
-        result.tensorData = TensorData.create(data, _tensor, _ops)
+        result.tensorData = TensorData.create(rawTensor, _tensor, _ops)
         result.requires_grad = requires_grad
         result.grad = None
         result.grad_fn = None
@@ -44,6 +64,7 @@ class Tensor:
         result.requires_grad = self.requires_grad
         result.grad_fn = _backward
         result.grad = None
+        result._debug_name = None
         return result
 
     def shape(self):
@@ -183,16 +204,14 @@ class Tensor:
 
         raise TypeError(f"Can't divide Tensor of type {self.dtype} with {type(other)}")
 
-    # TODO: use backwards
     # TODO: use keep dims and broadcast shape
-    # note: this is a destructive operation
     def sum(self, axes: int or list[int], keepdim = False):
         if axes is None or axes == []:
             raise TypeError(f"Axes Cant be Null")
         if not isinstance(axes, list):
             axes = [axes]
 
-        (tensorData, _backward) = self.ops.sum(self, axes)
+        (tensorData, _backward) = self.ops.sum(self, axes, keepdim)
         self.tensorData._init(tensorData.rawTensor)
         self.grad_fn = _backward
 
@@ -201,17 +220,36 @@ class Tensor:
         self.grad_fn = _backward
 
     def backward(self, grad=None):
+        # print(f"[TENSOR BACKWARD] Starting backward for tensor with debug_name: {self._debug_name}")
+
         if grad is None:
             grad = self.tensorData.ones_like()
+            # print(f"[TENSOR BACKWARD] Created default gradient: {grad.data() if hasattr(grad, 'data') else grad}")
+        else:
+            pass
+            # print(f"[TENSOR BACKWARD] Received gradient: {grad.data() if hasattr(grad, 'data') else grad}")
+
+        # print(f"[TENSOR BACKWARD] Current grad: {self.grad.data() if self.grad is not None else None}")
 
         self.grad = grad if self.grad is None else self.grad + grad
+        # print(f"[TENSOR BACKWARD] Updated grad: {self.grad.data() if self.grad is not None else None}")
 
         if self.grad_fn is not None:
+            # print(f"[TENSOR BACKWARD] Calling grad_fn")
             self.grad_fn(self.grad)
+            # print(f"[TENSOR BACKWARD] After grad_fn call")
 
-        for parent in self.parents:
+        for i, parent in enumerate(self.parents):
             if hasattr(parent, 'requires_grad') and parent.requires_grad:
+                # print(f"[TENSOR BACKWARD] Propagating to parent {i} with debug_name: {parent._debug_name}")
                 parent.backward(self.grad)
+            else:
+                pass
+                # If no grad_fn, we're at a leaf node or something went wrong
+                # print(f"[WARNING] No grad_fn for tensor with debug_name: {self._debug_name}")
+
+    def copy(self):
+        pass
 
     def __str__(self):
         shape = ', '.join(str(x) for x in self.tensorData.shape())

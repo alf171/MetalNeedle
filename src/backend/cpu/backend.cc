@@ -238,7 +238,7 @@ public:
      * input: tensor we are operating on
      * output: result: Tensor
     **/
-    Tensor<T> sum(Tensor<T>& tensor, std::vector<size_t> axes) {
+    Tensor<T> sum(Tensor<T>& tensor, std::vector<size_t> axes, bool keepDims) {
         std::vector<size_t> reduced_shape;
         size_t res_size = 1;
 
@@ -246,6 +246,8 @@ public:
             if (std::find(axes.begin(), axes.end(), idx) == axes.end()) {
                 reduced_shape.push_back(tensor.shape[idx]);
                 res_size *= tensor.shape[idx];
+            } else if (keepDims) {
+                reduced_shape.push_back(1);
             }
         }
 
@@ -266,6 +268,8 @@ public:
             for(size_t j = 0; j < (size_t)multi_dim.size(); j++) {
                 if(std::find(axes.begin(), axes.end(), j) == axes.end()) {
                     reduced_index.push_back(multi_dim[j]);
+                } else if(keepDims) {
+                    reduced_index.push_back(1);
                 }
             }
             size_t flat_index = reduced_all ? 0 : result.mult_dim_to_flat_index(reduced_index);
