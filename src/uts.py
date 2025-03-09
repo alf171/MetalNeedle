@@ -117,15 +117,18 @@ def ReshapeOperations():
 
 def Autograd():
     # Test case 1: Basic addition and gradient propagation
-    x = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], requires_grad=True)
-    y = x + x  # y = 2x
-    z = y * y  # z = 4x²
+    a = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], requires_grad=True)
+    b = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], requires_grad=True)
+    c = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], requires_grad=True)
+    d = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], requires_grad=True)
+    x = a + b  # y = 2x
+    y = c + d  # y = 2x
+    z = x * y  # z = 4x²
 
     z.backward()
 
     # dz/dx = 8x, so grad should be 8 times the original tensor
-    expected_grad = [[8, 16, 24], [32, 40, 48], [56, 64, 72]]
-    print(y.grad.data())
+    print(a.grad.data())
     print(x.grad.data())
     # print(x.grad)
     # for i in range(3):
@@ -185,8 +188,8 @@ def Autograd():
     # print("All autograd tests passed!")
 
 def MetalAddTest():
-    x = MetalNeedle.ones([32, 32], device="metal", dtype='float32')
-    y = MetalNeedle.ones([32, 32], device="metal", dtype='float32')
+    x = MetalNeedle.ones([32, 32], device="metal", dtype='float32', _debug_name="x")
+    y = MetalNeedle.ones([32, 32], device="metal", dtype='float32', _debug_name="y")
     z = x + y
     assert(z[15,2] == 2)
     print("Metal add passed!")

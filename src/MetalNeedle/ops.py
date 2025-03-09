@@ -1,20 +1,19 @@
-from .data import TensorData
-
 LAZY_MODE = False
 TENSOR_COUNTER = 0
 
 class TensorOperations:
     @staticmethod
-    def add(tensor1, tensor2):
+    def add(tensor1: 'Tensor', tensor2: 'Tensor'):
         def _backward(grad):
+            print(tensor1._debug_name)
             if tensor1.requires_grad:
-                tensor1.grad = grad + (tensor1.grad or 0)
+                tensor1.grad = grad #+ (tensor1.grad or 0)
             # else condition handles identical tensors being added
             if tensor2.requires_grad:
-                tensor2.grad = grad + (tensor2.grad or 0)
+                tensor2.grad = grad #+ (tensor2.grad or 0)
 
         tensorData = tensor1.tensorData + tensor2.tensorData
-        return (tensorData.rawTensor, _backward)
+        return (tensorData, _backward)
 
     @staticmethod
     def scalar_add(tensor1, value):
@@ -23,7 +22,7 @@ class TensorOperations:
                 tensor1.grad = grad + (tensor1.grad or 0)
 
         tensorData = tensor1.tensorData + value
-        return (tensorData.rawTensor, _backward)
+        return (tensorData, _backward)
 
     @staticmethod
     def sub(tensor1, tensor2):
@@ -34,7 +33,7 @@ class TensorOperations:
                 tensor2.grad = (-1 * grad) + (tensor2.grad or 0)
 
         tensorData  = tensor1.tensorData - tensor2.tensorData
-        return (tensorData.rawTensor, _backward)
+        return (tensorData, _backward)
 
     @staticmethod
     def scalar_sub(tensor1, value):
@@ -42,19 +41,19 @@ class TensorOperations:
             if tensor1.requires_grad:
                 tensor1.grad = grad + (tensor1.grad or 0)
         tensorData = tensor1.tensorData - value
-        return (tensorData.rawTensor, _backward)
+        return (tensorData, _backward)
 
     @staticmethod
     def mul(tensor1, tensor2):
         def _backward(grad):
             if tensor1.requires_grad:
-                tensor1.grad = (tensor2.tensorData * grad) + (tensor1.grad or 0)
+                tensor1.grad = (tensor2.tensorData * grad) #+ (tensor1.grad or 0)
             # else condition handles identical tensors being multiplied
             if tensor2.requires_grad:
-                tensor2.grad = (tensor1.tensorData * grad) + (tensor2.grad or 0)
+                tensor2.grad = (tensor1.tensorData * grad) #+ (tensor2.grad or 0)
 
         tensorData = tensor1.tensorData * tensor2.tensorData
-        return (tensorData.rawTensor, _backward)
+        return (tensorData, _backward)
 
     @staticmethod
     def scalar_mul(tensor1, value):
@@ -63,7 +62,7 @@ class TensorOperations:
                 tensor1.grad = (grad * value) + (tensor1.grad or 0)
 
         tensorData = tensor1.tensorData * value
-        return (tensorData.rawTensor, _backward)
+        return (tensorData, _backward)
 
     @staticmethod
     def div(tensor1, tensor2):
@@ -76,7 +75,7 @@ class TensorOperations:
                 tensor2.grad = (-grad * tensor1.tensorData) / (tensor2.tensorData ** 2) + (tensor1.grad or 0)
 
         tensorData = tensor1.tensorData / tensor2.tensorData
-        return (tensorData.rawTensor, _backward)
+        return (tensorData, _backward)
 
     @staticmethod
     def scalar_div(tensor1, value):
@@ -84,7 +83,7 @@ class TensorOperations:
             if tensor1.requires_grad:
                 tensor1.grad = (grad / value) + (tensor1.grad or 0)
         tensorData = tensor1.tensorData / value
-        return (tensorData.rawTensor, _backward)
+        return (tensorData, _backward)
 
     @staticmethod
     def exp(tensor1, tensor2):
@@ -98,7 +97,7 @@ class TensorOperations:
                 pass
 
         tensorData = tensor1.tensorData ** tensor2.tensorData
-        return (tensorData.rawTensor, _backward)
+        return (tensorData, _backward)
 
 
     @staticmethod
@@ -108,7 +107,7 @@ class TensorOperations:
                 tensor1.grad = (grad * (value * tensor1.tensorData ** (value-1))) + (tensor1.grad or 0)
 
         tensorData = tensor1.tensorData ** value
-        return (tensorData.rawTensor, _backward)
+        return (tensorData, _backward)
 
     @staticmethod
     def scalar_log(tensor1):
@@ -117,7 +116,7 @@ class TensorOperations:
                 tensor1.grad = (grad / tensor1.tensorData) + (tensor1.grad or 0)
 
         tensorData = tensor1.tensorData.log()
-        return (tensorData.rawTensor, _backward)
+        return (tensorData, _backward)
 
     # TODO: should be transposed
     @staticmethod
@@ -129,7 +128,7 @@ class TensorOperations:
                 tensor1.grad = (grad @ tensor1.grad) + (tensor1.grad + 0)
 
         tensorData = tensor1.tensorData @ tensor2.tensorData
-        return (tensorData.rawTensor, _backward)
+        return (tensorData, _backward)
 
     @staticmethod
     def sum(tensor1, axes):
@@ -138,7 +137,7 @@ class TensorOperations:
                 tensor1.grad = grad.broadcast(tensor1.tensorData.shape()) + (tensor1.grad or 0)
 
         tensorData = tensor1.tensorData.sum(axes)
-        return (tensorData.rawTensor, _backward)
+        return (tensorData, _backward)
 
     # destructive so we only send _backwards back
     @staticmethod

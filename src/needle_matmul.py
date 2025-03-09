@@ -19,8 +19,8 @@ def benchmark(i):
     return x, y, z, init_elapsed_time, mat_mul_elapsed_time
 
 def check_correctness(x, y, z):
-    x_np = np.array(x.tensorData.rawTensor.data, dtype=np.float32).reshape((TILE, TILE))
-    y_np = np.array(y.tensorData.rawTensor.data, dtype=np.float32).reshape((TILE, TILE))
+    x_np = np.array(x.tensorData.data(), dtype=np.float32).reshape((TILE, TILE))
+    y_np = np.array(y.tensorData.data(), dtype=np.float32).reshape((TILE, TILE))
     expected_z = np.dot(x_np, y_np)
 
     for i in range(TILE):

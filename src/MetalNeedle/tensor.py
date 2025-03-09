@@ -4,13 +4,14 @@ from .device import DeviceManager
 from .data import TensorData
 
 class Tensor:
-    def __init__(self, data, device="cpu", dtype="int32", requires_grad=False):
+    def __init__(self, data, device="cpu", dtype="int32", requires_grad=False, _debug_name=None):
         self.device: str = device
         self.dtype: str = dtype
         # TODO: try to deprecate these fields
         self._tensor, self._operations = DeviceManager.set_dtype_tensor(self.dtype, self.device)
         self.tensorData: TensorData = TensorData(data, self._tensor, self._operations)
         self.ops = TensorOperations
+        self._debug_name = _debug_name
         # autograd related
         self.parents: list[Tensor] = []
         self.requires_grad: bool = requires_grad
@@ -18,7 +19,7 @@ class Tensor:
         self.grad_fn = None
 
     @staticmethod
-    def create(data, device: str, dtype: str, _tensor, _ops, requires_grad=False):
+    def create(data, device: str, dtype: str, _tensor, _ops, requires_grad=False, _debug_name=None):
         result = Tensor.__new__(Tensor)
         result.device = device
         result.dtype = dtype
@@ -29,6 +30,7 @@ class Tensor:
         result.requires_grad = requires_grad
         result.grad = None
         result.grad_fn = None
+        result._debug_name = _debug_name
         return result
 
     def _init(self, data, _backward = None):
@@ -38,17 +40,17 @@ class Tensor:
         result.ops = self.ops
         result._operations = self._operations
         result._tensor = self._tensor
-        result.tensorData = TensorData.create(data, self._tensor, self._operations)
+        result.tensorData = data
         result.requires_grad = self.requires_grad
         result.grad_fn = _backward
         result.grad = None
         return result
 
     def shape(self):
-        return self.tensorData.rawTensor.shape
+        return self.tensorData.shape()
 
     def data(self):
-        return self.tensorData.rawTensor.data
+        return self.tensorData.data()
 
     # TODO: support partial slicing and return a tensor if sum(size) > 1
     def __getitem__(self, multi_dim_index):
@@ -191,7 +193,7 @@ class Tensor:
             axes = [axes]
 
         (tensorData, _backward) = self.ops.sum(self, axes)
-        self.tensorData._init(tensorData)
+        self.tensorData._init(tensorData.rawTensor)
         self.grad_fn = _backward
 
     def broadcast(self, newShape: list[int]):
