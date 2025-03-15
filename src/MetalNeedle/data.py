@@ -16,7 +16,7 @@ class TensorData:
         result.rawTensor = rawTensor
         result.tensor = tensor
         result.operations = operations
-        result.debug_name = debug_name
+        result._debug_name = debug_name
         return result
 
     def clone(self):
@@ -25,7 +25,8 @@ class TensorData:
         result.rawTensor = new_raw_tensor
         result.tensor = self.tensor
         result.operations = self.operations
-        result.debug_name = self._debug_name + "_clone" if self._debug_name is not None else "tensor_clone"
+        # TODO: it breaks when I do self._debug. must be passing in #{Tensor} instead of #{TensorData} somewhere
+        result._debug_name = self._debug_name + "_clone" if self._debug_name is not None else "tensor_clone"
         return result
 
     def _init(self, tensor):

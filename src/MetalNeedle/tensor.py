@@ -4,12 +4,12 @@ from .device import DeviceManager
 from .data import TensorData
 
 class Tensor:
-    def __init__(self, data, device="cpu", dtype="int32", requires_grad=False):
+    def __init__(self, data, device="cpu", dtype="int32", requires_grad=False, debug_name=None):
         self.device: str = device
         self.dtype: str = dtype
         # TODO: try to deprecate these fields
         self._tensor, self._operations = DeviceManager.set_dtype_tensor(self.dtype, self.device)
-        self.tensorData: TensorData = TensorData(data, self._tensor, self._operations)
+        self.tensorData: TensorData = TensorData(data, self._tensor, self._operations, debug_name)
         self.ops = TensorOperations
         # autograd related
         self.parents: list[Tensor] = []
@@ -49,7 +49,7 @@ class Tensor:
         result.grad_fn = None
         return result
 
-    def _init(self, data, _grad_fn = None):
+    def _init(self, data, _grad_fn = None, debug_name = None):
         result = Tensor.__new__(Tensor)
         result.device = self.device
         result.dtype = self.dtype
@@ -57,6 +57,7 @@ class Tensor:
         result._operations = self._operations
         result._tensor = self._tensor
         result.tensorData = data
+        result.tensorData.debug_name = debug_name
         result.requires_grad = self.requires_grad
         result.grad_fn = _grad_fn
         result.grad = None

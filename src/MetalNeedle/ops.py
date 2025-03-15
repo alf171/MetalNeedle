@@ -26,18 +26,18 @@ class TensorOperations:
 
     @staticmethod
     def sub(tensor1, tensor2):
-        def grad_fn(grad):
+        def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.grad = grad + (tensor1.grad or 0)
             if tensor2.requires_grad:
                 tensor2.grad = (-1 * grad) + (tensor2.grad or 0)
 
-        tensorData  = tensor1.tensorData - tensor2.tensorData
-        return (tensorData, grad_fn)
+        tensorData = tensor1.tensorData - tensor2.tensorData
+        return (tensorData, _grad_fn)
 
     @staticmethod
     def scalar_sub(tensor1, value):
-        def grad_fn(grad):
+        def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.grad = grad + (tensor1.grad or 0)
         tensorData = tensor1.tensorData - value
@@ -46,13 +46,10 @@ class TensorOperations:
     @staticmethod
     def mul(tensor1, tensor2):
         def _grad_fn(grad):
-            # TensorOperations._log_before_grad("MUL", grad, tensor1, tensor2)
-            print("HERE!!!")
+            TensorOperations._log_before_grad("MUL", grad, tensor1, tensor2)
             if tensor1.requires_grad:
-                print(f"type1: {type(grad)}")
                 tensor1.grad = (tensor2.tensorData * grad.clone()) + (tensor1.grad or 0)
             if tensor2.requires_grad:
-                print(f"type2: {type(grad)}")
                 tensor2.grad = (tensor1.tensorData * grad.clone()) + (tensor2.grad or 0)
             TensorOperations._log_after_grad("MUL", tensor1, tensor2)
 

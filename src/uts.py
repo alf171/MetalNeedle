@@ -136,13 +136,11 @@ def Autograd():
 
     print("Computed gradients:")
     print(f"a.grad = {a.grad.data()}")  # Should be 2*c
-    print(f"b.grad = {b.grad.data()}")  # Should be c
+    # print(f"b.grad = {b.grad.data()}")  # Should be c
     print(f"c.grad = {c.grad.data()}")
-# print("All autograd tests passed!")
+    # print("All autograd tests passed!")
 
-# Create tensors with requires_grad=True
 def pytorch():
-    print(type(torch))
     a = torch.tensor([[1., 2.], [3., 4.]], requires_grad=True)
     b = torch.tensor([[5., 6.], [7., 8.]], requires_grad=True)
     c = torch.tensor([[9., 10.], [11., 12.]], requires_grad=True)
@@ -155,7 +153,7 @@ def pytorch():
 
     z = x2 + y1      # z = (a + b) * c + a * c = c * (2a + b)
 
-    z.backward(torch.ones_like(z))
+    y1.backward(torch.ones_like(z))
 
     # Print computed gradients
     print("Computed gradients:")
@@ -174,12 +172,12 @@ def MetalAddTest():
 
 # run UTs
 if __name__ == "__main__":
-    ThreeByThreeMatMulCheck()
-    ScalarOperations()
-    SlicingOperations()
-    SumOperation()
-    BroadcastOperation()
-    ReshapeOperations()
-    # Autograd()
-    MetalAddTest()
+    # ThreeByThreeMatMulCheck()
+    # ScalarOperations()
+    # SlicingOperations()
+    # SumOperation()
+    # BroadcastOperation()
+    # ReshapeOperations()
+    Autograd()
+    # MetalAddTest()
     # pytorch()
