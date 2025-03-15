@@ -38,8 +38,8 @@ template<typename T>
 void Tensor<T>::print() const {
     std::cout << "Tensor Information:\n";
     std::cout << "Shape: [";
-    for (size_t i = 0; i < shape.size(); ++i) {
-        std::cout << shape[i] << (i < shape.size() - 1 ? ", " : "");
+    for (size_t i = 0; i < this->shape.size(); ++i) {
+        std::cout << this->shape[i] << (i < this->shape.size() - 1 ? ", " : "");
     }
     std::cout << "]\n";
 
@@ -65,11 +65,11 @@ std::vector<T> Tensor<T>::create(const std::vector<int>& size, T val) {
 
 template <typename T>
 void Tensor<T>::reshape(const std::vector<size_t>& new_shape) {
-    if (calculate_size(new_shape) != data.size()) {
+    if (calculate_size(new_shape) != this->data.size()) {
         throw std::invalid_argument("New shape must have the same number of elements.");
     }
-    shape = new_shape;
-    stride = calculate_stride(new_shape);
+    this->shape = new_shape;
+    this->stride = calculate_stride(new_shape);
 }
 
 // Make our array contiguous. Many matrix operation are implemented by manipulating
@@ -77,63 +77,62 @@ void Tensor<T>::reshape(const std::vector<size_t>& new_shape) {
 template<typename T>
 void Tensor<T>::compact() {
     size_t num_elements = 1;
-    for (size_t elem: shape) {
+    for (size_t elem: this->shape) {
         num_elements *= elem;
     }
     std::vector<T> new_data(num_elements);
     for (size_t i = 0; i < num_elements; ++i) {
         std::vector<size_t> multi_dim = flat_index_to_mult_dim(i);
         size_t source_index = mult_dim_to_flat_index(multi_dim);
-        new_data[i] = data[source_index];
+        new_data[i] = this->data[source_index];
     }
-    data = new_data;
-    stride = calculate_stride(shape);
-    offset = 0;
+    this->data = new_data;
+    this->stride = calculate_stride(shape);
+    this->offset = 0;
 }
 
 template<typename T>
-size_t Tensor<T>::calculate_size(const std::vector<size_t>& shape) {
+size_t Tensor<T>::calculate_size(const std::vector<size_t>& input_shape) {
     size_t r_size = 1;
-    for (size_t s : shape) {
+    for (size_t s : input_shape) {
         r_size *= s;
     }
     return r_size;
 }
 
 template<typename T>
-std::vector<size_t> Tensor<T>::calculate_stride(const std::vector<size_t>& shape) {
-    std::vector<size_t> stride(shape.size());
+std::vector<size_t> Tensor<T>::calculate_stride(const std::vector<size_t>& input_shape) {
+    std::vector<size_t> stride(input_shape.size());
     size_t product = 1;
-    for(int i = shape.size() - 1; i >= 0; --i) {
+    for(int i = input_shape.size() - 1; i >= 0; --i) {
         stride[i] = product;
-        product *= shape[i];
+        product *= input_shape[i];
     }
     return stride;
 }
 
 template<typename T>
 size_t Tensor<T>::mult_dim_to_flat_index(const std::vector<size_t>& dimension) const {
-    size_t result = offset;
-    for (int i = 0; i < shape.size(); i++) {
-        result += dimension[i] * stride[i];
+    size_t result = this->offset;
+    for (int i = 0; i < this->shape.size(); i++) {
+        result += dimension[i] * this->stride[i];
     }
     return result;
 }
 
 template<typename T>
 std::vector<size_t> Tensor<T>::flat_index_to_mult_dim(const size_t index) const {
-    std::vector<size_t> result(shape.size());
+    std::vector<size_t> result(this->shape.size());
     size_t current = index;
-    for(int i = shape.size() - 1; i >= 0; --i) {
-        result[i] = current % shape[i];
-        current /= shape[i];
+    for(int i = this->shape.size() - 1; i >= 0; --i) {
+        result[i] = current % this->shape[i];
+        current /= this->shape[i];
     }
     return result;
 }
 
 template<typename T>
 void Tensor<T>::swap(const size_t axis1, const size_t axis2) {
-    this->print();
     std::swap(this->shape[axis1], this->shape[axis2]);
     std::swap(this->stride[axis1], this->stride[axis2]);
 }
