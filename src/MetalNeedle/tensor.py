@@ -8,8 +8,7 @@ class Tensor:
         self.device: str = device
         self.dtype: str = dtype
         # TODO: try to deprecate these fields
-        self._tensor, self._operations = DeviceManager.set_dtype_tensor(self.dtype, self.device)
-        self.tensorData: TensorData = TensorData(data, self._tensor, self._operations, debug_name)
+        self.tensorData: TensorData = TensorData(data, dtype, device, debug_name)
         self.ops = TensorOperations
         # autograd related
         self.parents: list[Tensor] = []
@@ -26,7 +25,7 @@ class Tensor:
         """
         backendTensor, backendOps = DeviceManager.set_dtype_tensor(self.dtype, self.device)
         return Tensor.create(
-            rawTensor=self.data.clone(),
+            raw_tensor=self.data.clone(),
             device=self.device,
             dtype=self.dtype,
             _tensor=backendTensor,
@@ -36,14 +35,14 @@ class Tensor:
         )
 
     @staticmethod
-    def create(rawTensor, device: str, dtype: str, _tensor, _ops, requires_grad=False):
+    def create(raw_tensor, device: str, dtype: str, _tensor, _ops, requires_grad=False, debug_name=None):
         result = Tensor.__new__(Tensor)
         result.device = device
         result.dtype = dtype
         result.ops = TensorOperations
-        result._tensor = _tensor
-        result._operations =  _ops
-        result.tensorData = TensorData.create(rawTensor, _tensor, _ops)
+        # result._tensor = _tensor
+        # result._operations =  _ops
+        result.tensorData = TensorData.create(raw_tensor, _tensor, _ops)
         result.requires_grad = requires_grad
         result.grad = None
         result.grad_fn = None
@@ -54,8 +53,8 @@ class Tensor:
         result.device = self.device
         result.dtype = self.dtype
         result.ops = self.ops
-        result._operations = self._operations
-        result._tensor = self._tensor
+        # result._operations = self._operations
+        # result._tensor = self._tensor
         result.tensorData = data
         result.tensorData.debug_name = debug_name
         result.requires_grad = self.requires_grad
@@ -211,7 +210,7 @@ class Tensor:
             axes = [axes]
 
         (tensorData, _grad_fn) = self.ops.sum(self, axes, keepdim)
-        self.tensorData._init(tensorData.rawTensor)
+        self.tensorData._init(tensorData.raw_tensor)
         self.grad_fn =  _grad_fn
 
     def broadcast(self, newShape: list[int]):
@@ -219,7 +218,7 @@ class Tensor:
         self.grad_fn = _grad_fn
 
     def backward(self, grad=None):
-        print(f"[TENSOR BACKWARD] Starting backward for tensor with debug_name: {self._debug_name}")
+        print(f"[TENSOR BACKWARD] Starting backward for tensor with debug_name: {self._debug_name()}")
 
         if grad is None:
             grad = self.tensorData.ones_like()
@@ -240,7 +239,7 @@ class Tensor:
 
         for parent in self.parents:
             if hasattr(parent, 'backward') and hasattr(parent, 'requires_grad') and parent.requires_grad:
-                print(f"[TENSOR BACKWARD] Propagating to parent with debug_name: {parent._debug_name}")
+                print(f"[TENSOR BACKWARD] Propagating to parent with debug_name: {parent.tensorData._debug_name}")
                 parent.backward(self.grad)
 
     def __str__(self):

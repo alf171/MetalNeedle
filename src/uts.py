@@ -140,7 +140,7 @@ def Autograd():
     print(f"c.grad = {c.grad.data()}")
     # print("All autograd tests passed!")
 
-def pytorch():
+def Pytorch():
     a = torch.tensor([[1., 2.], [3., 4.]], requires_grad=True)
     b = torch.tensor([[5., 6.], [7., 8.]], requires_grad=True)
     c = torch.tensor([[9., 10.], [11., 12.]], requires_grad=True)
@@ -163,8 +163,8 @@ def pytorch():
 
 
 def MetalAddTest():
-    x = MetalNeedle.ones([32, 32], device="metal", dtype='float32', _debug_name="x")
-    y = MetalNeedle.ones([32, 32], device="metal", dtype='float32', _debug_name="y")
+    x = MetalNeedle.ones([32, 32], device="metal", dtype='float32', debug_name="x")
+    y = MetalNeedle.ones([32, 32], device="metal", dtype='float32', debug_name="y")
     z = x + y
     assert(z[15,2] == 2)
     print("Metal add passed!")
@@ -172,12 +172,12 @@ def MetalAddTest():
 
 # run UTs
 if __name__ == "__main__":
-    # ThreeByThreeMatMulCheck()
-    # ScalarOperations()
-    # SlicingOperations()
-    # SumOperation()
-    # BroadcastOperation()
-    # ReshapeOperations()
+    ThreeByThreeMatMulCheck()
+    ScalarOperations()
+    SlicingOperations()
+    SumOperation()
+    BroadcastOperation()
+    ReshapeOperations()
     Autograd()
-    # MetalAddTest()
-    # pytorch()
+    Pytorch()
+    MetalAddTest()
