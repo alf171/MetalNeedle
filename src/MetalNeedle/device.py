@@ -10,16 +10,16 @@ class DeviceManager:
             raise ValueError(f"device {device} is not supported")
 
         # Dynamically fetch backend attribute
-        curBackend = getattr(backend, device, None)
-        if curBackend is None:
+        cur_backend = getattr(backend, device, None)
+        if cur_backend is None:
             raise AttributeError(f"backend does not have attribute {device}")
 
         # Define backends with lazy evaluation
         backends = {
-            "int32": lambda: (curBackend.IntTensor(), curBackend.IntOperation()),
-            "int64": lambda: (curBackend.LongTensor(), curBackend.LongOperation()),
-            "float32": lambda: (curBackend.FloatTensor(), curBackend.FloatOperation()),
-            "float64": lambda: (curBackend.DoubleTensor(), curBackend.DoubleOperation()),
+            "int32": lambda: (cur_backend.IntTensor(), cur_backend.IntOperation()),
+            "int64": lambda: (cur_backend.LongTensor(), cur_backend.LongOperation()),
+            "float32": lambda: (cur_backend.FloatTensor(), cur_backend.FloatOperation()),
+            "float64": lambda: (cur_backend.DoubleTensor(), cur_backend.DoubleOperation()),
         }
 
         if dtype not in backends:

@@ -77,7 +77,7 @@ void Tensor<T>::reshape(const std::vector<size_t>& new_shape) {
 template<typename T>
 void Tensor<T>::compact() {
     size_t num_elements = 1;
-    for (size_t elem : shape) {
+    for (size_t elem: shape) {
         num_elements *= elem;
     }
     std::vector<T> new_data(num_elements);
@@ -131,6 +131,13 @@ std::vector<size_t> Tensor<T>::flat_index_to_mult_dim(const size_t index) const 
     return result;
 }
 
+template<typename T>
+void Tensor<T>::swap(const size_t axis1, const size_t axis2) {
+    this->print();
+    std::swap(this->shape[axis1], this->shape[axis2]);
+    std::swap(this->stride[axis1], this->stride[axis2]);
+}
+
 template <typename T>
 void bind_tensor(pybind11::module& m, const std::string& class_name) {
     pybind11::class_<Tensor<T>>(m, class_name.c_str())
@@ -146,5 +153,7 @@ void bind_tensor(pybind11::module& m, const std::string& class_name) {
         .def("print", &Tensor<T>::print)
         .def("compact", &Tensor<T>::compact, "Compact a Tensor")
         .def("reshape", &Tensor<T>::reshape, "Reshape a Tensor")
-        .def("mult_dim_to_flat_index", &Tensor<T>::mult_dim_to_flat_index);
+        .def("mult_dim_to_flat_index", &Tensor<T>::mult_dim_to_flat_index)
+        .def("swap", &Tensor<T>::swap, "swap shape and stride of a tensor",
+            pybind11::arg("axis1"), pybind11::arg("axis2"));
 }

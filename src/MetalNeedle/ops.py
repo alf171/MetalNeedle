@@ -147,7 +147,7 @@ class TensorOperations:
             if tensor1.requires_grad:
                 tensor1.grad = grad.swap(axis1, axis2) + (tensor1.grad or 0)
 
-        tensor1.swap(axis1, axis2)
+        tensor1.tensorData.swap(axis1, axis2)
         return _grad_fn
 
     @staticmethod

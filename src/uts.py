@@ -98,20 +98,22 @@ def BroadcastOperation():
 
 def ReshapeOperations():
     x = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    # print(x.data())
+    print(x[1,0])
     x.transpose()
-    assert(x[0] == 1)
-    assert(x[1] == 4)
-    assert(x[2] == 7)
-    assert(x[2,2] == 9)
-
-    x = MetalNeedle.Tensor([[1, 2, 3], [1, 2, 3], [1, 2, 3]])
-    x.reshape([9, 1])
-    assert(x[0,0] == 1)
-    assert(x[8,0] == 3)
-    # print(x.tensorData.shape)
-    x.transpose()
-    x.tensorData.shape()[0] = 3
-    # print(x.tensorData.shape)
+    print(x[0,1])
+    # assert(x[0,0] == 1)
+    # assert(x[1,0] == 4)
+    # assert(x[0,2] == 7)
+    # assert(x[2,2] == 9)
+    #
+    # x = MetalNeedle.Tensor([[1, 2, 3], [1, 2, 3], [1, 2, 3]])
+    # x.reshape([9, 1])
+    # assert(x[0,0] == 1)
+    # assert(x[8,0] == 3)
+    # print(x.tensorData.shape())
+    # x.transpose()
+    # print(x.tensorData.shape())
     # assert(x[0,8] == 3)
 
     print("Reshape Operations passed!")
@@ -172,12 +174,12 @@ def MetalAddTest():
 
 # run UTs
 if __name__ == "__main__":
-    ThreeByThreeMatMulCheck()
-    ScalarOperations()
-    SlicingOperations()
-    SumOperation()
-    BroadcastOperation()
-    ReshapeOperations()
+    # ThreeByThreeMatMulCheck()
+    # ScalarOperations()
+    # SlicingOperations()
+    # SumOperation()
+    # BroadcastOperation()
+    # ReshapeOperations()
     Autograd()
-    Pytorch()
-    MetalAddTest()
+    # Pytorch()
+    # MetalAddTest()

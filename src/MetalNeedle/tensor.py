@@ -7,7 +7,6 @@ class Tensor:
     def __init__(self, data, device="cpu", dtype="int32", requires_grad=False, debug_name=None):
         self.device: str = device
         self.dtype: str = dtype
-        # TODO: try to deprecate these fields
         self.tensorData: TensorData = TensorData(data, dtype, device, debug_name)
         self.ops = TensorOperations
         # autograd related
@@ -23,26 +22,23 @@ class Tensor:
         Returns:
             Tensor: A new tensor with identical values but separate memory
         """
-        backendTensor, backendOps = DeviceManager.set_dtype_tensor(self.dtype, self.device)
+        # _, backend_ops = DeviceManager.set_dtype_tensor(self.dtype, self.device)
         return Tensor.create(
-            raw_tensor=self.data.clone(),
+            raw_tensor=self.data,
             device=self.device,
             dtype=self.dtype,
-            _tensor=backendTensor,
-            _ops=backendOps,
+            operations=self.tensorData.operations,
             requires_grad=self.requires_grad,
-            _debug_name=f"{self._debug_name()}_clone" if self._debug_name else "cloned_tensor"
+            debug_name=f"{self._debug_name()}_clone" if self._debug_name else "cloned_tensor"
         )
 
     @staticmethod
-    def create(raw_tensor, device: str, dtype: str, _tensor, _ops, requires_grad=False, debug_name=None):
+    def create(raw_tensor, device: str, dtype: str, operations, requires_grad=False, debug_name=None):
         result = Tensor.__new__(Tensor)
         result.device = device
         result.dtype = dtype
         result.ops = TensorOperations
-        # result._tensor = _tensor
-        # result._operations =  _ops
-        result.tensorData = TensorData.create(raw_tensor, _tensor, _ops)
+        result.tensorData = TensorData.create(raw_tensor, operations, debug_name)
         result.requires_grad = requires_grad
         result.grad = None
         result.grad_fn = None
@@ -56,7 +52,7 @@ class Tensor:
         # result._operations = self._operations
         # result._tensor = self._tensor
         result.tensorData = data
-        result.tensorData.debug_name = debug_name
+        result.tensorData._debug_name = debug_name
         result.requires_grad = self.requires_grad
         result.grad_fn = _grad_fn
         result.grad = None
@@ -106,8 +102,10 @@ class Tensor:
         self.swap(0, 1)
 
     def swap(self, axis1, axis2):
-        self.ops.swap(self.tensorData, axis1, axis2)
+        self.ops.swap(self, axis1, axis2)
 
+    # TODO: shouldn't be operating on data
+    # also needs grad_fn like other functions
     def reshape(self, shape: list[int]):
         if ShapeUtils.product(shape) != ShapeUtils.product(self.tensorData.shape()):
             raise TypeError(f"original dimension ({self.tensorData.shape()}) product != proposed ({shape})")
@@ -118,8 +116,8 @@ class Tensor:
             new_stride.insert(0, acc)
             acc *= size
 
-        self.tensorData.setShape(shape)
-        self.tensorData.setStride(new_stride)
+        self.tensorData.set_shape(shape)
+        self.tensorData.set_stride(new_stride)
 
     def __add__(self, other, debug_name=None):
         # do we not assert shape is same
