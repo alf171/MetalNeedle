@@ -211,34 +211,21 @@ class Tensor:
         self.tensor_data._init(tensor_data.raw_tensor)
         self.grad_fn =  _grad_fn
 
-    def broadcast(self, newShape: list[int]):
-        _grad_fn = self.ops.broadcast(self.tensor_data, newShape)
+    def broadcast(self, new_shape: list[int]):
+        _grad_fn = self.ops.broadcast(self.tensor_data, new_shape)
         self.grad_fn = _grad_fn
 
-    def backward(self, grad=None):
-        print(f"[TENSOR BACKWARD] Starting backward for tensor with debug_name: {self._debug_name()}")
-
+    def backward(self, grad=None, grad_name=None):
         if grad is None:
             grad = self.tensor_data.ones_like()
-            print(f"[TENSOR BACKWARD] Created default gradient: {grad.data() if hasattr(grad, 'data') else grad}")
-        else:
-            print(f"[TENSOR BACKWARD] Received gradient: {grad.data() if hasattr(grad, 'data') else grad}")
 
-        print(f"[TENSOR BACKWARD] Current grad: {self.grad.data() if self.grad is not None else None}")
-
-        self.grad = grad if self.grad is None else self.grad + grad
-
-        print(f"[TENSOR BACKWARD] Updated grad: {self.grad.data() if self.grad is not None else None}")
+        # this is where we do += on the grad so it is not require in the operation
+        self.grad = grad if self.grad is None else TensorData.__add__(self.grad, grad)
+        if self._debug_name() is not None:
+            self.grad._debug_name = self._debug_name() + "_grad"
 
         if self.grad_fn is not None:
-            print(f"[TENSOR BACKWARD] Calling grad_fn")
-            self.grad_fn(self.grad)
-            print(f"[TENSOR BACKWARD] After grad_fn call")
-
-        for parent in self.parents:
-            if hasattr(parent, 'backward') and hasattr(parent, 'requires_grad') and parent.requires_grad:
-                print(f"[TENSOR BACKWARD] Propagating to parent with debug_name: {parent._debug_name()}")
-                parent.backward(self.grad)
+            self.grad_fn(grad)
 
     def __str__(self):
         shape = ', '.join(str(x) for x in self.shape())

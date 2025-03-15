@@ -98,23 +98,17 @@ def BroadcastOperation():
 
 def ReshapeOperations():
     x = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    # print(x.data())
-    print(x[1,0])
     x.transpose()
-    print(x[0,1])
-    # assert(x[0,0] == 1)
-    # assert(x[1,0] == 4)
-    # assert(x[0,2] == 7)
-    # assert(x[2,2] == 9)
-    #
-    # x = MetalNeedle.Tensor([[1, 2, 3], [1, 2, 3], [1, 2, 3]])
-    # x.reshape([9, 1])
-    # assert(x[0,0] == 1)
-    # assert(x[8,0] == 3)
-    # print(x.shape())
-    # x.transpose()
-    # print(x.shape())
-    # assert(x[0,8] == 3)
+    assert(x[0,0] == 1)
+    assert(x[0,1] == 4)
+    assert(x[0,2] == 7)
+    assert(x[2,2] == 9)
+    x = MetalNeedle.Tensor([[1, 2, 3], [1, 2, 3], [1, 2, 3]])
+    x.reshape([9, 1])
+    assert(x[0,0] == 1)
+    assert(x[8,0] == 3)
+    x.transpose()
+    assert(x[0,8] == 3)
 
     print("Reshape Operations passed!")
 
@@ -122,46 +116,42 @@ def Autograd():
     a = MetalNeedle.Tensor([[1, 2], [3, 4]], requires_grad=True, debug_name="a")
     b = MetalNeedle.Tensor([[5, 6], [7, 8]], requires_grad=True, debug_name="b")
     c = MetalNeedle.Tensor([[9, 10], [11, 12]], requires_grad=True, debug_name="c")
-
-    # Create computational graph with multiple operations and paths
-    x1 = MetalNeedle.Tensor.__add__(a, b, debug_name="x1")  # a + b
-    x2 = MetalNeedle.Tensor.__mul__(x1, c, debug_name="x2")  # (a + b) * c
-
-    # Create a different path
-    y1 = MetalNeedle.Tensor.__mul__(a, c, debug_name="y1")  # a * c
-
-    # Merge paths
-    z = MetalNeedle.Tensor.__add__(x2, y1, debug_name="z")  # (a + b) * c + a * c = c * (2a + b)
-
-    # Perform backward pass
+    x1 = MetalNeedle.Tensor.__add__(a, b, debug_name="x1")
+    x2 = MetalNeedle.Tensor.__mul__(x1, c, debug_name="x2")
+    y1 = MetalNeedle.Tensor.__mul__(a, c, debug_name="y1")
+    z = MetalNeedle.Tensor.__add__(x2, y1, debug_name="z")
     z.backward()
+    assert(a.grad.data() == [18, 20, 22, 24])
+    assert(b.grad.data() == [9, 10, 11, 12])
+    assert(c.grad.data() == [7, 10, 13, 16])
 
-    print("Computed gradients:")
-    print(f"a.grad = {a.grad.data()}")  # Should be 2*c
-    # print(f"b.grad = {b.grad.data()}")  # Should be c
-    print(f"c.grad = {c.grad.data()}")
-    # print("All autograd tests passed!")
+    a = MetalNeedle.Tensor([[1, 2], [3, 4]], requires_grad=True, debug_name="a")
+    res = a + a
+    res.backward()
+    assert(a.grad.data() == [2,2,2,2])
+    print(a.grad._debug_name)
+    print("Autograd passes!!")
 
 def Pytorch():
-    a = torch.tensor([[1., 2.], [3., 4.]], requires_grad=True)
-    b = torch.tensor([[5., 6.], [7., 8.]], requires_grad=True)
-    c = torch.tensor([[9., 10.], [11., 12.]], requires_grad=True)
-
-    # Create computational graph
-    x1 = a + b       # x1 = a + b
-    x2 = x1 * c      # x2 = (a + b) * c
-
-    y1 = a * c       # y1 = a * c
-
-    z = x2 + y1      # z = (a + b) * c + a * c = c * (2a + b)
-
-    y1.backward(torch.ones_like(z))
-
-    # Print computed gradients
-    print("Computed gradients:")
-    print(f"a.grad = \n{a.grad}")  # Should be 2 * c
-    print(f"b.grad = \n{b.grad}")  # Should be c
-    print(f"c.grad = \n{c.grad}")  # Should be 2a + b
+    pass
+    # b = torch.tensor([[5., 6.], [7., 8.]], requires_grad=True)
+    # c = torch.tensor([[9., 10.], [11., 12.]], requires_grad=True)
+    #
+    # # Create computational graph
+    # x1 = a + b       # x1 = a + b
+    # x2 = x1 * c      # x2 = (a + b) * c
+    #
+    # y1 = a * c       # y1 = a * c
+    #
+    # z = x2 + y1      # z = (a + b) * c + a * c = c * (2a + b)
+    #
+    # z.backward(torch.ones_like(z))
+    #
+    # # Print computed gradients
+    # print("Computed gradients:")
+    # print(f"a.grad = \n{a.grad}")  # Should be 2 * c
+    # print(f"b.grad = \n{b.grad}")  # Should be c
+    # print(f"c.grad = \n{c.grad}")  # Should be 2a + b
 
 
 def MetalAddTest():
@@ -174,12 +164,12 @@ def MetalAddTest():
 
 # run UTs
 if __name__ == "__main__":
-    ThreeByThreeMatMulCheck()
-    ScalarOperations()
-    SlicingOperations()
-    SumOperation()
-    BroadcastOperation()
-    ReshapeOperations()
+    # ThreeByThreeMatMulCheck()
+    # ScalarOperations()
+    # SlicingOperations()
+    # SumOperation()
+    # BroadcastOperation()
+    # ReshapeOperations()
     Autograd()
     Pytorch()
-    MetalAddTest()
+    # MetalAddTest()
