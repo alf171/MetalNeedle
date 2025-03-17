@@ -219,7 +219,7 @@ class Tensor:
         if grad is None:
             grad = self.tensor_data.ones_like()
 
-        # this is where we do += on the grad so it is not require in the operation
+        # this is where we do += on the grad so it is not require on the operation
         self.grad = grad if self.grad is None else TensorData.__add__(self.grad, grad)
         if self._debug_name() is not None:
             self.grad._debug_name = self._debug_name() + "_grad"

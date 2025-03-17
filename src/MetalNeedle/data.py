@@ -147,12 +147,27 @@ class TensorData:
         _data = self.operations.sum(self.raw_tensor, axes, keepDims)
         return TensorData.create(_data, self.operations)
 
+    @property
+    def T(self):
+        return self.transpose()
+
+    # clone in order to not be destructive
+    def transpose(self):
+        result = self.clone()
+        result.raw_tensor.swap(0, 1)
+        return result
+
     def swap(self, axis1, axis2):
         if axis1 >= len(self.shape()) or axis2 >= len(self.shape()):
             raise ValueError("axes for swap out of range")
         self.raw_tensor.swap(axis1, axis2)
+        return self
 
     def ones_like(self):
         ones_data = self.raw_tensor.create(self.shape(), 1)
         _data = self.raw_tensor.initialize(ones_data, self.shape())
         return TensorData.create(_data, self.operations, 'ones')
+
+    def __str__(self):
+        shape = ', '.join(str(x) for x in self.shape())
+        return f"<{self.__class__.__module__}.{self.__class__.__name__}> (size: [{shape}])"

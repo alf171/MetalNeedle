@@ -127,10 +127,10 @@ class TensorOperations:
     def matmul(tensor1, tensor2):
         def _grad_fn(grad):
             if tensor1.requires_grad:
-                tensor1_grad = (tensor2.grad @ grad)
+                tensor1_grad = (grad @ tensor2.tensor_data.T)
                 tensor1.backward (tensor1_grad)
             if tensor2.requires_grad:
-                tensor2_grad = (grad @ tensor1.grad)
+                tensor2_grad = (tensor1.tensor_data.T @ grad)
                 tensor2.backward(tensor2_grad)
 
         tensor_data = tensor1.tensor_data @ tensor2.tensor_data
