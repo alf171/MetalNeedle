@@ -38,7 +38,7 @@ class Tensor:
         result.device = device
         result.dtype = dtype
         result.ops = TensorOperations
-        result.tensor_data= TensorData.create(raw_tensor, operations, debug_name)
+        result.tensor_data = TensorData.create(raw_tensor, operations, debug_name)
         result.requires_grad = requires_grad
         result.grad = None
         result.grad_fn = None
@@ -51,7 +51,7 @@ class Tensor:
         result.ops = self.ops
         # result._operations = self._operations
         # result._tensor = self._tensor
-        result.tensor_data= data
+        result.tensor_data = data
         result.tensor_data._debug_name = debug_name
         result.requires_grad = self.requires_grad
         result.grad_fn = _grad_fn
@@ -98,26 +98,24 @@ class Tensor:
         # could also consider returning back a Tensor if sum(tensor.size()) > 1
         return [get_item(index) for index in indices]
 
-    def transpose(self):
-        self.swap(0, 1)
+    def transpose(self, debug_name = None):
+        (tensor_data, _grad_fn) = self.ops.swap(self, 0, 1)
+        res = self._init(tensor_data, _grad_fn, debug_name)
+        res.parents = [self]
+        return res
 
     def swap(self, axis1, axis2):
+        # if axis is negative, index opposite direction
+        # consider moving this code lower down the stack
+        if axis2 < 0:
+            axis2 = len(self.shape()) + axis2
         self.ops.swap(self, axis1, axis2)
 
-    # TODO: shouldn't be operating on data
-    # also needs grad_fn like other functions
-    def reshape(self, shape: list[int]):
-        if ShapeUtils.product(shape) != ShapeUtils.product(self.tensor_data.shape()):
-            raise TypeError(f"original dimension ({self.tensor_data.shape()}) product != proposed ({shape})")
-
-        new_stride = []
-        acc = 1
-        for size in reversed(shape):
-            new_stride.insert(0, acc)
-            acc *= size
-
-        self.tensor_data.set_shape(shape)
-        self.tensor_data.set_stride(new_stride)
+    def reshape(self, new_shape: list[int], debug_name = None):
+        (tensor_data, _grad_fn) = self.ops.reshape(self, new_shape)
+        res = self._init(tensor_data, _grad_fn, debug_name)
+        res.parents = [self]
+        return res
 
     def __add__(self, other, debug_name=None):
         # do we not assert shape is same
@@ -201,6 +199,7 @@ class Tensor:
         raise TypeError(f"Can't divide Tensor of type {self.dtype} with {type(other)}")
 
     # TODO: use keep dims and broadcast shape
+    # also, this shouldn't be destructive
     def sum(self, axes: int or list[int], keepdim = False):
         if axes is None or axes == []:
             raise TypeError(f"Axes Cant be Null")
@@ -208,14 +207,17 @@ class Tensor:
             axes = [axes]
 
         (tensor_data, _grad_fn) = self.ops.sum(self, axes, keepdim)
-        self.tensor_data._init(tensor_data.raw_tensor)
-        self.grad_fn =  _grad_fn
+        res = self._init(tensor_data, _grad_fn)
+        res.parents = [self]
+        return res
 
     def broadcast(self, new_shape: list[int]):
-        _grad_fn = self.ops.broadcast(self.tensor_data, new_shape)
-        self.grad_fn = _grad_fn
+        tensor_data, _grad_fn = self.ops.broadcast(self, new_shape)
+        res = self._init(tensor_data, _grad_fn)
+        res.parents = [self]
+        return res
 
-    def backward(self, grad=None, grad_name=None):
+    def backward(self, grad=None):
         if grad is None:
             grad = self.tensor_data.ones_like()
 

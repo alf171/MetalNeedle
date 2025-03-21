@@ -65,49 +65,51 @@ def SlicingOperations():
 
 def SumOperation():
     x1 = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    x1.sum(0)
-    assert(x1[0] == 12)
-    assert(x1[1] == 15)
-    assert(x1[2] == 18)
-    assert(x1.shape() == [3])
-
-    x2 = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    x2.sum(1)
-    assert(x2.shape() == [3])
-    assert(x2[0] == 6)
+    x2 = x1.sum(0)
+    assert(x2[0] == 12)
     assert(x2[1] == 15)
-    assert(x2[2] == 24)
+    assert(x2[2] == 18)
+    assert(x2.shape() == [3])
 
     x3 = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    x3.sum([0,1])
-    assert(x3[0] == ((9*10)/2))
-    assert(x3.shape() == [1])
+    x4 = x3.sum(1)
+    assert(x4.shape() == [3])
+    assert(x4[0] == 6)
+    assert(x4[1] == 15)
+    assert(x4[2] == 24)
+
+    x5 = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    x6 = x5.sum([0,1])
+    assert(x6[0] == ((9*10)/2))
+    assert(x6.shape() == [1])
 
     print("Sum Operation passed!")
 
 def BroadcastOperation():
     x1 = MetalNeedle.Tensor([1, 2, 3])
-    x1.reshape([1,3])
-    x1.broadcast([3,3])
+    x2 = x1.reshape([1,3])
+    print(x2)
+    x3 = x2.broadcast([3,3])
+    print(x3)
     for i in range(3):
-        assert(x1[i,0] == 1)
-        assert(x1[i,1] == 2)
-        assert (x1[i,2] == 3)
+        assert(x3[i,0] == 1)
+        assert(x3[i,1] == 2)
+        assert (x3[i,2] == 3)
 
     print("Broadcast Operation passed!")
 
 def ReshapeOperations():
     x = MetalNeedle.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    x.transpose()
+    x = x.transpose()
     assert(x[0,0] == 1)
     assert(x[0,1] == 4)
     assert(x[0,2] == 7)
     assert(x[2,2] == 9)
     x = MetalNeedle.Tensor([[1, 2, 3], [1, 2, 3], [1, 2, 3]])
-    x.reshape([9, 1])
+    x = x.reshape([9, 1])
     assert(x[0,0] == 1)
     assert(x[8,0] == 3)
-    x.transpose()
+    x = x.transpose()
     assert(x[0,8] == 3)
 
     print("Reshape Operations passed!")
@@ -125,31 +127,25 @@ def Autograd():
     assert(b.grad.data() == [9, 10, 11, 12])
     assert(c.grad.data() == [7, 10, 13, 16])
 
-    a = MetalNeedle.Tensor([[1, 2], [3, 4]], requires_grad=True, debug_name="a")
-    res = a + a
+    a = MetalNeedle.ones([5, 3], requires_grad=True, debug_name="a")
+    b = MetalNeedle.ones([3, 5], requires_grad=True, debug_name="a")
+    res = a @ b
     res.backward()
-    assert(a.grad.data() == [2,2,2,2])
-    print(a.grad._debug_name)
+    assert(a.grad.shape() == [5,3])
     print("Autograd passes!!")
 
 def Pytorch():
-    pass
-    # b = torch.tensor([[5., 6.], [7., 8.]], requires_grad=True)
-    # c = torch.tensor([[9., 10.], [11., 12.]], requires_grad=True)
+    a = torch.ones([5,3], requires_grad=True)
+    b = torch.ones([3,5], requires_grad=True)
     #
     # # Create computational graph
-    # x1 = a + b       # x1 = a + b
-    # x2 = x1 * c      # x2 = (a + b) * c
+    z = a @ b
     #
-    # y1 = a * c       # y1 = a * c
-    #
-    # z = x2 + y1      # z = (a + b) * c + a * c = c * (2a + b)
-    #
-    # z.backward(torch.ones_like(z))
+    z.backward(torch.ones_like(z))
     #
     # # Print computed gradients
     # print("Computed gradients:")
-    # print(f"a.grad = \n{a.grad}")  # Should be 2 * c
+    # print(a.grad)
     # print(f"b.grad = \n{b.grad}")  # Should be c
     # print(f"c.grad = \n{c.grad}")  # Should be 2a + b
 
@@ -164,12 +160,12 @@ def MetalAddTest():
 
 # run UTs
 if __name__ == "__main__":
-    # ThreeByThreeMatMulCheck()
-    # ScalarOperations()
-    # SlicingOperations()
-    # SumOperation()
-    # BroadcastOperation()
-    # ReshapeOperations()
+    ThreeByThreeMatMulCheck()
+    ScalarOperations()
+    SlicingOperations()
+    SumOperation()
+    BroadcastOperation()
+    ReshapeOperations()
     Autograd()
-    Pytorch()
-    # MetalAddTest()
+    # Pytorch()
+    MetalAddTest()

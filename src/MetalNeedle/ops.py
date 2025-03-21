@@ -122,7 +122,6 @@ class TensorOperations:
         tensor_data = tensor1.tensor_data.log()
         return tensor_data, _grad_fn
 
-    # TODO: should be transposed
     @staticmethod
     def matmul(tensor1, tensor2):
         def _grad_fn(grad):
@@ -146,15 +145,14 @@ class TensorOperations:
         tensor_data = tensor1.tensor_data.sum(axes, keep_dims)
         return tensor_data, _grad_fn
 
-    # destructive so we only send grad_fn back
     @staticmethod
     def swap(tensor1, axis1, axis2):
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.grad(grad.swap(axis1, axis2))
 
-        tensor1.tensor_data.swap(axis1, axis2)
-        return _grad_fn
+        tensor_data = tensor1.tensor_data.swap(axis1, axis2)
+        return tensor_data, _grad_fn
 
     # destructive operation
     @staticmethod
@@ -168,8 +166,18 @@ class TensorOperations:
                 tensor1_grad = grad.ones_like().sum(sum_dims)
                 tensor1.backward(tensor1_grad)
 
-        tensor1.broadcast(new_shape)
-        return _grad_fn
+        tensor_data = tensor1.tensor_data.broadcast(new_shape)
+        return tensor_data, _grad_fn
+
+    @staticmethod
+    def reshape(tensor1, new_shape):
+        def _grad_fn(grad):
+            if tensor1.requires_grad:
+                tensor1_grad = grad.reshape(tensor1.shape())
+                tensor1.backward(tensor1_grad)
+
+        tensor_data = tensor1.tensor_data.reshape(new_shape)
+        return tensor_data, _grad_fn
 
     @staticmethod
     def _log_before_grad(op, grad, tensor1, tensor2):

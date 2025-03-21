@@ -123,7 +123,8 @@ class TensorData:
         return TensorData.create(raw_tensor, self.operations)
 
     def broadcast(self, new_shape: list[int]):
-        current_shape = self.shape()[:]
+        result = self.clone()
+        current_shape = result.shape()[:]
         new_stride = []
         if len(current_shape) > len(new_shape):
             raise ValueError("Cannot broadcast to smaller dimensions")
@@ -135,16 +136,40 @@ class TensorData:
             if curr_dim == 1 and target_dim > 1:
                 new_stride.insert(0, 0)
             elif curr_dim == target_dim:
-                stride_item = self.stride()[-i]
+                stride_item = result.stride()[-i]
                 new_stride.insert(0,  stride_item)
             else:
                 raise ValueError(f"Incompatible broadcast: {curr_dim} to {target_dim}")
 
-        self.raw_tensor.stride = new_stride
-        self.raw_tensor.shape = new_shape
+        result.raw_tensor.stride = new_stride
+        result.raw_tensor.shape = new_shape
+        return result
 
-    def sum(self, axes: list[int], keepDims):
-        _data = self.operations.sum(self.raw_tensor, axes, keepDims)
+    # TODO: this implementation assumes the data in contiguous
+    # SOLUTION: could call flatten but ideally, we want dont want to have the caller
+    # be aware when operation makes the memory non contiguous. For this fix,
+    # the c++ class should store whether our array is contiguous or not and then call
+    # compact automatically when we chain operations together that make an assumption
+    # like this. The question then becomes why not always read memory regardless of the
+    # output, the point is we can amortize the cost of flattening our data for better
+    # caching properties
+    def reshape(self, new_shape):
+        if ShapeUtils.product(new_shape) != ShapeUtils.product(self.shape()):
+            raise TypeError(f"original dimension ({self.shape()}) product != proposed ({new_shape})")
+
+        new_stride = []
+        acc = 1
+        for size in reversed(new_shape):
+            new_stride.insert(0, acc)
+            acc *= size
+
+        result = self.clone()
+        result.set_shape(new_shape)
+        result.set_stride(new_stride)
+        return result
+
+    def sum(self, axes: list[int], keep_dims):
+        _data = self.operations.sum(self.raw_tensor, axes, keep_dims)
         return TensorData.create(_data, self.operations)
 
     @property
