@@ -5,4 +5,5 @@
 
 source ./scripts/setup.sh
 # run testing script
-python3.13 -m src.uts
+#python3.13 -m tst.uts
+python3.13 -m tst.metal

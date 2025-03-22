@@ -20,7 +20,7 @@ MTL::CommandQueue* MetalBackend<T>::commandQueue = nullptr;
 template<typename T>
 MTL::Library* MetalBackend<T>::opLibrary = nullptr;
 
-// Explicit instantiation for the types you're using
+// Explicit instantiation for the types
 template class MetalBackend<int>;
 template class MetalBackend<float>;
 template class MetalBackend<double>;
@@ -55,11 +55,11 @@ MetalTensor<T> MetalBackend<T>::ewise_add(MetalTensor<T>& e1, MetalTensor<T>& e2
         throw std::invalid_argument("Tensors must have same shapes for ewise operations");
     }
 
-    size_t num_elements = e1.data.size();
+    size_t num_elements = e1.cpu_data.size();
     MTL::Buffer* buffer_e1 = device->newBuffer(num_elements * sizeof(T), MTL::ResourceStorageModeShared);
     MTL::Buffer* buffer_e2 = device->newBuffer(num_elements * sizeof(T), MTL::ResourceStorageModeShared);
-    std::memcpy(buffer_e1->contents(), e1.data.data(), num_elements * sizeof(T));
-    std::memcpy(buffer_e2->contents(), e2.data.data(), num_elements * sizeof(T));
+    std::memcpy(buffer_e1->contents(), e1.cpu_data.data(), num_elements * sizeof(T));
+    std::memcpy(buffer_e2->contents(), e2.cpu_data.data(), num_elements * sizeof(T));
 
     MTL::Buffer* buffer_res = device->newBuffer(num_elements * sizeof(T), MTL::ResourceStorageModeShared);
 
@@ -101,7 +101,7 @@ MetalTensor<T> MetalBackend<T>::ewise_add(MetalTensor<T>& e1, MetalTensor<T>& e2
     commandBuffer->waitUntilCompleted();
 
     std::vector<T> res(static_cast<T*>(buffer_res->contents()), 
-                      static_cast<T*>(buffer_res->contents()) + e1.data.size());
+                      static_cast<T*>(buffer_res->contents()) + e1.cpu_data.size());
 
     buffer_e1->release();
     buffer_e2->release();
@@ -110,7 +110,6 @@ MetalTensor<T> MetalBackend<T>::ewise_add(MetalTensor<T>& e1, MetalTensor<T>& e2
 
     return MetalTensor<T>::initialize(res, e1.shape);
 }
-
 
 //template<typename T>
 //void MetalAdder::sendComputeCommand() {

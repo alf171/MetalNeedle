@@ -3,12 +3,26 @@
 #include <pybind11/pybind11.h>
 #include <vector>
 
+// dont declare MTL, just mention it exists
+namespace MTL {
+    class Buffer;
+}
+
 template<typename T>
 struct MetalTensor {
-    std::vector<T> data;
+    // data storage
+    std::vector<T> cpu_data;
+    MTL::Buffer* gpu_buffer = nullptr;
+    bool cpu_valid = true;
+    bool gpu_valid = false;
+    // data structure
     std::vector<size_t> shape;
     std::vector<size_t> stride;
-    size_t offset;
+    size_t offset = 0;
+
+    // Constructor and destructor
+    MetalTensor() = default;
+    ~MetalTensor();
 
     static MetalTensor<T> initialize(const std::vector<T>& data, const std::vector<size_t>& shape);
     std::vector<T> randn(const std::vector<int>& size, int mean, int std);
