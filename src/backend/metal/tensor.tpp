@@ -5,9 +5,22 @@
 
 #include <Metal/Metal.hpp>
 
-// folowing RAII principles and memory shared around using make_unique
 template<typename T>
-MetalTensor<T> MetalTensor<T>::initialize(const std::vector<T>& data, const std::vector<size_t>& shape) {
+void MetalTensor<T>::initialize(const std::vector<T>& data, const std::vector<size_t>& shape) {
+    if (data.size() != calculate_size(shape)) {
+        throw std::invalid_argument("Data size does not match shape dimensions.");
+    }
+    this->cpu_data = data;
+    this->shape = shape;
+    this->stride = calculate_stride(shape);
+    this->offset = 0;
+    this->gpu_buffer = nullptr;
+    this->cpu_valid = true;
+    this->gpu_valid = false;
+}
+
+template<typename T>
+MetalTensor<T> MetalTensor<T>::create(const std::vector<T>& data, const std::vector<size_t>& shape) {
     if (data.size() != calculate_size(shape)) {
         throw std::invalid_argument("Data size does not match shape dimensions.");
     }
@@ -154,7 +167,9 @@ void bind_metal_tensor(pybind11::module& m, const std::string& class_name) {
         .def_readwrite("shape", &MetalTensor<T>::shape)
         .def_readwrite("stride", &MetalTensor<T>::stride)
         .def_readwrite("offset", &MetalTensor<T>::offset)
-        .def_static("initialize", &MetalTensor<T>::initialize, "Initialize a Metal Tensor",
+        .def("initialize", &MetalTensor<T>::initialize, "Initialize a Tensor",
+                    pybind11::arg("data"), pybind11::arg("shape"))
+        .def_static("create", &MetalTensor<T>::create, "Factory method to make a tensor",
                     pybind11::arg("data"), pybind11::arg("shape"))
         .def("randn", &MetalTensor<T>::randn, "Generate a random Tensor")
         .def("create", &MetalTensor<T>::create)

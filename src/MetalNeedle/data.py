@@ -4,9 +4,9 @@ from .util import ShapeUtils
 
 class TensorData:
     def __init__(self, data: list[int], dtype, device, debug_name=None):
-        tensor, self.operations = DeviceManager.set_dtype_tensor(dtype, device)
+        self.raw_tensor, self.operations = DeviceManager.set_dtype_tensor(dtype, device)
         _shape = ShapeUtils.get_shape(data)
-        self.raw_tensor = ShapeUtils.create_data_struct(tensor, data, _shape)
+        ShapeUtils.create_data_struct(self.raw_tensor, data, _shape)
         self._debug_name = debug_name
 
     @staticmethod
@@ -18,7 +18,7 @@ class TensorData:
         return result
 
     def clone(self):
-        new_raw_tensor = self.raw_tensor.initialize(self.data(), self.shape())
+        new_raw_tensor = self.raw_tensor.create(self.data(), self.shape())
         result = TensorData.__new__(TensorData)
         result.raw_tensor = new_raw_tensor
         # result.tensor = self.tensor
@@ -189,8 +189,8 @@ class TensorData:
         return self
 
     def ones_like(self):
-        ones_data = self.raw_tensor.create(self.shape(), 1)
-        _data = self.raw_tensor.initialize(ones_data, self.shape())
+        ones_data = self.raw_tensor.fill(self.shape(), 1)
+        _data = self.raw_tensor.create(ones_data, self.shape())
         return TensorData.create(_data, self.operations, 'ones')
 
     def __str__(self):

@@ -24,7 +24,8 @@ struct MetalTensor {
     MetalTensor() = default;
     ~MetalTensor();
 
-    static MetalTensor<T> initialize(const std::vector<T>& data, const std::vector<size_t>& shape);
+    void initialize(const std::vector<T>& data, const std::vector<size_t>& shape);
+    static MetalTensor<T> create(const std::vector<T>& data, const std::vector<size_t>& shape);
     std::vector<T> randn(const std::vector<int>& size, int mean, int std);
     std::vector<T> create(const std::vector<int>& size, T val);
     void compact();

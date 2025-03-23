@@ -4,7 +4,19 @@
 #include <random>
 
 template<typename T>
-Tensor<T> Tensor<T>::initialize(const std::vector<T>& data, const std::vector<size_t>& shape) {
+void Tensor<T>::initialize(const std::vector<T>& data, const std::vector<size_t>& shape) {
+    if (data.size() != calculate_size(shape)) {
+        throw std::invalid_argument("Data size does not match shape dimensions.");
+    }
+    Tensor<T> tensor;
+    this->data = data;
+    this->shape = shape;
+    this->stride = calculate_stride(shape);
+    this->offset = 0;
+}
+
+template<typename T>
+Tensor<T> Tensor<T>::create(const std::vector<T>& data, const std::vector<size_t>& shape) {
     if (data.size() != calculate_size(shape)) {
         throw std::invalid_argument("Data size does not match shape dimensions.");
     }
@@ -57,7 +69,7 @@ void Tensor<T>::print() const {
 }
 
 template<typename T>
-std::vector<T> Tensor<T>::create(const std::vector<int>& size, T val) {
+std::vector<T> Tensor<T>::fill(const std::vector<int>& size, T val) {
     size_t n = std::accumulate(size.begin(), size.end(), 1, std::multiplies<int>());
     std::vector<T> data(n, val);
     return data;
@@ -145,10 +157,12 @@ void bind_tensor(pybind11::module& m, const std::string& class_name) {
         .def_readwrite("shape", &Tensor<T>::shape)
         .def_readwrite("stride", &Tensor<T>::stride)
         .def_readwrite("offset", &Tensor<T>::offset)
-        .def_static("initialize", &Tensor<T>::initialize, "Initialize a Tensor",
+        .def("initialize", &Tensor<T>::initialize, "Initialize a Tensor",
+                    pybind11::arg("data"), pybind11::arg("shape"))
+        .def_static("create", &Tensor<T>::create, "Factory method to make a tensor",
                     pybind11::arg("data"), pybind11::arg("shape"))
         .def("randn", &Tensor<T>::randn, "Generate a random Tensor")
-        .def("create", &Tensor<T>::create)
+        .def("fill", &Tensor<T>::fill)
         .def("print", &Tensor<T>::print)
         .def("compact", &Tensor<T>::compact, "Compact a Tensor")
         .def("reshape", &Tensor<T>::reshape, "Reshape a Tensor")

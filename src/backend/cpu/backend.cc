@@ -32,7 +32,7 @@ public:
             size_t e2_index = e2.mult_dim_to_flat_index(multi_dim);
             result_data[i] = e1.data[e1_index] + e2.data[e2_index];
         }
-        return Tensor<T>::initialize(result_data, e1.shape);
+        return Tensor<T>::create(result_data, e1.shape);
     }
 
 
@@ -52,7 +52,7 @@ public:
             size_t e2_index = e2.mult_dim_to_flat_index(multi_dim);
             result_data[i] = e1.data[e1_index] - e2.data[e2_index];
         }
-        return Tensor<T>::initialize(result_data, e1.shape);
+        return Tensor<T>::create(result_data, e1.shape);
     }
 
     /**
@@ -67,7 +67,7 @@ public:
             size_t e1_index = e1.mult_dim_to_flat_index(multi_dim);
             result_data[i] = pow(e1.data[e1_index], v1);
         }
-        return Tensor<T>::initialize(result_data, e1.shape);
+        return Tensor<T>::create(result_data, e1.shape);
     }
 
     /**
@@ -86,7 +86,7 @@ public:
             size_t e2_index = e2.mult_dim_to_flat_index(multi_dim);
             result_data[i] = e1.data[e1_index] / e2.data[e2_index];
         }
-        return Tensor<T>::initialize(result_data, e1.shape);
+        return Tensor<T>::create(result_data, e1.shape);
     }
 
     /**
@@ -105,7 +105,7 @@ public:
             size_t e2_index = e2.mult_dim_to_flat_index(multi_dim);
             result_data[i] = e1.data[e1_index] * e2.data[e2_index];
         }
-        return Tensor<T>::initialize(result_data, e1.shape);
+        return Tensor<T>::create(result_data, e1.shape);
     }
 
     Tensor<T> tiled_mat_mul(Tensor<T>& e1, Tensor<T>& e2) {
@@ -151,7 +151,7 @@ public:
     }
 //    }
 
-        Tensor<T> result_tensor = Tensor<T>::initialize(result_data, result_shape);
+        Tensor<T> result_tensor = Tensor<T>::create(result_data, result_shape);
         return result_tensor;
     }
 
@@ -165,7 +165,7 @@ public:
         for(int i = 0; i < tensor.data.size(); i++) {
             result_data[i] = tensor.data[i] + scalar;
         }
-        return Tensor<T>::initialize(result_data, tensor.shape);
+        return Tensor<T>::create(result_data, tensor.shape);
     }
 
     /**
@@ -178,7 +178,7 @@ public:
         for(int i = 0; i < tensor.data.size(); i++) {
             result_data[i] = tensor.data[i] - scalar;
         }
-        return Tensor<T>::initialize(result_data, tensor.shape);
+        return Tensor<T>::create(result_data, tensor.shape);
     }
 
     /**
@@ -191,7 +191,7 @@ public:
         for(int i = 0; i < tensor.data.size(); i++) {
             result_data[i] = tensor.data[i] * scalar;
         }
-        return Tensor<T>::initialize(result_data, tensor.shape);
+        return Tensor<T>::create(result_data, tensor.shape);
     }
 
     /**
@@ -204,7 +204,7 @@ public:
         for(int i = 0; i < tensor.data.size(); i++) {
             result_data[i] = tensor.data[i] / scalar;
         }
-        return Tensor<T>::initialize(result_data, tensor.shape);
+        return Tensor<T>::create(result_data, tensor.shape);
     }
 
     /**
@@ -217,7 +217,7 @@ public:
         for(int i = 0; i < tensor.data.size(); i++) {
             result_data[i] = pow(tensor.data[i], scalar);
         }
-        return Tensor<T>::initialize(result_data, tensor.shape);
+        return Tensor<T>::create(result_data, tensor.shape);
     }
 
     /**
@@ -230,7 +230,7 @@ public:
         for(int i = 0; i < tensor.data.size(); i++) {
             result_data[i] = std::log(tensor.data[i]);
         }
-        return Tensor<T>::initialize(result_data, tensor.shape);
+        return Tensor<T>::create(result_data, tensor.shape);
     }
 
     /**
@@ -258,7 +258,7 @@ public:
         }
 
         std::vector<T> result_data(res_size, T(0));
-        Tensor<T> result = Tensor<T>::initialize(result_data, reduced_shape);
+        Tensor<T> result = Tensor<T>::create(result_data, reduced_shape);
 
         for(size_t i = 0; i < tensor.data.size(); i++) {
 
