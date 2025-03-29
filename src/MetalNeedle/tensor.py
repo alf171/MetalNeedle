@@ -1,6 +1,5 @@
 from .util import ShapeUtils
 from .ops import TensorOperations
-from .device import DeviceManager
 from .data import TensorData
 
 class Tensor:
@@ -49,8 +48,6 @@ class Tensor:
         result.device = self.device
         result.dtype = self.dtype
         result.ops = self.ops
-        # result._operations = self._operations
-        # result._tensor = self._tensor
         result.tensor_data = data
         result.tensor_data._debug_name = debug_name
         result.requires_grad = self.requires_grad
@@ -97,6 +94,12 @@ class Tensor:
 
         # could also consider returning back a Tensor if sum(tensor.size()) > 1
         return [get_item(index) for index in indices]
+
+
+    @property
+    def T(self, debug_name = None):
+        return self.transpose(debug_name)
+
 
     def transpose(self, debug_name = None):
         (tensor_data, _grad_fn) = self.ops.swap(self, 0, 1)

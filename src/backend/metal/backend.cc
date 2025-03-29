@@ -108,7 +108,7 @@ MetalTensor<T> MetalBackend<T>::ewise_add(MetalTensor<T>& e1, MetalTensor<T>& e2
     buffer_res->release();
     pipelineState->release();
 
-    return MetalTensor<T>::initialize(res, e1.shape);
+    return MetalTensor<T>::create(res, e1.shape);
 }
 
 //template<typename T>

@@ -85,7 +85,7 @@ void MetalTensor<T>::print() const {
 }
 
 template<typename T>
-std::vector<T> MetalTensor<T>::create(const std::vector<int>& size, T val) {
+std::vector<T> MetalTensor<T>::fill(const std::vector<int>& size, T val) {
     size_t n = std::accumulate(size.begin(), size.end(), 1, std::multiplies<int>());
     std::vector<T> data(n, val);
     return data;
@@ -172,7 +172,7 @@ void bind_metal_tensor(pybind11::module& m, const std::string& class_name) {
         .def_static("create", &MetalTensor<T>::create, "Factory method to make a tensor",
                     pybind11::arg("data"), pybind11::arg("shape"))
         .def("randn", &MetalTensor<T>::randn, "Generate a random Tensor")
-        .def("create", &MetalTensor<T>::create)
+        .def("fill", &MetalTensor<T>::fill)
         .def("print", &MetalTensor<T>::print)
         .def("compact", &MetalTensor<T>::compact, "Compact a Tensor")
         .def("reshape", &MetalTensor<T>::reshape, "Reshape a Tensor")
