@@ -9,7 +9,6 @@ class Tensor:
         self.tensor_data: TensorData = TensorData(data, dtype, device, debug_name)
         self.ops = TensorOperations
         # autograd related
-        self.parents: list[Tensor] = []
         self.requires_grad: bool = requires_grad
         self.grad: TensorData or None = None
         self.grad_fn = None
@@ -22,7 +21,7 @@ class Tensor:
             Tensor: A new tensor with identical values but separate memory
         """
         # _, backend_ops = DeviceManager.set_dtype_tensor(self.dtype, self.device)
-        return Tensor.create(
+        res = Tensor.create(
             raw_tensor=self.data,
             device=self.device,
             dtype=self.dtype,
@@ -30,6 +29,8 @@ class Tensor:
             requires_grad=self.requires_grad,
             debug_name=f"{self._debug_name()}_clone" if self._debug_name else "cloned_tensor"
         )
+        res.grad_fn = lambda grad: self.backward(grad)
+        return res
 
     @staticmethod
     def create(raw_tensor, device: str, dtype: str, operations, requires_grad=False, debug_name=None):
@@ -100,11 +101,9 @@ class Tensor:
     def T(self, debug_name = None):
         return self.transpose(debug_name)
 
-
     def transpose(self, debug_name = None):
         (tensor_data, _grad_fn) = self.ops.swap(self, 0, 1)
         res = self._init(tensor_data, _grad_fn, debug_name)
-        res.parents = [self]
         return res
 
     def swap(self, axis1, axis2):
@@ -117,20 +116,26 @@ class Tensor:
     def reshape(self, new_shape: list[int], debug_name = None):
         (tensor_data, _grad_fn) = self.ops.reshape(self, new_shape)
         res = self._init(tensor_data, _grad_fn, debug_name)
-        res.parents = [self]
         return res
 
     def __add__(self, other, debug_name=None):
-        # do we not assert shape is same
         if isinstance(other, Tensor):
-            (tensor_data, _grad_fn) = self.ops.add(self, other)
-            res = self._init(tensor_data, _grad_fn, debug_name)
-            res.parents = [self, other]
-            return res
+            if not ShapeUtils.can_broadcast(self.shape(), other.shape()):
+                raise ValueError(f"[ADD] cant broadcast {self.shape} with {other.shape}")
+
+            if self.shape() == other.shape():
+                (tensor_data, _grad_fn) = self.ops.add(self, other)
+                res = self._init(tensor_data, _grad_fn, debug_name)
+                return res
+            else:
+                broadcast_other = other.broadcast(self.shape())
+                (tensor_data, _grad_fn) = self.ops.add(self, broadcast_other)
+                res = self._init(tensor_data, _grad_fn, debug_name)
+                return res
+
         elif isinstance(other, (int, float)):
             (tensor_data, _grad_fn) = self.ops.scalar_add(self, other)
             res = self._init(tensor_data, _grad_fn)
-            res.parents = [self]
             return res
         raise TypeError(f"Can't add Tensor of type {self.dtype} with {type(other)}")
 
@@ -138,12 +143,10 @@ class Tensor:
         if isinstance(other, Tensor):
             (tensor_data, _grad_fn) = self.ops.sub(self, other)
             res = self._init(tensor_data, _grad_fn)
-            res.parents = [self, other]
             return res
         elif isinstance(other, (int, float)):
             (tensor_data, _grad_fn) = self.ops.scalar_sub(self, other)
             res = self._init(tensor_data, _grad_fn)
-            res.parents = [self]
             return res
         raise TypeError(f"Can't subtract Tensor of type {self.dtype} with {type(other)}")
 
@@ -151,12 +154,10 @@ class Tensor:
         if isinstance(other, Tensor):
             (tensor_data, _grad_fn) = self.ops.mul(self, other)
             res = self._init(tensor_data, _grad_fn, debug_name)
-            res.parents = [self, other]
             return res
         elif isinstance(other, (int, float)):
             (tensor_data, _grad_fn) = self.ops.scalar_mul(self, other)
             res = self._init(tensor_data, _grad_fn, debug_name)
-            res.parents = [self]
             return res
         raise TypeError(f"Can't multiply Tensor of type {self.dtype} with {type(other)}")
 
@@ -164,12 +165,10 @@ class Tensor:
         if isinstance(other, Tensor):
             (tensor_data, _grad_fn) = self.ops.div(self, other)
             res = self._init(tensor_data, _grad_fn)
-            res.parents = [self, other]
             return res
         elif isinstance(other, (int, float)):
             (tensor_data, _grad_fn) = self.ops.scalar_div(self, other)
             res = self._init(tensor_data, _grad_fn)
-            res.parents = [self]
             return res
         raise TypeError(f"Can't divide Tensor of type {self.dtype} with {type(other)}")
 
@@ -177,32 +176,27 @@ class Tensor:
         if isinstance(other, Tensor):
             (tensor_data, _grad_fn) = self.ops.exp(self, other)
             res = self._init(tensor_data, _grad_fn)
-            res.parents = [self, other]
             return res
         if isinstance(other, (int, float)):
             (tensor_data, _grad_fn) = self.ops.scalar_exp(self, other)
             res = self._init(tensor_data, _grad_fn)
-            res.parents = [self]
             return res
         raise TypeError(f"Can't exponentiate Tensor of type {self.dtype} with {type(other)}")
 
     def log(self):
         (tensor_data, _grad_fn) = self.ops.scalar_log(self)
         res = self._init(tensor_data, _grad_fn)
-        res.parents = [self]
         return res
 
     def __matmul__(self, other):
         if isinstance(other, Tensor):
             (tensor_data, _grad_fn) = self.ops.matmul(self, other)
             res = self._init(tensor_data, _grad_fn)
-            res.parents = [self, other]
             return res
 
-        raise TypeError(f"Can't divide Tensor of type {self.dtype} with {type(other)}")
+        raise TypeError(f"other is of type {type(other)} not Tensor")
 
     # TODO: use keep dims and broadcast shape
-    # also, this shouldn't be destructive
     def sum(self, axes: int or list[int], keepdim = False):
         if axes is None or axes == []:
             raise TypeError(f"Axes Cant be Null")
@@ -211,13 +205,13 @@ class Tensor:
 
         (tensor_data, _grad_fn) = self.ops.sum(self, axes, keepdim)
         res = self._init(tensor_data, _grad_fn)
-        res.parents = [self]
         return res
 
     def broadcast(self, new_shape: list[int]):
+        if self.shape() == new_shape:
+            return self.clone()
         tensor_data, _grad_fn = self.ops.broadcast(self, new_shape)
         res = self._init(tensor_data, _grad_fn)
-        res.parents = [self]
         return res
 
     def backward(self, grad=None):

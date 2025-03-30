@@ -1,16 +1,17 @@
-from src.MetalNeedle import Tensor
-
-
-# this is our base module class all other neural network
-# modules will piggyback off of this one
+from ..tensor import Tensor
 class Module:
+    """
+    this is our base module class all other neural network
+    modules will piggyback off of this one
+    small trick we do here to avoid calling our custom __setattr__ on initialization
+    """
     def __init__(self):
         # store tensors
-        self._parameters = {}
-        # store other modules
-        self._modules = {}
+        object.__setattr__(self, '_parameters', {})
+        # self._parameters = {}
+        object.__setattr__(self, '_modules', {})
         # indicate what mode we are in
-        self.training = True
+        object.__setattr__(self, 'training', {})
 
     def register_parameter(self, name, tensor):
         """
@@ -50,8 +51,10 @@ class Module:
         """
         if isinstance(value, Tensor):
             self._parameters[name] = value
+            object.__setattr__(self, name, value)
         elif isinstance(value, Module):
             self._modules[name] = value
+            object.__setattr__(self, name, value)
         else:
             raise ValueError(f"invalid module type {type(value)}")
 
@@ -63,4 +66,4 @@ class Module:
         raise NotImplemented("forward pass not implemented")
 
     def __call__(self, *args, **kwargs):
-        self.forward(args, kwargs)
+        return self.forward(args, kwargs)

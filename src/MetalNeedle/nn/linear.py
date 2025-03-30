@@ -1,6 +1,5 @@
-from src import MetalNeedle
-from src.MetalNeedle.nn import Module
-
+from .module import Module
+from MetalNeedle import randn
 
 class Linear(Module):
     """
@@ -11,8 +10,8 @@ class Linear(Module):
     """
     def __init__(self, in_features, out_features):
         super().__init__()
-        self.weight = MetalNeedle.randn([out_features, in_features])
-        self.bias = MetalNeedle.randn([out_features])
+        self.weight = randn([out_features, in_features])
+        self.bias = randn([out_features])
 
     def forward(self, x):
-        return x @ self.weight.T() + self.bias
+        return (x @ self.weight.T) + self.bias

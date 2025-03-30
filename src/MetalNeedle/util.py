@@ -39,4 +39,17 @@ class ShapeUtils:
     def product(lst):
         return reduce(lambda x, y: x * y, lst, 1)
 
+    @staticmethod
+    def can_broadcast(shape1, shape2):
+        """
+        Check if two shapes are compatible for broadcasting
+        """
+        r_shape1 = list(reversed(shape1))
+        r_shape2 = list(reversed(shape2))
+        for i in range(min(len(r_shape1), len(r_shape2))):
+           if r_shape1[i] != r_shape2[i] and r_shape1[i] != 1 and r_shape2[i] != 1:
+               return False
+
+        return True
+
 

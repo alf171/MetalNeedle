@@ -1,3 +1,4 @@
-from module import Module
+from .module import Module
+from .linear import Linear
 
-__all__ = ["Module"]
+__all__ = ["Module", "Linear"]

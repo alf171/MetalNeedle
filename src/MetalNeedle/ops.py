@@ -154,7 +154,6 @@ class TensorOperations:
         tensor_data = tensor1.tensor_data.swap(axis1, axis2)
         return tensor_data, _grad_fn
 
-    # destructive operation
     @staticmethod
     def broadcast(tensor1, new_shape):
         def _grad_fn(grad):
