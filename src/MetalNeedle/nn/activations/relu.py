@@ -1,4 +1,4 @@
-from MetalNeedle.nn.module import Module
+from ..module import Module
 
 class ReLU(Module):
     """
@@ -8,4 +8,4 @@ class ReLU(Module):
         super().__init__()
 
     def forward(self, x):
-        pass
+        return x.max(0)

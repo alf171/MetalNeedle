@@ -278,6 +278,28 @@ public:
         return result;
     }
 
+    Tensor<T> ewise_max(Tensor<T>& e1, Tensor<T>& e2) {
+        if (e1.shape != e2.shape) {
+            throw std::invalid_argument("Tensors must have same shapes for ewise operations");
+        }
+        std::vector<T> result_data(e1.data.size());
+        for(int i = 0; i < e1.data.size(); i++) {
+            std::vector<size_t> multi_dim = e1.flat_index_to_mult_dim(i);
+            size_t e1_index = e1.mult_dim_to_flat_index(multi_dim);
+            size_t e2_index = e2.mult_dim_to_flat_index(multi_dim);
+            result_data[i] = std::max(e1.data[e1_index], e2.data[e2_index]);
+        }
+        return Tensor<T>::create(result_data, e1.shape);
+    }
+
+    Tensor<T> scalar_max(Tensor<T>& tensor, T scalar) {
+        std::vector<T> result_data(tensor.data.size());
+        for(int i = 0; i < tensor.data.size(); i++) {
+            result_data[i] = std::max(tensor.data[i], scalar);
+        }
+        return Tensor<T>::create(result_data, tensor.shape);
+    }
+
 private:
     void tile_compute(const std::vector<T>& e1, const std::vector<T>& e2, std::vector<T>& res,
                       size_t block_x, size_t block_y, size_t e1_cols, size_t e2_cols, size_t e1_rows) {
@@ -350,12 +372,14 @@ void bind_operations(pybind11::module& m, const std::string& class_name) {
         .def("ewise_exp", &CPUBackend<T>::ewise_exp)
         .def("ewise_div", &CPUBackend<T>::ewise_div)
         .def("ewise_mul", &CPUBackend<T>::ewise_mul)
+        .def("ewise_max", &CPUBackend<T>::ewise_max)
         .def("mat_mul", &CPUBackend<T>::tiled_mat_mul)
         .def("scalar_add", &CPUBackend<T>::scalar_add)
         .def("scalar_sub", &CPUBackend<T>::scalar_sub)
         .def("scalar_mul", &CPUBackend<T>::scalar_mul)
         .def("scalar_div", &CPUBackend<T>::scalar_div)
         .def("scalar_exp", &CPUBackend<T>::scalar_exp)
+        .def("scalar_max", &CPUBackend<T>::scalar_max)
         .def("log", &CPUBackend<T>::log)
         .def("sum", &CPUBackend<T>::sum);
 }

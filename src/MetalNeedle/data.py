@@ -193,6 +193,18 @@ class TensorData:
         _data = self.raw_tensor.create(ones_data, self.shape())
         return TensorData.create(_data, self.operations, 'ones')
 
+    def max(self, value):
+        if DeviceManager.is_tensor(value):
+            raw_tensor = self.operations.ewise_max(self.raw_tensor, value)
+            return TensorData.create(raw_tensor, self.operations)
+        elif isinstance(value, TensorData):
+            raw_tensor = self.operations.ewise_max(self.raw_tensor, value.raw_tensor)
+            return TensorData.create(raw_tensor, self.operations)
+        elif isinstance(value, (int, float)):
+            raw_tensor = self.operations.scalar_max(self.raw_tensor, value)
+            return TensorData.create(raw_tensor, self.operations)
+        raise TypeError("invalid exp")
+
     def __str__(self):
         shape = ', '.join(str(x) for x in self.shape())
         return f"<{self.__class__.__module__}.{self.__class__.__name__}> (size: [{shape}])"

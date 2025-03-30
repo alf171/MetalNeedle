@@ -7,7 +7,6 @@ class Tensor:
         self.device: str = device
         self.dtype: str = dtype
         self.tensor_data: TensorData = TensorData(data, dtype, device, debug_name)
-        self.ops = TensorOperations
         # autograd related
         self.requires_grad: bool = requires_grad
         self.grad: TensorData or None = None
@@ -20,7 +19,6 @@ class Tensor:
         Returns:
             Tensor: A new tensor with identical values but separate memory
         """
-        # _, backend_ops = DeviceManager.set_dtype_tensor(self.dtype, self.device)
         res = Tensor.create(
             raw_tensor=self.data,
             device=self.device,
@@ -37,7 +35,6 @@ class Tensor:
         result = Tensor.__new__(Tensor)
         result.device = device
         result.dtype = dtype
-        result.ops = TensorOperations
         result.tensor_data = TensorData.create(raw_tensor, operations, debug_name)
         result.requires_grad = requires_grad
         result.grad = None
@@ -48,7 +45,6 @@ class Tensor:
         result = Tensor.__new__(Tensor)
         result.device = self.device
         result.dtype = self.dtype
-        result.ops = self.ops
         result.tensor_data = data
         result.tensor_data._debug_name = debug_name
         result.requires_grad = self.requires_grad
@@ -102,7 +98,7 @@ class Tensor:
         return self.transpose(debug_name)
 
     def transpose(self, debug_name = None):
-        (tensor_data, _grad_fn) = self.ops.swap(self, 0, 1)
+        (tensor_data, _grad_fn) = TensorOperations.swap(self, 0, 1)
         res = self._init(tensor_data, _grad_fn, debug_name)
         return res
 
@@ -111,10 +107,10 @@ class Tensor:
         # consider moving this code lower down the stack
         if axis2 < 0:
             axis2 = len(self.shape()) + axis2
-        self.ops.swap(self, axis1, axis2)
+        TensorOperations.swap(self, axis1, axis2)
 
     def reshape(self, new_shape: list[int], debug_name = None):
-        (tensor_data, _grad_fn) = self.ops.reshape(self, new_shape)
+        (tensor_data, _grad_fn) = TensorOperations.reshape(self, new_shape)
         res = self._init(tensor_data, _grad_fn, debug_name)
         return res
 
@@ -124,73 +120,83 @@ class Tensor:
                 raise ValueError(f"[ADD] cant broadcast {self.shape} with {other.shape}")
 
             if self.shape() == other.shape():
-                (tensor_data, _grad_fn) = self.ops.add(self, other)
+                (tensor_data, _grad_fn) = TensorOperations.add(self, other)
                 res = self._init(tensor_data, _grad_fn, debug_name)
                 return res
             else:
                 broadcast_other = other.broadcast(self.shape())
-                (tensor_data, _grad_fn) = self.ops.add(self, broadcast_other)
+                (tensor_data, _grad_fn) = TensorOperations.add(self, broadcast_other)
                 res = self._init(tensor_data, _grad_fn, debug_name)
                 return res
 
         elif isinstance(other, (int, float)):
-            (tensor_data, _grad_fn) = self.ops.scalar_add(self, other)
+            (tensor_data, _grad_fn) = TensorOperations.scalar_add(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
         raise TypeError(f"Can't add Tensor of type {self.dtype} with {type(other)}")
 
     def __sub__(self, other):
         if isinstance(other, Tensor):
-            (tensor_data, _grad_fn) = self.ops.sub(self, other)
+            (tensor_data, _grad_fn) = TensorOperations.sub(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
         elif isinstance(other, (int, float)):
-            (tensor_data, _grad_fn) = self.ops.scalar_sub(self, other)
+            (tensor_data, _grad_fn) = TensorOperations.scalar_sub(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
         raise TypeError(f"Can't subtract Tensor of type {self.dtype} with {type(other)}")
 
     def __mul__(self, other, debug_name=None):
         if isinstance(other, Tensor):
-            (tensor_data, _grad_fn) = self.ops.mul(self, other)
+            (tensor_data, _grad_fn) = TensorOperations.mul(self, other)
             res = self._init(tensor_data, _grad_fn, debug_name)
             return res
         elif isinstance(other, (int, float)):
-            (tensor_data, _grad_fn) = self.ops.scalar_mul(self, other)
+            (tensor_data, _grad_fn) = TensorOperations.scalar_mul(self, other)
             res = self._init(tensor_data, _grad_fn, debug_name)
             return res
         raise TypeError(f"Can't multiply Tensor of type {self.dtype} with {type(other)}")
 
     def __truediv__(self, other):
         if isinstance(other, Tensor):
-            (tensor_data, _grad_fn) = self.ops.div(self, other)
+            (tensor_data, _grad_fn) = TensorOperations.div(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
         elif isinstance(other, (int, float)):
-            (tensor_data, _grad_fn) = self.ops.scalar_div(self, other)
+            (tensor_data, _grad_fn) = TensorOperations.scalar_div(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
         raise TypeError(f"Can't divide Tensor of type {self.dtype} with {type(other)}")
 
     def __pow__(self, other):
         if isinstance(other, Tensor):
-            (tensor_data, _grad_fn) = self.ops.exp(self, other)
+            (tensor_data, _grad_fn) = TensorOperations.exp(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
         if isinstance(other, (int, float)):
-            (tensor_data, _grad_fn) = self.ops.scalar_exp(self, other)
+            (tensor_data, _grad_fn) = TensorOperations.scalar_exp(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
         raise TypeError(f"Can't exponentiate Tensor of type {self.dtype} with {type(other)}")
 
     def log(self):
-        (tensor_data, _grad_fn) = self.ops.scalar_log(self)
+        (tensor_data, _grad_fn) = TensorOperations.scalar_log(self)
         res = self._init(tensor_data, _grad_fn)
         return res
 
     def __matmul__(self, other):
         if isinstance(other, Tensor):
-            (tensor_data, _grad_fn) = self.ops.matmul(self, other)
+            (tensor_data, _grad_fn) = TensorOperations.matmul(self, other)
+            res = self._init(tensor_data, _grad_fn)
+            return res
+
+        raise TypeError(f"other is of type {type(other)} not Tensor")
+
+    def max(self, other):
+        if isinstance(other, Tensor):
+            pass
+        elif isinstance(other, (int, float)):
+            (tensor_data, _grad_fn) = TensorOperations.max(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
 
@@ -203,14 +209,14 @@ class Tensor:
         if not isinstance(axes, list):
             axes = [axes]
 
-        (tensor_data, _grad_fn) = self.ops.sum(self, axes, keepdim)
+        (tensor_data, _grad_fn) = TensorOperations.sum(self, axes, keepdim)
         res = self._init(tensor_data, _grad_fn)
         return res
 
     def broadcast(self, new_shape: list[int]):
         if self.shape() == new_shape:
             return self.clone()
-        tensor_data, _grad_fn = self.ops.broadcast(self, new_shape)
+        tensor_data, _grad_fn = TensorOperations.broadcast(self, new_shape)
         res = self._init(tensor_data, _grad_fn)
         return res
 

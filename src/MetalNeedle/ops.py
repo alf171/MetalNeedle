@@ -96,8 +96,8 @@ class TensorOperations:
                 tensor1.backward(tensor1_grad)
             # dy(x^y) = dy(e^(y*lnx)) = lnx*e^(y*lnx) = lnx * x^y
             if tensor2.requires_grad:
-                # TODO: pass because im missing operations needed for this
-                pass
+                tensor2_grad = (grad * tensor1.tensor_data.log() * (tensor1.tensor_data ** tensor2.tensor_data))
+                tensor2.backward(tensor2_grad)
 
         tensor_data = tensor1.tensor_data ** tensor2.tensor_data
         return tensor_data, _grad_fn
@@ -176,6 +176,28 @@ class TensorOperations:
                 tensor1.backward(tensor1_grad)
 
         tensor_data = tensor1.tensor_data.reshape(new_shape)
+        return tensor_data, _grad_fn
+
+    # TODO: need support for operators like >= on tensors
+    # in order to implement backwards
+    @staticmethod
+    def scalar_max(tensor, val):
+        def _grad_fn(grad):
+            if tensor.requires_grad:
+                pass
+        tensor_data = tensor.tensor_data.max(val)
+        return tensor_data, _grad_fn
+
+    # TODO: need support for operators like >= on tensors
+    # in order to implement backwards
+    @staticmethod
+    def max(tensor1, tensor2):
+        def _grad_fn(grad):
+            if tensor1.requires_grad:
+                pass
+            if tensor2.requires_grad:
+                pass
+        tensor_data = tensor1.tensor_data.max(tensor2)
         return tensor_data, _grad_fn
 
     @staticmethod
