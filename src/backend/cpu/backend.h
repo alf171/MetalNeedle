@@ -32,6 +32,7 @@ public:
     Tensor<T> scalar_max(Tensor<T>& tensor, T scalar);
     Tensor<T> log(Tensor<T>& tensor);
     Tensor<T> sum(Tensor<T>& tensor, bool keepDims);
+    Tensor<T> slice(Tensor<T>& tensor, std::vector<std::pair<size_t, size_t>>& ranges);
 
 private:
     void tile_compute(const std::vector<T>& e1, const std::vector<T>& e2, std::vector<T>& res,

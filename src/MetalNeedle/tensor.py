@@ -4,6 +4,10 @@ from .data import TensorData
 
 class Tensor:
     def __init__(self, data, device="cpu", dtype="int32", requires_grad=False, debug_name=None):
+        """
+        default initialization when size is unknown
+        like when data is provided ex. mn.Tensor([1,2,3])
+        """
         self.device: str = device
         self.dtype: str = dtype
         self.tensor_data: TensorData = TensorData(data, dtype, device, debug_name)
@@ -32,6 +36,9 @@ class Tensor:
 
     @staticmethod
     def create(raw_tensor, device: str, dtype: str, operations, requires_grad=False, debug_name=None):
+        """
+        used externally to create a new tensor or create a copy
+        """
         result = Tensor.__new__(Tensor)
         result.device = device
         result.dtype = dtype
@@ -42,6 +49,10 @@ class Tensor:
         return result
 
     def _init(self, data, _grad_fn = None, debug_name = None):
+        """
+        used internally to create a new tensor
+        doesn't produce TensorData but rather takes it in
+        """
         result = Tensor.__new__(Tensor)
         result.device = self.device
         result.dtype = self.dtype
@@ -58,39 +69,32 @@ class Tensor:
     def data(self):
         return self.tensor_data.data()
 
-    def _debug_name(self):
+    def debug_name(self):
         return self.tensor_data._debug_name
 
-    # TODO: support partial slicing and return a tensor if sum(size) > 1
-    def __getitem__(self, multi_dim_index):
+    def __getitem__(self, multi_dim_index, debug_name=None):
         if not isinstance(multi_dim_index, (list, tuple)):
             multi_dim_index = [multi_dim_index]
 
         if len(multi_dim_index) > len(self.tensor_data.shape()):
             raise ValueError("index shape exceeds tensor's dimensions")
 
-        res = []
+        ranges = []
         for (index, dim) in zip(multi_dim_index, self.tensor_data.shape()):
             if isinstance(index, slice):
-                res.append(range(*index.indices(dim)))
+                start, stop, _ = index.indices(dim)
+                ranges.append((start, stop))
             elif isinstance(index, int):
                 if not 0 <= index < dim:
                     raise ValueError(f"index {index} out of bounds on dim {dim}")
-                res.append([index])
+                ranges.append((index, index+1))
             else:
                 raise TypeError(f"Unsupported index data type: {type(index)}")
 
-        indices = ShapeUtils.cartesian_product(res)
-
-        def get_item(idx):
-            flat_index = self.tensor_data.mult_dim_to_flat_index(idx)
-            return self.tensor_data[flat_index]
-
-        if len(indices) == 1:
-            return get_item(indices[0])
-
-        # could also consider returning back a Tensor if sum(tensor.size()) > 1
-        return [get_item(index) for index in indices]
+        # TODO: this should be moved into operations and then gradient should only
+        # be propagated into `gotten` items
+        tensor_data = self.tensor_data[ranges]
+        return self._init(tensor_data, None, debug_name)
 
 
     @property
@@ -99,8 +103,7 @@ class Tensor:
 
     def transpose(self, debug_name = None):
         (tensor_data, _grad_fn) = TensorOperations.swap(self, 0, 1)
-        res = self._init(tensor_data, _grad_fn, debug_name)
-        return res
+        return self._init(tensor_data, _grad_fn, debug_name)
 
     def swap(self, axis1, axis2):
         # if axis is negative, index opposite direction
@@ -194,15 +197,16 @@ class Tensor:
 
     def max(self, other):
         if isinstance(other, Tensor):
-            pass
-        elif isinstance(other, (int, float)):
             (tensor_data, _grad_fn) = TensorOperations.max(self, other)
+            res = self._init(tensor_data, _grad_fn)
+            return res
+        elif isinstance(other, (int, float)):
+            (tensor_data, _grad_fn) = TensorOperations.scalar_max(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
 
         raise TypeError(f"other is of type {type(other)} not Tensor")
 
-    # TODO: use keep dims and broadcast shape
     def sum(self, axes: int or list[int], keepdim = False):
         if axes is None or axes == []:
             raise TypeError(f"Axes Cant be Null")

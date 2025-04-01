@@ -29,6 +29,17 @@ Tensor<T> Tensor<T>::create(const std::vector<T>& data, const std::vector<size_t
 }
 
 template<typename T>
+Tensor<T> Tensor<T>::create(const std::vector<T>& data, const std::vector<size_t>& shape, const std::vector<size_t>& stride,
+        size_t offset) {
+    Tensor<T> tensor;
+    tensor.data = data;
+    tensor.shape = shape;
+    tensor.stride = stride,
+    tensor.offset = offset;
+    return tensor;
+}
+
+template<typename T>
 std::vector<T> Tensor<T>::randn(const std::vector<int>& size, int mean, int std) {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -158,9 +169,12 @@ void bind_tensor(pybind11::module& m, const std::string& class_name) {
         .def_readwrite("stride", &Tensor<T>::stride)
         .def_readwrite("offset", &Tensor<T>::offset)
         .def("initialize", &Tensor<T>::initialize, "Initialize a Tensor",
-                    pybind11::arg("data"), pybind11::arg("shape"))
-        .def_static("create", &Tensor<T>::create, "Factory method to make a tensor",
-                    pybind11::arg("data"), pybind11::arg("shape"))
+            pybind11::arg("data"), pybind11::arg("shape"))
+        .def_static("create", [](const std::vector<T>& data, const std::vector<size_t>& shape) {
+              return Tensor<T>::create(data, shape);
+           },
+           "Factory method to make a tensor with data and shape",
+           pybind11::arg("data"), pybind11::arg("shape"))
         .def("randn", &Tensor<T>::randn, "Generate a random Tensor")
         .def("fill", &Tensor<T>::fill)
         .def("print", &Tensor<T>::print)

@@ -5,6 +5,6 @@
 
 source ./scripts/setup.sh
 # run testing script
-#python3.13 -m tst.uts
+python3.13 -m tst.uts
 #python3.13 -m tst.metal
-python3.13 -m tst.nn
+#python3.13 -m tst.nn

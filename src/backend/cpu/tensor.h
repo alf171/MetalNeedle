@@ -12,6 +12,8 @@ struct Tensor {
 
     void initialize(const std::vector<T>& data, const std::vector<size_t>& shape);
     static Tensor<T> create(const std::vector<T>& data, const std::vector<size_t>& shape);
+    static Tensor<T> create(const std::vector<T>& data, const std::vector<size_t>& shape,
+        const std::vector<size_t>& stride, const size_t offset);
     std::vector<T> randn(const std::vector<int>& size, int mean, int std);
     std::vector<T> fill(const std::vector<int>& size, T val);
     void compact();

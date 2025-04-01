@@ -300,6 +300,30 @@ public:
         return Tensor<T>::create(result_data, tensor.shape);
     }
 
+    // following view pattern: only metadata is changed while pointing to the same
+    // underlying data. this is crucial for speed when dealing with large tensors
+    // in pytorch you can call .is_contiguous() or .storage().data_ptr() to see if
+    // tensor are identical under the hood
+    Tensor<T> slice(Tensor<T>& tensor, std::vector<std::pair<size_t, size_t>>& ranges) {
+        std::vector<size_t> new_shape;
+        std::vector<size_t> new_stride;
+        size_t new_offset = tensor.offset;
+
+        for (int i = 0; i < ranges.size(); i++) {
+            size_t start = ranges[i].first;
+            size_t end = ranges[i].second;
+            new_offset += start * tensor.stride[i];
+
+            if (end > start) {
+                size_t new_dim = end - start;
+                new_shape.push_back(new_dim);
+                new_stride.push_back(tensor.stride[i]);
+            }
+        }
+
+        Tensor<T> res = Tensor<T>::create(tensor.data, new_shape, new_stride, new_offset);
+    }
+
 private:
     void tile_compute(const std::vector<T>& e1, const std::vector<T>& e2, std::vector<T>& res,
                       size_t block_x, size_t block_y, size_t e1_cols, size_t e2_cols, size_t e1_rows) {
@@ -381,7 +405,8 @@ void bind_operations(pybind11::module& m, const std::string& class_name) {
         .def("scalar_exp", &CPUBackend<T>::scalar_exp)
         .def("scalar_max", &CPUBackend<T>::scalar_max)
         .def("log", &CPUBackend<T>::log)
-        .def("sum", &CPUBackend<T>::sum);
+        .def("sum", &CPUBackend<T>::sum)
+        .def("slice", &CPUBackend<T>::slice);
 }
 
 // could consider moving this
