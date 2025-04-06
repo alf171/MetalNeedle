@@ -48,13 +48,14 @@ class TensorData:
         return self.raw_tensor.offset
 
     def __getitem__(self, index):
-        # TODO: when all dim but one = 1, we should hit this case
-        if isinstance(index, int):
-            return self.raw_tensor.mult_dim_to_flat_index(index)
-        elif isinstance(index, list):
+        if isinstance(index, list):
             raw_tensor = self.operations.slice(self.raw_tensor, index)
             return TensorData.create(raw_tensor, self.operations)
         raise TypeError("index must be a list or int")
+
+    def get_single_item(self, index):
+        index = self.raw_tensor.mult_dim_to_flat_index(index)
+        return self.data()[index]
 
     def __add__(self, value):
         if DeviceManager.is_tensor(value):

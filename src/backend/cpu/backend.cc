@@ -321,7 +321,7 @@ public:
             }
         }
 
-        Tensor<T> res = Tensor<T>::create(tensor.data, new_shape, new_stride, new_offset);
+        return Tensor<T>::create(tensor.data, new_shape, new_stride, new_offset);
     }
 
 private:
