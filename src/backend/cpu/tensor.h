@@ -5,28 +5,76 @@
 
 template<typename T>
 struct Tensor {
-    std::vector<T> data;
+    std::shared_ptr<std::vector<T>> data;
     std::vector<size_t> shape;
     std::vector<size_t> stride;
     size_t offset;
+    static int tensor_count;
+
+    Tensor() {
+        tensor_count++;
+        std::cout << "Default constructor: " << Tensor<T>::tensor_count << std::endl;
+    }
+
+    ~Tensor() {
+        tensor_count--;
+        std::cout << "Destructor: " << Tensor<T>::tensor_count << std::endl;
+    }
+
+    Tensor(const std::vector<T>& data, const std::vector<size_t>& shape) {
+        this->data = std::make_shared<std::vector<T>>(data);
+        this->shape = shape;
+        this->stride = calculate_stride(shape);
+        this->offset = 0;
+        Tensor<T>::tensor_count++;
+    }
+
+    Tensor(const std::vector<T>& data, const std::vector<size_t>& shape, const std::vector<size_t>& stride, size_t offset) {
+        this->data = std::make_shared<std::vector<T>>(data);
+        this->shape = shape;
+        this->stride = stride;
+        this->offset = offset;
+        Tensor<T>::tensor_count++;
+    }
+
+    std::vector<T> get_data() const;
 
     void initialize(const std::vector<T>& data, const std::vector<size_t>& shape);
+
     static Tensor<T> create(const std::vector<T>& data, const std::vector<size_t>& shape);
+
     static Tensor<T> create(const std::vector<T>& data, const std::vector<size_t>& shape,
         const std::vector<size_t>& stride, const size_t offset);
-    std::vector<T> randn(const std::vector<int>& size, int mean, int std);
-    std::vector<T> fill(const std::vector<int>& size, T val);
+
+    static Tensor<T> create_view(const std::shared_ptr<std::vector<T>>& data, const std::vector<size_t>& shape,
+        const std::vector<size_t>& stride, size_t offset);
+
+    Tensor<T> randn(const std::vector<size_t>& size, int mean, int std);
+
+    Tensor<T> fill(const std::vector<size_t>& size, T val);
+
     void compact();
+
     size_t mult_dim_to_flat_index(const std::vector<size_t>& dimension) const;
+
     std::vector<size_t> flat_index_to_mult_dim(const size_t index) const;
+
     void reshape(const std::vector<size_t>& new_shape);
+
     void swap(const size_t axis1, const size_t axis2);
+
+    int get_tensor_count();
+
     void print() const;
 
 private:
     static size_t calculate_size(const std::vector<size_t>& shape);
+
     static std::vector<size_t> calculate_stride(const std::vector<size_t>& shape);
 };
+
+template <typename T>
+int Tensor<T>::tensor_count = 0;
 
 template <typename T>
 void bind_tensor(pybind11::module& m, const std::string& class_name);

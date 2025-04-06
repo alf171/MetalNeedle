@@ -42,10 +42,13 @@ class TensorData:
         self.raw_tensor.stride = shape
 
     def data(self):
-        return self.raw_tensor.data
+        return self.raw_tensor.data()
 
     def offset(self):
         return self.raw_tensor.offset
+
+    def tensor_count(self):
+        return self.raw_tensor.get_tensor_count()
 
     def __getitem__(self, index):
         if isinstance(index, list):
@@ -193,8 +196,7 @@ class TensorData:
 
     def ones_like(self):
         ones_data = self.raw_tensor.fill(self.shape(), 1)
-        _data = self.raw_tensor.create(ones_data, self.shape())
-        return TensorData.create(_data, self.operations, 'ones')
+        return TensorData.create(ones_data, self.operations, 'ones')
 
     def max(self, value):
         if DeviceManager.is_tensor(value):

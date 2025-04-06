@@ -25,12 +25,12 @@ public:
         if (e1.shape != e2.shape) {
             throw std::invalid_argument("Tensors must have same shapes for ewise operations");
         }
-        std::vector<T> result_data(e1.data.size());
-        for(int i = 0; i < e1.data.size(); i++) {
+        std::vector<T> result_data(e1.data->size());
+        for(int i = 0; i < e1.data->size(); i++) {
             std::vector<size_t> multi_dim = e1.flat_index_to_mult_dim(i);
             size_t e1_index = e1.mult_dim_to_flat_index(multi_dim);
             size_t e2_index = e2.mult_dim_to_flat_index(multi_dim);
-            result_data[i] = e1.data[e1_index] + e2.data[e2_index];
+            result_data[i] = e1.data->at(e1_index) + e2.data->at(e2_index);
         }
         return Tensor<T>::create(result_data, e1.shape);
     }
@@ -45,12 +45,12 @@ public:
         if (e1.shape != e2.shape) {
             throw std::invalid_argument("Tensors must have same shapes for ewise operations");
         }
-        std::vector<T> result_data(e1.data.size());
-        for(int i = 0; i < e1.data.size(); i++) {
+        std::vector<T> result_data(e1.data->size());
+        for(int i = 0; i < e1.data->size(); i++) {
             std::vector<size_t> multi_dim = e1.flat_index_to_mult_dim(i);
             size_t e1_index = e1.mult_dim_to_flat_index(multi_dim);
             size_t e2_index = e2.mult_dim_to_flat_index(multi_dim);
-            result_data[i] = e1.data[e1_index] - e2.data[e2_index];
+            result_data[i] = e1.data->at(e1_index) - e2.data->at(e2_index);
         }
         return Tensor<T>::create(result_data, e1.shape);
     }
@@ -61,11 +61,11 @@ public:
      * output: Tensor: Tensor
     **/
     Tensor<T> ewise_exp(Tensor<T>& e1, float v1) {
-        std::vector<T> result_data(e1.data.size());
-        for(int i = 0; i < e1.data.size(); i++) {
+        std::vector<T> result_data(e1.data->size());
+        for(int i = 0; i < e1.data->size(); i++) {
             std::vector<size_t> multi_dim = e1.flat_index_to_mult_dim(i);
             size_t e1_index = e1.mult_dim_to_flat_index(multi_dim);
-            result_data[i] = pow(e1.data[e1_index], v1);
+            result_data[i] = pow(e1.data->at(e1_index), v1);
         }
         return Tensor<T>::create(result_data, e1.shape);
     }
@@ -79,12 +79,12 @@ public:
         if (e1.shape != e2.shape) {
             throw std::invalid_argument("Tensors must have same shapes for ewise operations");
         }
-        std::vector<T> result_data(e1.data.size());
-        for(int i = 0; i < e1.data.size(); i++) {
+        std::vector<T> result_data(e1.data->size());
+        for(int i = 0; i < e1.data->size(); i++) {
             std::vector<size_t> multi_dim = e1.flat_index_to_mult_dim(i);
             size_t e1_index = e1.mult_dim_to_flat_index(multi_dim);
             size_t e2_index = e2.mult_dim_to_flat_index(multi_dim);
-            result_data[i] = e1.data[e1_index] / e2.data[e2_index];
+            result_data[i] = e1.data->at(e1_index) / e2.data->at(e2_index);
         }
         return Tensor<T>::create(result_data, e1.shape);
     }
@@ -98,12 +98,12 @@ public:
         if (e1.shape != e2.shape) {
             throw std::invalid_argument("Tensors must have same shapes for ewise operations");
         }
-        std::vector<T> result_data(e1.data.size());
-        for(int i = 0; i < e1.data.size(); i++) {
+        std::vector<T> result_data(e1.data->size());
+        for(int i = 0; i < e1.data->size(); i++) {
             std::vector<size_t> multi_dim = e1.flat_index_to_mult_dim(i);
             size_t e1_index = e1.mult_dim_to_flat_index(multi_dim);
             size_t e2_index = e2.mult_dim_to_flat_index(multi_dim);
-            result_data[i] = e1.data[e1_index] * e2.data[e2_index];
+            result_data[i] = e1.data->at(e1_index) * e2.data->at(e2_index);
         }
         return Tensor<T>::create(result_data, e1.shape);
     }
@@ -124,13 +124,13 @@ public:
         // (m,n) @ (n,p) => (m,p)
         // TODO: this doesn't support dim > 2
         std::vector<size_t> result_shape = {e1_rows, e2_cols};
-        std::vector<T> result_data(e1_rows * e2_cols, 0);
+        std::vector<T> result_data = std::vector<T>(e1_rows * e2_cols, 0);
 
-        std::vector<T> e2_transposed(e2.data.size());
+        std::vector<T> e2_transposed(e2.data->size());
         #pragma omp parallel for collapse(2) schedule(static)
         for (size_t i = 0; i < e2_rows; i++) {
             for (size_t j = 0; j < e2_cols; j++) {
-                e2_transposed[j * e2_rows + i] = e2.data[i * e2_cols + j];
+                e2_transposed[j * e2_rows + i] = e2.data->at(i * e2_cols + j);
             }
         }
 
@@ -161,9 +161,9 @@ public:
      * output: result: Tensor
     **/
     Tensor<T> scalar_add(Tensor<T>& tensor, T scalar) {
-        std::vector<T> result_data(tensor.data.size());
-        for(int i = 0; i < tensor.data.size(); i++) {
-            result_data[i] = tensor.data[i] + scalar;
+        std::vector<T> result_data(tensor.data->size());
+        for(int i = 0; i < tensor.data->size(); i++) {
+            result_data[i] = tensor.data->at(i) + scalar;
         }
         return Tensor<T>::create(result_data, tensor.shape);
     }
@@ -174,9 +174,9 @@ public:
      * output: result: Tensor
     **/
     Tensor<T> scalar_sub(Tensor<T>& tensor, T scalar) {
-        std::vector<T> result_data(tensor.data.size());
-        for(int i = 0; i < tensor.data.size(); i++) {
-            result_data[i] = tensor.data[i] - scalar;
+        std::vector<T> result_data(tensor.data->size());
+        for(int i = 0; i < tensor.data->size(); i++) {
+            result_data[i] = tensor.data->at(i) - scalar;
         }
         return Tensor<T>::create(result_data, tensor.shape);
     }
@@ -187,9 +187,9 @@ public:
      * output: result: Tensor
     **/
     Tensor<T> scalar_mul(Tensor<T>& tensor, T scalar) {
-        std::vector<T> result_data(tensor.data.size());
-        for(int i = 0; i < tensor.data.size(); i++) {
-            result_data[i] = tensor.data[i] * scalar;
+        std::vector<T> result_data(tensor.data->size());
+        for(int i = 0; i < tensor.data->size(); i++) {
+            result_data[i] = tensor.data->at(i) * scalar;
         }
         return Tensor<T>::create(result_data, tensor.shape);
     }
@@ -200,9 +200,9 @@ public:
      * output: result: Tensor
     **/
     Tensor<T> scalar_div(Tensor<T>& tensor, T scalar) {
-        std::vector<T> result_data(tensor.data.size());
-        for(int i = 0; i < tensor.data.size(); i++) {
-            result_data[i] = tensor.data[i] / scalar;
+        std::vector<T> result_data(tensor.data->size());
+        for(int i = 0; i < tensor.data->size(); i++) {
+            result_data[i] = tensor.data->at(i) / scalar;
         }
         return Tensor<T>::create(result_data, tensor.shape);
     }
@@ -213,9 +213,9 @@ public:
      * output: result: Tensor
     **/
     Tensor<T> scalar_exp(Tensor<T>& tensor, T scalar) {
-        std::vector<T> result_data(tensor.data.size());
-        for(int i = 0; i < tensor.data.size(); i++) {
-            result_data[i] = pow(tensor.data[i], scalar);
+        std::vector<T> result_data(tensor.data->size());
+        for(int i = 0; i < tensor.data->size(); i++) {
+            result_data[i] = pow(tensor.data->at(i), scalar);
         }
         return Tensor<T>::create(result_data, tensor.shape);
     }
@@ -226,9 +226,9 @@ public:
      * output: result: Tensor
     **/
     Tensor<T> log(Tensor<T>& tensor) {
-        std::vector<T> result_data(tensor.data.size());
-        for(int i = 0; i < tensor.data.size(); i++) {
-            result_data[i] = std::log(tensor.data[i]);
+        std::vector<T> result_data(tensor.data->size());
+        for(int i = 0; i < tensor.data->size(); i++) {
+            result_data[i] = std::log(tensor.data->at(i));
         }
         return Tensor<T>::create(result_data, tensor.shape);
     }
@@ -260,7 +260,7 @@ public:
         std::vector<T> result_data(res_size, T(0));
         Tensor<T> result = Tensor<T>::create(result_data, reduced_shape);
 
-        for(size_t i = 0; i < tensor.data.size(); i++) {
+        for(size_t i = 0; i < tensor.data->size(); i++) {
 
             std::vector<size_t> multi_dim = tensor.flat_index_to_mult_dim(i);
 
@@ -273,7 +273,7 @@ public:
                 }
             }
             size_t flat_index = reduced_all ? 0 : result.mult_dim_to_flat_index(reduced_index);
-            result.data[flat_index] += tensor.data[i];
+            result.data->at(flat_index) += tensor.data->at(i);
         }
         return result;
     }
@@ -282,20 +282,20 @@ public:
         if (e1.shape != e2.shape) {
             throw std::invalid_argument("Tensors must have same shapes for ewise operations");
         }
-        std::vector<T> result_data(e1.data.size());
-        for(int i = 0; i < e1.data.size(); i++) {
+        std::vector<T> result_data(e1.data->size());
+        for(int i = 0; i < e1.data->size(); i++) {
             std::vector<size_t> multi_dim = e1.flat_index_to_mult_dim(i);
             size_t e1_index = e1.mult_dim_to_flat_index(multi_dim);
             size_t e2_index = e2.mult_dim_to_flat_index(multi_dim);
-            result_data[i] = std::max(e1.data[e1_index], e2.data[e2_index]);
+            result_data[i] = std::max(e1.data->at(e1_index), e2.data->at(e2_index));
         }
         return Tensor<T>::create(result_data, e1.shape);
     }
 
     Tensor<T> scalar_max(Tensor<T>& tensor, T scalar) {
-        std::vector<T> result_data(tensor.data.size());
-        for(int i = 0; i < tensor.data.size(); i++) {
-            result_data[i] = std::max(tensor.data[i], scalar);
+        std::vector<T> result_data(tensor.data->size());
+        for(int i = 0; i < tensor.data->size(); i++) {
+            result_data[i] = std::max(tensor.data->at(i), scalar);
         }
         return Tensor<T>::create(result_data, tensor.shape);
     }
@@ -321,11 +321,11 @@ public:
             }
         }
 
-        return Tensor<T>::create(tensor.data, new_shape, new_stride, new_offset);
+        return Tensor<T>::create_view(tensor.data, new_shape, new_stride, new_offset);
     }
 
 private:
-    void tile_compute(const std::vector<T>& e1, const std::vector<T>& e2, std::vector<T>& res,
+    void tile_compute(const std::shared_ptr<std::vector<T>>& e1, const std::shared_ptr<std::vector<T>>& e2, std::vector<T>& res,
                       size_t block_x, size_t block_y, size_t e1_cols, size_t e2_cols, size_t e1_rows) {
 
         // adjust for when SIZE % TILE != 0
@@ -339,7 +339,7 @@ private:
                 for (size_t k = 0; k < e1_cols; k++) {
                     size_t index_e1 = (block_x + i) * e1_cols + k;
                     size_t index_e2 = k * e2_cols + (block_y + j);
-                    tmp_sum += e1[index_e1] * e2[index_e2];
+                    tmp_sum += e1->at(index_e1) * e2->at(index_e2);
                 }
                 size_t index_res = (block_x + i) * e2_cols + (block_y + j);
                 #pragma omp atomic
@@ -349,7 +349,7 @@ private:
     }
 
     // works exclusively for float32
-    void simd_tile_compute(const std::vector<T>& e1, const std::vector<T>& e2, std::vector<T>& res,
+    void simd_tile_compute(const std::shared_ptr<std::vector<T>>& e1, const std::shared_ptr<std::vector<T>>& e2, std::vector<T>& res,
                       const size_t block_x, const size_t block_y, const size_t e1_cols, const size_t e1_rows,
                       const size_t e2_cols) {
         size_t tile_height = std::min(TILE, e1_rows - block_x);
@@ -377,7 +377,7 @@ private:
                 for (; k < e1_cols; k++) {
                     size_t index_e1 = (block_x + i) * e1_cols + k;
                     size_t index_e2 = k * e2_cols + (block_y + j);
-                    tmp_sum += e1[index_e1] * e2[index_e2];
+                    tmp_sum += e1->at(index_e1) * e2->at(index_e2);
                 }
 
                 size_t index_res = (block_x + i) * e2_cols + (block_y + j);

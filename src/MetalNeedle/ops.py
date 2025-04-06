@@ -1,9 +1,13 @@
+from typing import Tuple, Any
+
+from MetalNeedle.data import TensorData
+
 LAZY_MODE = False
 TENSOR_COUNTER = 0
 
 class TensorOperations:
     @staticmethod
-    def add(tensor1, tensor2):
+    def add(tensor1, tensor2) -> Tuple[TensorData, Any]:
         def grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.backward(grad)
@@ -14,7 +18,7 @@ class TensorOperations:
         return tensor_data, grad_fn
 
     @staticmethod
-    def scalar_add(tensor1, value):
+    def scalar_add(tensor1, value) -> Tuple[TensorData, Any]:
         def grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.backward(grad)
@@ -23,7 +27,7 @@ class TensorOperations:
         return tensor_data, grad_fn
 
     @staticmethod
-    def sub(tensor1, tensor2):
+    def sub(tensor1, tensor2) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.backward(grad)
@@ -35,7 +39,7 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def scalar_sub(tensor1, value):
+    def scalar_sub(tensor1, value) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.backward(grad)
@@ -43,7 +47,7 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def mul(tensor1, tensor2):
+    def mul(tensor1, tensor2) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1_grad = (tensor2.tensor_data * grad)
@@ -56,7 +60,7 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def scalar_mul(tensor1, value):
+    def scalar_mul(tensor1, value) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.grad = (grad * value)
@@ -65,7 +69,7 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def div(tensor1, tensor2):
+    def div(tensor1, tensor2) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             # da(A/B) = 1/B
             if tensor1.requires_grad:
@@ -80,7 +84,7 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def scalar_div(tensor1, value):
+    def scalar_div(tensor1, value) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.backward(grad / value)
@@ -88,7 +92,7 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def exp(tensor1, tensor2):
+    def exp(tensor1, tensor2) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             # dx(x^y) = y * x^(y-1)
             if tensor1.requires_grad:
@@ -104,7 +108,7 @@ class TensorOperations:
 
 
     @staticmethod
-    def scalar_exp(tensor1, value):
+    def scalar_exp(tensor1, value) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1_grad = (grad * (value * tensor1.tensor_data ** (value-1)))
@@ -114,7 +118,7 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def scalar_log(tensor1):
+    def scalar_log(tensor1) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.backward(grad / tensor1.tensor_data)
@@ -123,7 +127,7 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def matmul(tensor1, tensor2):
+    def matmul(tensor1, tensor2) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1_grad = (grad @ tensor2.tensor_data.T)
@@ -136,7 +140,7 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def sum(tensor1, axes, keep_dims):
+    def sum(tensor1, axes, keep_dims) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1_grad = grad.broadcast(tensor1.tensor_data.shape())
@@ -146,7 +150,7 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def swap(tensor1, axis1, axis2):
+    def swap(tensor1, axis1, axis2) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1.grad(grad.swap(axis1, axis2))
@@ -155,7 +159,7 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def broadcast(tensor1, new_shape):
+    def broadcast(tensor1, new_shape) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 sum_dims = []
@@ -169,7 +173,7 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def reshape(tensor1, new_shape):
+    def reshape(tensor1, new_shape) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1_grad = grad.reshape(tensor1.shape())
@@ -181,7 +185,7 @@ class TensorOperations:
     # TODO: need support for operators like >= on tensors
     # in order to implement backwards
     @staticmethod
-    def scalar_max(tensor, val):
+    def scalar_max(tensor, val) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor.requires_grad:
                 pass
@@ -191,7 +195,7 @@ class TensorOperations:
     # TODO: need support for operators like >= on tensors
     # in order to implement backwards
     @staticmethod
-    def max(tensor1, tensor2):
+    def max(tensor1, tensor2) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 pass
@@ -201,7 +205,7 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def _log_before_grad(op, grad, tensor1, tensor2):
+    def _log_before_grad(op, grad, tensor1, tensor2) -> None:
         # Log information about the incoming gradient
         print(f"[{op} BACKWARD] Gradient shape: {grad.shape() if hasattr(grad, 'shape') else 'scalar'}")
         print(f"[{op} BACKWARD] Gradient value: {grad.data() if hasattr(grad, 'data') else grad}")
@@ -217,7 +221,7 @@ class TensorOperations:
         print(f"[{op} BACKWARD] Tensor2 '{t2_name}' grad before: {tensor2.grad.data() if tensor2.grad is not None else None}")
 
     @staticmethod
-    def _log_after_grad(op, tensor1, tensor2):
+    def _log_after_grad(op, tensor1, tensor2) -> None:
         t1_name = tensor1._debug_name() or "unnamed_tensor1"
         t2_name = tensor2._debug_name() or "unnamed_tensor2"
         print(f"[{op} BACKWARD] Tensor1 '{t1_name}' grad after: {tensor1.grad.data() if tensor1.grad is not None else None}")

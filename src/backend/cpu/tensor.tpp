@@ -8,8 +8,7 @@ void Tensor<T>::initialize(const std::vector<T>& data, const std::vector<size_t>
     if (data.size() != calculate_size(shape)) {
         throw std::invalid_argument("Data size does not match shape dimensions.");
     }
-    Tensor<T> tensor;
-    this->data = data;
+    this->data = std::make_shared<std::vector<T>>(data);
     this->shape = shape;
     this->stride = calculate_stride(shape);
     this->offset = 0;
@@ -20,27 +19,30 @@ Tensor<T> Tensor<T>::create(const std::vector<T>& data, const std::vector<size_t
     if (data.size() != calculate_size(shape)) {
         throw std::invalid_argument("Data size does not match shape dimensions.");
     }
-    Tensor<T> tensor;
-    tensor.data = data;
-    tensor.shape = shape;
-    tensor.stride = calculate_stride(shape);
-    tensor.offset = 0;
-    return tensor;
+    return Tensor<T>(data, shape);
 }
 
 template<typename T>
 Tensor<T> Tensor<T>::create(const std::vector<T>& data, const std::vector<size_t>& shape, const std::vector<size_t>& stride,
         size_t offset) {
+    return Tensor<T>(data, shape, stride, offset);
+}
+
+template<typename T>
+Tensor<T> Tensor<T>::create_view(const std::shared_ptr<std::vector<T>>& shared_data,
+                            const std::vector<size_t>& shape,
+                            const std::vector<size_t>& stride,
+                            size_t offset) {
     Tensor<T> tensor;
-    tensor.data = data;
+    tensor.data = shared_data;
     tensor.shape = shape;
-    tensor.stride = stride,
+    tensor.stride = stride;
     tensor.offset = offset;
     return tensor;
 }
 
 template<typename T>
-std::vector<T> Tensor<T>::randn(const std::vector<int>& size, int mean, int std) {
+Tensor<T> Tensor<T>::randn(const std::vector<size_t>& size, int mean, int std) {
     std::random_device rd;
     std::mt19937 gen(rd());
 
@@ -54,7 +56,7 @@ std::vector<T> Tensor<T>::randn(const std::vector<int>& size, int mean, int std)
         data.push_back(static_cast<T>(dist(gen)));
     }
 
-    return data;
+    return Tensor<T>(data, size);
 }
 
 template<typename T>
@@ -67,28 +69,33 @@ void Tensor<T>::print() const {
     std::cout << "]\n";
 
     std::cout << "Stride: [";
-    for (size_t i = 0; i < stride.size(); ++i) {
-        std::cout << stride[i] << (i < stride.size() - 1 ? ", " : "");
+    for (size_t i = 0; i < this->stride.size(); ++i) {
+        std::cout << this->stride[i] << (i < this->stride.size() - 1 ? ", " : "");
     }
     std::cout << "]\n";
 
     std::cout << "Data: [";
-    for (size_t i = 0; i < data.size(); ++i) {
-        std::cout << data[i] << (i < data.size() - 1 ? ", " : "");
+    for (size_t i = 0; i < this->data->size(); ++i) {
+        std::cout << this->data->at(i) << (i < this->data->size() - 1 ? ", " : "");
     }
     std::cout << "]\n";
 }
 
 template<typename T>
-std::vector<T> Tensor<T>::fill(const std::vector<int>& size, T val) {
+std::vector<T> Tensor<T>::get_data() const {
+    return *this->data;
+}
+
+template<typename T>
+Tensor<T> Tensor<T>::fill(const std::vector<size_t>& size, T val) {
     size_t n = std::accumulate(size.begin(), size.end(), 1, std::multiplies<int>());
     std::vector<T> data(n, val);
-    return data;
+    return Tensor<T>(data, size);
 }
 
 template <typename T>
 void Tensor<T>::reshape(const std::vector<size_t>& new_shape) {
-    if (calculate_size(new_shape) != this->data.size()) {
+    if (calculate_size(new_shape) != this->data->size()) {
         throw std::invalid_argument("New shape must have the same number of elements.");
     }
     this->shape = new_shape;
@@ -107,9 +114,9 @@ void Tensor<T>::compact() {
     for (size_t i = 0; i < num_elements; ++i) {
         std::vector<size_t> multi_dim = flat_index_to_mult_dim(i);
         size_t source_index = mult_dim_to_flat_index(multi_dim);
-        new_data[i] = this->data[source_index];
+        new_data[i] = this->data->at(source_index);
     }
-    this->data = new_data;
+    this->data = std::make_shared<std::vector<T>>(new_data);
     this->stride = calculate_stride(shape);
     this->offset = 0;
 }
@@ -160,11 +167,17 @@ void Tensor<T>::swap(const size_t axis1, const size_t axis2) {
     std::swap(this->stride[axis1], this->stride[axis2]);
 }
 
+template<typename T>
+int Tensor<T>::get_tensor_count() {
+    return this->tensor_count;
+}
+
 template <typename T>
 void bind_tensor(pybind11::module& m, const std::string& class_name) {
+    // TODO: should be just read
     pybind11::class_<Tensor<T>>(m, class_name.c_str())
         .def(pybind11::init<>())
-        .def_readwrite("data", &Tensor<T>::data)
+        .def("data", &Tensor<T>::get_data)
         .def_readwrite("shape", &Tensor<T>::shape)
         .def_readwrite("stride", &Tensor<T>::stride)
         .def_readwrite("offset", &Tensor<T>::offset)
@@ -182,5 +195,6 @@ void bind_tensor(pybind11::module& m, const std::string& class_name) {
         .def("reshape", &Tensor<T>::reshape, "Reshape a Tensor")
         .def("mult_dim_to_flat_index", &Tensor<T>::mult_dim_to_flat_index)
         .def("swap", &Tensor<T>::swap, "swap shape and stride of a tensor",
-            pybind11::arg("axis1"), pybind11::arg("axis2"));
+            pybind11::arg("axis1"), pybind11::arg("axis2"))
+        .def("get_tensor_count", &Tensor<T>::get_tensor_count);
 }

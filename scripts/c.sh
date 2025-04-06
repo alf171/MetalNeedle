@@ -9,6 +9,7 @@ clang++ -g -arch arm64 -march=native -ftree-vectorize -funroll-loops -flto \
     -L/opt/homebrew/opt/libomp/lib \
     -Xpreprocessor -fopenmp \
     -lpython3.13 -lomp \
+    -ferror-limit=1000 \
     -framework Metal -framework Foundation -framework MetalKit \
     -stdlib=libc++ -fno-objc-arc -o tmp/backend$(python3.13-config --extension-suffix) \
     src/backend/bind.cc src/backend/cpu/backend.cc src/backend/metal/backend.cc

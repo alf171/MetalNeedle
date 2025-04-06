@@ -28,7 +28,7 @@ class Tensor:
             Tensor: A new tensor with identical values but separate memory
         """
         res = Tensor.create(
-            raw_tensor=self.data,
+            raw_tensor=self.data(),
             device=self.device,
             dtype=self.dtype,
             operations=self.tensor_data.operations,
@@ -52,10 +52,9 @@ class Tensor:
         result.grad_fn = None
         return result
 
-    def _init(self, data: list[Any], _grad_fn = None, debug_name = None) -> Tensor:
+    def _init(self, data: TensorData, _grad_fn = None, debug_name = None) -> Tensor:
         """
-        used internally to create a new tensor
-        doesn't produce TensorData but rather takes it in
+        Used internally to create a new tensor from TensorData
         """
         result = Tensor.__new__(Tensor)
         result.device = self.device
@@ -72,6 +71,9 @@ class Tensor:
 
     def data(self) -> list[Any]:
         return self.tensor_data.data()
+
+    def tensor_count(self) -> int:
+        return self.tensor_data.tensor_count()
 
     def debug_name(self) -> str or None:
         return self.tensor_data._debug_name
