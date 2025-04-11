@@ -212,8 +212,6 @@ class TensorData:
         raise TypeError("invalid maximum")
 
     def max(self, axes: tuple[int]) -> Any:
-        # TODO: fix bug
-        print(self.data())
         raw_tenor = self.raw_tensor.max(axes)
         return TensorData.create(raw_tenor, self.operations)
 

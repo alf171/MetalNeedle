@@ -205,12 +205,12 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def max(tensor, axis) -> Tuple[TensorData, Any]:
+    def max(tensor, axes) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor.requires_grad:
                 pass
 
-        tensor_data = tensor.tensor_data.max(axis)
+        tensor_data = tensor.tensor_data.max(axes)
         return tensor_data, _grad_fn
 
 

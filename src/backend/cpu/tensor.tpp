@@ -78,8 +78,8 @@ void Tensor<T>::print() const {
         std::cout << this->data->at(i) << (i < this->data->size() - 1 ? ", " : "");
     }
     std::cout << "]\n";
-    std::cout << "Offset:" << this->offset;
-    std::cout << "Total size:" << this->total_size;
+    std::cout << "Offset: " << this->offset << std::endl;
+    std::cout << "Total size: " << this->total_size << std::endl;
 }
 
 template<typename T>
@@ -146,6 +146,9 @@ std::vector<size_t> Tensor<T>::calculate_stride(const std::vector<size_t>& input
 
 template<typename T>
 size_t Tensor<T>::mult_dim_to_flat_index(const std::vector<size_t>& dimension) const {
+    if (dimension.size() != this->shape.size()) {
+        throw std::invalid_argument("expected dim of " + std::to_string(this->shape.size()) + " but got " + std::to_string(dimension.size()));
+    }
     size_t result = this->offset;
     for (int i = 0; i < this->shape.size(); i++) {
         result += dimension[i] * this->stride[i];
@@ -177,7 +180,6 @@ int Tensor<T>::get_tensor_count() {
 
 template<typename T>
 Tensor<T> Tensor<T>::max(std::vector<size_t>& axes) {
-    print();
     std::vector<bool> keep_dims(this->shape.size(), true);
     for (size_t axis : axes) {
         if (axis >= keep_dims.size()) {
@@ -187,12 +189,9 @@ Tensor<T> Tensor<T>::max(std::vector<size_t>& axes) {
     }
 
     std::vector<size_t> shape;
-    std::vector<size_t> stride;
-
     for (size_t dim = 0; dim < this->shape.size(); dim++) {
         if(keep_dims[dim]) {
             shape.push_back(this->shape[dim]);
-            stride.push_back(this->stride[dim]);
         }
     }
 
@@ -207,7 +206,7 @@ Tensor<T> Tensor<T>::max(std::vector<size_t>& axes) {
     }
 
     std::vector<T> data(total_size, std::numeric_limits<T>::lowest());
-    Tensor<T> result_tensor = Tensor<T>(data, shape, stride, 0);
+    Tensor<T> result_tensor = Tensor<T>(data, shape, calculate_stride(shape), 0);
 
     for(size_t i = 0; i < this->total_size; i++) {
         std::vector<size_t> multi_dim = this->flat_index_to_mult_dim(i);
