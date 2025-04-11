@@ -25,8 +25,8 @@ public:
         if (e1.shape != e2.shape) {
             throw std::invalid_argument("Tensors must have same shapes for ewise operations");
         }
-        std::vector<T> result_data(e1.data->size());
-        for(int i = 0; i < e1.data->size(); i++) {
+        std::vector<T> result_data(e1.total_size);
+        for(int i = 0; i < e1.total_size; i++) {
             std::vector<size_t> multi_dim = e1.flat_index_to_mult_dim(i);
             size_t e1_index = e1.mult_dim_to_flat_index(multi_dim);
             size_t e2_index = e2.mult_dim_to_flat_index(multi_dim);

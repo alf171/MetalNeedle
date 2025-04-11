@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from .device import DeviceManager
 from .util import ShapeUtils
 
@@ -10,14 +14,14 @@ class TensorData:
         self._debug_name = debug_name
 
     @staticmethod
-    def create(raw_tensor, operations, debug_name=None):
+    def create(raw_tensor, operations, debug_name=None) -> TensorData:
         result = TensorData.__new__(TensorData)
         result.raw_tensor = raw_tensor
         result.operations = operations
         result._debug_name = debug_name
         return result
 
-    def clone(self):
+    def clone(self) -> TensorData:
         new_raw_tensor = self.raw_tensor.create(self.data(), self.shape())
         result = TensorData.__new__(TensorData)
         result.raw_tensor = new_raw_tensor
@@ -26,41 +30,38 @@ class TensorData:
         result._debug_name = self._debug_name + "_clone" if self._debug_name is not None else "tensor_clone"
         return result
 
-    def _init(self, tensor):
-        self.raw_tensor = tensor
-
-    def shape(self):
+    def shape(self) -> list[int]:
         return self.raw_tensor.shape
 
-    def set_shape(self, shape):
+    def set_shape(self, shape) -> None:
         self.raw_tensor.shape = shape
 
-    def stride(self):
+    def stride(self) -> list[int]:
         return self.raw_tensor.stride
 
-    def set_stride(self, shape):
+    def set_stride(self, shape) -> None:
         self.raw_tensor.stride = shape
 
-    def data(self):
+    def data(self) -> list[Any]:
         return self.raw_tensor.data()
 
-    def offset(self):
+    def offset(self) -> int:
         return self.raw_tensor.offset
 
-    def tensor_count(self):
+    def tensor_count(self) -> int:
         return self.raw_tensor.get_tensor_count()
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> TensorData:
         if isinstance(index, list):
             raw_tensor = self.operations.slice(self.raw_tensor, index)
             return TensorData.create(raw_tensor, self.operations)
         raise TypeError("index must be a list or int")
 
-    def get_single_item(self, index):
+    def get_single_item(self, index) -> Any:
         index = self.raw_tensor.mult_dim_to_flat_index(index)
         return self.data()[index]
 
-    def __add__(self, value):
+    def __add__(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
             raw_tensor = self.operations.ewise_add(self.raw_tensor, value)
             return TensorData.create(raw_tensor, self.operations)
@@ -72,7 +73,7 @@ class TensorData:
             return TensorData.create(raw_tensor, self.operations)
         raise TypeError("invalid add")
 
-    def __sub__(self, value):
+    def __sub__(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
             raw_tensor = self.operations.ewise_sub(self.raw_tensor, value)
             return TensorData.create(raw_tensor, self.operations)
@@ -84,7 +85,7 @@ class TensorData:
             return TensorData.create(raw_tensor, self.operations)
         raise TypeError("invalid sub")
 
-    def __mul__(self, value):
+    def __mul__(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
             raw_tensor = self.operations.ewise_mul(self.raw_tensor, value)
             return TensorData.create(raw_tensor, self.operations)
@@ -96,7 +97,7 @@ class TensorData:
             return TensorData.create(raw_tensor, self.operations)
         raise TypeError("invalid mul")
 
-    def __truediv__(self, value):
+    def __truediv__(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
             raw_tensor = self.operations.ewise_div(self.raw_tensor, value)
             return TensorData.create(raw_tensor, self.operations)
@@ -108,7 +109,7 @@ class TensorData:
             return TensorData.create(raw_tensor, self.operations)
         raise TypeError("invalid div")
 
-    def __pow__(self, value):
+    def __pow__(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
             raw_tensor = self.operations.ewise_exp(self.raw_tensor, value)
             return TensorData.create(raw_tensor, self.operations)
@@ -120,15 +121,15 @@ class TensorData:
             return TensorData.create(raw_tensor, self.operations)
         raise TypeError("invalid exp")
 
-    def log(self):
+    def log(self) -> TensorData:
         raw_tensor = self.operations.log(self.raw_tensor)
         return TensorData.create(raw_tensor, self.operations)
 
-    def __matmul__(self, value):
+    def __matmul__(self, value) -> TensorData:
         raw_tensor = self.operations.mat_mul(self.raw_tensor, value.raw_tensor)
         return TensorData.create(raw_tensor, self.operations)
 
-    def broadcast(self, new_shape: list[int]):
+    def broadcast(self, new_shape: list[int]) -> TensorData:
         result = self.clone()
         current_shape = result.shape()[:]
         new_stride = []
@@ -159,7 +160,7 @@ class TensorData:
     # like this. The question then becomes why not always read memory regardless of the
     # output, the point is we can amortize the cost of flattening our data for better
     # caching properties
-    def reshape(self, new_shape):
+    def reshape(self, new_shape) -> TensorData:
         if ShapeUtils.product(new_shape) != ShapeUtils.product(self.shape()):
             raise TypeError(f"original dimension ({self.shape()}) product != proposed ({new_shape})")
 
@@ -174,31 +175,31 @@ class TensorData:
         result.set_stride(new_stride)
         return result
 
-    def sum(self, axes: list[int], keep_dims):
+    def sum(self, axes: list[int], keep_dims) -> TensorData:
         _data = self.operations.sum(self.raw_tensor, axes, keep_dims)
         return TensorData.create(_data, self.operations)
 
     @property
-    def T(self):
+    def T(self) -> TensorData:
         return self.transpose()
 
     # clone in order to not be destructive
-    def transpose(self):
+    def transpose(self) -> TensorData:
         result = self.clone()
         result.raw_tensor.swap(0, 1)
         return result
 
-    def swap(self, axis1, axis2):
+    def swap(self, axis1, axis2) -> TensorData:
         if axis1 >= len(self.shape()) or axis2 >= len(self.shape()):
             raise ValueError("axes for swap out of range")
         self.raw_tensor.swap(axis1, axis2)
         return self
 
-    def ones_like(self):
+    def ones_like(self) -> TensorData:
         ones_data = self.raw_tensor.fill(self.shape(), 1)
         return TensorData.create(ones_data, self.operations, 'ones')
 
-    def max(self, value):
+    def maximum(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
             raw_tensor = self.operations.ewise_max(self.raw_tensor, value)
             return TensorData.create(raw_tensor, self.operations)
@@ -208,8 +209,14 @@ class TensorData:
         elif isinstance(value, (int, float)):
             raw_tensor = self.operations.scalar_max(self.raw_tensor, value)
             return TensorData.create(raw_tensor, self.operations)
-        raise TypeError("invalid exp")
+        raise TypeError("invalid maximum")
 
-    def __str__(self):
+    def max(self, axes: tuple[int]) -> Any:
+        # TODO: fix bug
+        print(self.data())
+        raw_tenor = self.raw_tensor.max(axes)
+        return TensorData.create(raw_tenor, self.operations)
+
+    def __str__(self) -> str:
         shape = ', '.join(str(x) for x in self.shape())
         return f"<{self.__class__.__module__}.{self.__class__.__name__}> (size: [{shape}])"

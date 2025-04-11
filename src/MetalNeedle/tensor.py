@@ -213,19 +213,30 @@ class Tensor:
         Maximum of a tensor or a scalar value
         """
         if isinstance(other, Tensor):
-            (tensor_data, _grad_fn) = TensorOperations.max(self, other)
+            (tensor_data, _grad_fn) = TensorOperations.maximum(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
         elif isinstance(other, (int, float)):
-            (tensor_data, _grad_fn) = TensorOperations.scalar_max(self, other)
+            (tensor_data, _grad_fn) = TensorOperations.scalar_maximum(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
         elif other is None:
-            (tensor_data, _grad_fn) = TensorOperations.scalar_max(self, *range(self.shape()))
+            (tensor_data, _grad_fn) = TensorOperations.scalar_maximum(self, *range(self.shape()))
             res = self._init(tensor_data, _grad_fn)
             return res
 
         raise TypeError(f"other is of type {type(other)} not Tensor")
+
+    def max(self, axes = None) -> Any:
+        """
+        maximum value with a tensor or axis
+        """
+        if axes is None:
+            axes = range(len(self.shape()))
+
+        tensor_data, _grad_fn = TensorOperations.max(self, axes)
+        res = self._init(tensor_data, _grad_fn)
+        return res
 
     def sum(self, axes: int or list[int], keepdim = False) -> Tensor:
         if axes is None or axes == []:

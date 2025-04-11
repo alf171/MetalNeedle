@@ -8,4 +8,4 @@ class ReLU(Module):
         super().__init__()
 
     def forward(self, x):
-        return x.max(0)
+        return x.maximum(0)

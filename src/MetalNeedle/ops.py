@@ -185,24 +185,34 @@ class TensorOperations:
     # TODO: need support for operators like >= on tensors
     # in order to implement backwards
     @staticmethod
-    def scalar_max(tensor, val) -> Tuple[TensorData, Any]:
+    def scalar_maximum(tensor, val) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor.requires_grad:
                 pass
-        tensor_data = tensor.tensor_data.max(val)
+        tensor_data = tensor.tensor_data.maximum(val)
         return tensor_data, _grad_fn
 
     # TODO: need support for operators like >= on tensors
     # in order to implement backwards
     @staticmethod
-    def max(tensor1, tensor2) -> Tuple[TensorData, Any]:
+    def maximum(tensor1, tensor2) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 pass
             if tensor2.requires_grad:
                 pass
-        tensor_data = tensor1.tensor_data.max(tensor2)
+        tensor_data = tensor1.tensor_data.maximum(tensor2.tensor_data)
         return tensor_data, _grad_fn
+
+    @staticmethod
+    def max(tensor, axis) -> Tuple[TensorData, Any]:
+        def _grad_fn(grad):
+            if tensor.requires_grad:
+                pass
+
+        tensor_data = tensor.tensor_data.max(axis)
+        return tensor_data, _grad_fn
+
 
     @staticmethod
     def _log_before_grad(op, grad, tensor1, tensor2) -> None:

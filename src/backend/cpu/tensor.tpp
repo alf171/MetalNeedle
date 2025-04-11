@@ -5,20 +5,19 @@
 
 template<typename T>
 void Tensor<T>::initialize(const std::vector<T>& data, const std::vector<size_t>& shape) {
-    if (data.size() != calculate_size(shape)) {
+    size_t total_size = calculate_size(shape);
+    if (data.size() != total_size) {
         throw std::invalid_argument("Data size does not match shape dimensions.");
     }
     this->data = std::make_shared<std::vector<T>>(data);
     this->shape = shape;
     this->stride = calculate_stride(shape);
     this->offset = 0;
+    this->total_size = total_size;
 }
 
 template<typename T>
 Tensor<T> Tensor<T>::create(const std::vector<T>& data, const std::vector<size_t>& shape) {
-    if (data.size() != calculate_size(shape)) {
-        throw std::invalid_argument("Data size does not match shape dimensions.");
-    }
     return Tensor<T>(data, shape);
 }
 
@@ -79,6 +78,8 @@ void Tensor<T>::print() const {
         std::cout << this->data->at(i) << (i < this->data->size() - 1 ? ", " : "");
     }
     std::cout << "]\n";
+    std::cout << "Offset:" << this->offset;
+    std::cout << "Total size:" << this->total_size;
 }
 
 template<typename T>
@@ -95,11 +96,13 @@ Tensor<T> Tensor<T>::fill(const std::vector<size_t>& size, T val) {
 
 template <typename T>
 void Tensor<T>::reshape(const std::vector<size_t>& new_shape) {
+    size_t new_total_size = calculate_size(new_shape);
     if (calculate_size(new_shape) != this->data->size()) {
         throw std::invalid_argument("New shape must have the same number of elements.");
     }
     this->shape = new_shape;
     this->stride = calculate_stride(new_shape);
+    this->total_size = new_total_size;
 }
 
 // Make our array contiguous. Many matrix operation are implemented by manipulating
@@ -172,6 +175,58 @@ int Tensor<T>::get_tensor_count() {
     return this->tensor_count;
 }
 
+template<typename T>
+Tensor<T> Tensor<T>::max(std::vector<size_t>& axes) {
+    print();
+    std::vector<bool> keep_dims(this->shape.size(), true);
+    for (size_t axis : axes) {
+        if (axis >= keep_dims.size()) {
+            throw std::out_of_range("Axis out of bounds");
+        }
+        keep_dims[axis] = false;
+    }
+
+    std::vector<size_t> shape;
+    std::vector<size_t> stride;
+
+    for (size_t dim = 0; dim < this->shape.size(); dim++) {
+        if(keep_dims[dim]) {
+            shape.push_back(this->shape[dim]);
+            stride.push_back(this->stride[dim]);
+        }
+    }
+
+    if (shape.empty()) {
+        shape = {1};
+        stride = {1};
+    }
+
+    size_t total_size = 1;
+    for(size_t s : shape) {
+        total_size *= s;
+    }
+
+    std::vector<T> data(total_size, std::numeric_limits<T>::lowest());
+    Tensor<T> result_tensor = Tensor<T>(data, shape, stride, 0);
+
+    for(size_t i = 0; i < this->total_size; i++) {
+        std::vector<size_t> multi_dim = this->flat_index_to_mult_dim(i);
+        std::vector<size_t> reduce_dim;
+        for (size_t dim = 0; dim < multi_dim.size(); dim++) {
+            // if we aren't reducing across dim
+            if(keep_dims[dim]) {
+                reduce_dim.push_back(multi_dim[dim]);
+            }
+        }
+
+        size_t index = result_tensor.mult_dim_to_flat_index(reduce_dim);
+        if (this->data->at(i) > result_tensor.data->at(index)) {
+            result_tensor.data->at(index) = this->data->at(i);
+        }
+    }
+    return result_tensor;
+}
+
 template <typename T>
 void bind_tensor(pybind11::module& m, const std::string& class_name) {
     // TODO: should be just read
@@ -196,5 +251,6 @@ void bind_tensor(pybind11::module& m, const std::string& class_name) {
         .def("mult_dim_to_flat_index", &Tensor<T>::mult_dim_to_flat_index)
         .def("swap", &Tensor<T>::swap, "swap shape and stride of a tensor",
             pybind11::arg("axis1"), pybind11::arg("axis2"))
+        .def("max", &Tensor<T>::max, "get the max value of a tensor")
         .def("get_tensor_count", &Tensor<T>::get_tensor_count);
 }

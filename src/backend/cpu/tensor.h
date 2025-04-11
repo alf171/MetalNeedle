@@ -9,16 +9,17 @@ struct Tensor {
     std::vector<size_t> shape;
     std::vector<size_t> stride;
     size_t offset;
+    size_t total_size;
     static int tensor_count;
 
     Tensor() {
         tensor_count++;
-        std::cout << "Default constructor: " << Tensor<T>::tensor_count << std::endl;
+//        std::cout << "Default constructor: " << Tensor<T>::tensor_count << std::endl;
     }
 
     ~Tensor() {
         tensor_count--;
-        std::cout << "Destructor: " << Tensor<T>::tensor_count << std::endl;
+//        std::cout << "Destructor: " << Tensor<T>::tensor_count << std::endl;
     }
 
     Tensor(const std::vector<T>& data, const std::vector<size_t>& shape) {
@@ -26,6 +27,7 @@ struct Tensor {
         this->shape = shape;
         this->stride = calculate_stride(shape);
         this->offset = 0;
+        this->total_size = calculate_size(shape);
         Tensor<T>::tensor_count++;
     }
 
@@ -34,6 +36,7 @@ struct Tensor {
         this->shape = shape;
         this->stride = stride;
         this->offset = offset;
+        this->total_size = calculate_size(shape);
         Tensor<T>::tensor_count++;
     }
 
@@ -64,6 +67,8 @@ struct Tensor {
     void swap(const size_t axis1, const size_t axis2);
 
     int get_tensor_count();
+
+    Tensor<T> max(std::vector<size_t>& axes);
 
     void print() const;
 
