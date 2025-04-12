@@ -239,7 +239,7 @@ class Tensor:
         res = self._init(tensor_data, _grad_fn)
         return res
 
-    def sum(self, axes: int or List[int], keep_dims = False) -> Tensor:
+    def sum(self, axes = None, keep_dims = False) -> Tensor:
         normalized_axes = TensorUtils.normalize_axes(axes, self.shape(), "sum")
 
         (tensor_data, _grad_fn) = TensorOperations.sum(self, normalized_axes, keep_dims)
