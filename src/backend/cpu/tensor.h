@@ -68,7 +68,7 @@ struct Tensor {
 
     int get_tensor_count();
 
-    Tensor<T> max(std::vector<size_t>& axes);
+    Tensor<T> max(const std::vector<size_t>& axes, const bool keep_dims);
 
     void print() const;
 

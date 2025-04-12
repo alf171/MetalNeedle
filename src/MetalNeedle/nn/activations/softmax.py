@@ -12,4 +12,6 @@ class Softmax(Module):
         super().__init__()
 
     def forward(self, x : Tensor):
-        return x.exp() / x.sum(axes=-1, keepdim=True).broadcast(x.shape())
+        x_shifted = x - x.max(axes=-1, keep_dims=True).broadcast(x.shape())
+        x_exp = x_shifted.exp()
+        return x_exp / x_exp.sum(axes=-1, keep_dims=True).broadcast(x.shape())

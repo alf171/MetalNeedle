@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, List
+from typing import Any, List, Union
 
 from .util import TensorUtils
 from .ops import TensorOperations
@@ -214,7 +214,7 @@ class Tensor:
 
         raise TypeError(f"other is of type {type(other)} not Tensor")
 
-    def maximum(self, other) -> Tensor:
+    def maximum(self, other: Union[Tensor, Any]) -> Tensor:
         """
         Maximum of a tensor or a scalar value
         """
@@ -229,20 +229,20 @@ class Tensor:
 
         raise TypeError(f"other is of type {type(other)} not Tensor")
 
-    def max(self, axes = None) -> Tensor:
+    def max(self, axes = None, keep_dims = False) -> Tensor:
         """
         maximum value with a tensor or axis
         """
         normalized_axes = TensorUtils.normalize_axes(axes, self.shape(), "max")
 
-        tensor_data, _grad_fn = TensorOperations.max(self, normalized_axes)
+        tensor_data, _grad_fn = TensorOperations.max(self, normalized_axes, keep_dims)
         res = self._init(tensor_data, _grad_fn)
         return res
 
-    def sum(self, axes: int or List[int], keepdim = False) -> Tensor:
+    def sum(self, axes: int or List[int], keep_dims = False) -> Tensor:
         normalized_axes = TensorUtils.normalize_axes(axes, self.shape(), "sum")
 
-        (tensor_data, _grad_fn) = TensorOperations.sum(self, normalized_axes, keepdim)
+        (tensor_data, _grad_fn) = TensorOperations.sum(self, normalized_axes, keep_dims)
         res = self._init(tensor_data, _grad_fn)
         return res
 

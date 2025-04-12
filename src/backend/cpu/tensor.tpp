@@ -143,7 +143,7 @@ std::vector<size_t> Tensor<T>::calculate_stride(const std::vector<size_t>& input
 template<typename T>
 size_t Tensor<T>::mult_dim_to_flat_index(const std::vector<size_t>& dimension) const {
     if (dimension.size() != this->shape.size()) {
-        throw std::invalid_argument("expected dim of " + std::to_string(this->shape.size()) + " but got " + std::to_string(dimension.size()));
+        throw std::invalid_argument("[mult_dim_to_flat_index] expected dim of " + std::to_string(this->shape.size()) + " but got " + std::to_string(dimension.size()));
     }
     size_t result = this->offset;
     for (int i = 0; i < this->shape.size(); i++) {
@@ -175,46 +175,44 @@ int Tensor<T>::get_tensor_count() {
 }
 
 template<typename T>
-Tensor<T> Tensor<T>::max(std::vector<size_t>& axes) {
-    std::vector<bool> keep_dims(this->shape.size(), true);
+Tensor<T> Tensor<T>::max(const std::vector<size_t>& axes, const bool keep_dims) {
+    std::vector<bool> reduce_dim(this->shape.size(), true);
     for (size_t axis : axes) {
-        if (axis >= keep_dims.size()) {
+        if (axis >= reduce_dim.size()) {
             throw std::out_of_range("Axis out of bounds");
         }
-        keep_dims[axis] = false;
+        reduce_dim[axis] = false;
     }
 
     std::vector<size_t> shape;
     for (size_t dim = 0; dim < this->shape.size(); dim++) {
-        if(keep_dims[dim]) {
+        if(reduce_dim[dim]) {
             shape.push_back(this->shape[dim]);
+        } else if (keep_dims) {
+            shape.push_back(1);
         }
     }
 
     if (shape.empty()) {
         shape = {1};
-        stride = {1};
     }
 
-    size_t total_size = 1;
-    for(size_t s : shape) {
-        total_size *= s;
-    }
-
-    std::vector<T> data(total_size, std::numeric_limits<T>::lowest());
+    std::vector<T> data(this->calculate_size(this->shape), std::numeric_limits<T>::lowest());
     Tensor<T> result_tensor = Tensor<T>(data, shape, calculate_stride(shape), 0);
 
     for(size_t i = 0; i < this->total_size; i++) {
         std::vector<size_t> multi_dim = this->flat_index_to_mult_dim(i);
-        std::vector<size_t> reduce_dim;
+        std::vector<size_t> result_indices;
         for (size_t dim = 0; dim < multi_dim.size(); dim++) {
             // if we aren't reducing across dim
-            if(keep_dims[dim]) {
-                reduce_dim.push_back(multi_dim[dim]);
+            if(reduce_dim[dim]) {
+                result_indices.push_back(multi_dim[dim]);
+            } else if (keep_dims) {
+                result_indices.push_back(0);
             }
         }
 
-        size_t index = result_tensor.mult_dim_to_flat_index(reduce_dim);
+        size_t index = result_tensor.mult_dim_to_flat_index(result_indices);
         if (this->data->at(i) > result_tensor.data->at(index)) {
             result_tensor.data->at(index) = this->data->at(i);
         }
