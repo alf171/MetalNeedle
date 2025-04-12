@@ -105,11 +105,7 @@ void Tensor<T>::reshape(const std::vector<size_t>& new_shape) {
 // shape, stride, and offset. However, some operations require our matrix to be compact..
 template<typename T>
 void Tensor<T>::compact() {
-    size_t num_elements = 1;
-    for (size_t elem: this->shape) {
-        num_elements *= elem;
-    }
-    std::vector<T> new_data(num_elements);
+    std::vector<T> new_data(this->total_size);
     for (size_t i = 0; i < num_elements; ++i) {
         std::vector<size_t> multi_dim = flat_index_to_mult_dim(i);
         size_t source_index = mult_dim_to_flat_index(multi_dim);

@@ -264,6 +264,12 @@ class Tensor:
         if self.grad_fn is not None:
             self.grad_fn(grad)
 
+    def compact(self):
+        """
+        compactify the tensor we are looking at
+        """
+        self.tensor_data.compact()
+
     def __str__(self) -> str:
         shape = ', '.join(str(x) for x in self.shape())
         return f"<{self.__class__.__module__}.{self.__class__.__name__}> (size: [{shape}], dtype={self.dtype})"

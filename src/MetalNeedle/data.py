@@ -219,6 +219,9 @@ class TensorData:
         raw_tenor = self.raw_tensor.max(axes, keep_dims)
         return TensorData.create(raw_tenor, self.operations)
 
+    def compact(self):
+        self.raw_tensor.compact()
+
     def __str__(self) -> str:
         shape = ', '.join(str(x) for x in self.shape())
         return f"<{self.__class__.__module__}.{self.__class__.__name__}> (size: [{shape}])"

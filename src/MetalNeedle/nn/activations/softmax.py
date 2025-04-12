@@ -1,8 +1,5 @@
-import math
-
 from ..module import Module
 from ... import Tensor
-
 
 class Softmax(Module):
     """
@@ -14,4 +11,5 @@ class Softmax(Module):
     def forward(self, x : Tensor):
         x_shifted = x - x.max(axes=-1, keep_dims=True).broadcast(x.shape())
         x_exp = x_shifted.exp()
-        return x_exp / x_exp.sum(axes=-1, keep_dims=True).broadcast(x.shape())
+        x_sum = x_exp.sum(axes=-1, keep_dims=True).broadcast(x.shape())
+        return x_exp / x_sum
