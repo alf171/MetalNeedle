@@ -1,0 +1,40 @@
+import MetalNeedle as mn
+
+
+class MnistDataLoader:
+    """
+    Load data
+    """
+    def __init__(self, images_file, label_file, batch_size, shuffle=True):
+        # meta data
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+
+        # load different data
+        self.images = self._read_images(images_file)
+        self.labels = self._read_labels(label_file)
+
+        # keep track of where we are in data
+        self.idx = 0
+
+    def _read_images(self, file):
+        with open(file, 'rb') as f:
+            magic = int.from_bytes(f.read(4), 'big')
+            num_images = int.from_bytes(f.read(4), 'big')
+            num_rows = int.from_bytes(f.read(4), 'big')
+            num_cols = int.from_bytes(f.read(4), 'big')
+
+            buffer = f.read(self.batch_size * num_rows * num_cols)
+            float_data = [float(b) for b in buffer]
+
+            return mn.Tensor.load(float_data, [self.batch_size, num_cols * num_rows], dtype="float32")
+
+    def _read_labels(self, file):
+        with open(file, 'rb') as f:
+            magic = int.from_bytes(f.read(4), 'big')
+            num_labels = int.from_bytes(f.read(4), 'big')
+
+            buffer = f.read(self.batch_size)
+            float_data = [float(b) for b in buffer]
+
+            return mn.Tensor.load(float_data, [self.batch_size], dtype="float32")
