@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
+import math
+from typing import Any, List
 
-from .util import ShapeUtils
+from .util import TensorUtils
 from .ops import TensorOperations
 from .data import TensorData
 
@@ -132,7 +133,7 @@ class Tensor:
 
     def __add__(self, other: Any, debug_name=None) -> Tensor:
         if isinstance(other, Tensor):
-            if not ShapeUtils.can_broadcast(self.shape(), other.shape()):
+            if not TensorUtils.can_broadcast(self.shape(), other.shape()):
                 raise ValueError(f"[ADD] cant broadcast {self.shape} with {other.shape}")
 
             if self.shape() == other.shape():
@@ -186,14 +187,19 @@ class Tensor:
 
     def __pow__(self, other: Any) -> Tensor:
         if isinstance(other, Tensor):
-            (tensor_data, _grad_fn) = TensorOperations.exp(self, other)
+            (tensor_data, _grad_fn) = TensorOperations.pow(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
         if isinstance(other, (int, float)):
-            (tensor_data, _grad_fn) = TensorOperations.scalar_exp(self, other)
+            (tensor_data, _grad_fn) = TensorOperations.scalar_pow(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
         raise TypeError(f"Can't exponentiate Tensor of type {self.dtype} with {type(other)}")
+
+    def exp(self):
+        (tensor_data, _grad_fn) = TensorOperations.exp(self)
+        res = self._init(tensor_data, _grad_fn)
+        return res
 
     def log(self) -> Tensor:
         (tensor_data, _grad_fn) = TensorOperations.scalar_log(self)
@@ -208,7 +214,7 @@ class Tensor:
 
         raise TypeError(f"other is of type {type(other)} not Tensor")
 
-    def maximum(self, other=None) -> Tensor:
+    def maximum(self, other) -> Tensor:
         """
         Maximum of a tensor or a scalar value
         """
@@ -220,31 +226,23 @@ class Tensor:
             (tensor_data, _grad_fn) = TensorOperations.scalar_maximum(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
-        elif other is None:
-            (tensor_data, _grad_fn) = TensorOperations.scalar_maximum(self, *range(self.shape()))
-            res = self._init(tensor_data, _grad_fn)
-            return res
 
         raise TypeError(f"other is of type {type(other)} not Tensor")
 
-    def max(self, axes = None) -> Any:
+    def max(self, axes = None) -> Tensor:
         """
         maximum value with a tensor or axis
         """
-        if axes is None:
-            axes = range(len(self.shape()))
+        normalized_axes = TensorUtils.normalize_axes(axes, self.shape(), "max")
 
-        tensor_data, _grad_fn = TensorOperations.max(self, axes)
+        tensor_data, _grad_fn = TensorOperations.max(self, normalized_axes)
         res = self._init(tensor_data, _grad_fn)
         return res
 
-    def sum(self, axes: int or list[int], keepdim = False) -> Tensor:
-        if axes is None or axes == []:
-            raise TypeError(f"Axes Cant be Null")
-        if not isinstance(axes, list):
-            axes = [axes]
+    def sum(self, axes: int or List[int], keepdim = False) -> Tensor:
+        normalized_axes = TensorUtils.normalize_axes(axes, self.shape(), "sum")
 
-        (tensor_data, _grad_fn) = TensorOperations.sum(self, axes, keepdim)
+        (tensor_data, _grad_fn) = TensorOperations.sum(self, normalized_axes, keepdim)
         res = self._init(tensor_data, _grad_fn)
         return res
 

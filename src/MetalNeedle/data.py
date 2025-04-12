@@ -3,14 +3,14 @@ from __future__ import annotations
 from typing import Any
 
 from .device import DeviceManager
-from .util import ShapeUtils
+from .util import TensorUtils
 
 
 class TensorData:
     def __init__(self, data: list[int], dtype, device, debug_name=None):
         self.raw_tensor, self.operations = DeviceManager.set_dtype_tensor(dtype, device)
-        _shape = ShapeUtils.get_shape(data)
-        ShapeUtils.create_data_struct(self.raw_tensor, data, _shape)
+        _shape = TensorUtils.get_shape(data)
+        TensorUtils.create_data_struct(self.raw_tensor, data, _shape)
         self._debug_name = debug_name
 
     @staticmethod
@@ -111,15 +111,19 @@ class TensorData:
 
     def __pow__(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
-            raw_tensor = self.operations.ewise_exp(self.raw_tensor, value)
+            raw_tensor = self.operations.ewise_pow(self.raw_tensor, value)
             return TensorData.create(raw_tensor, self.operations)
         elif isinstance(value, TensorData):
-            raw_tensor = self.operations.ewise_exp(self.raw_tensor, value.raw_tensor)
+            raw_tensor = self.operations.ewise_pow(self.raw_tensor, value.raw_tensor)
             return TensorData.create(raw_tensor, self.operations)
         elif isinstance(value, (int, float)):
-            raw_tensor = self.operations.scalar_exp(self.raw_tensor, value)
+            raw_tensor = self.operations.scalar_pow(self.raw_tensor, value)
             return TensorData.create(raw_tensor, self.operations)
         raise TypeError("invalid exp")
+
+    def exp(self):
+        raw_tensor = self.operations.exp(self.raw_tensor)
+        return TensorData.create(raw_tensor, self.operations)
 
     def log(self) -> TensorData:
         raw_tensor = self.operations.log(self.raw_tensor)
@@ -161,7 +165,7 @@ class TensorData:
     # output, the point is we can amortize the cost of flattening our data for better
     # caching properties
     def reshape(self, new_shape) -> TensorData:
-        if ShapeUtils.product(new_shape) != ShapeUtils.product(self.shape()):
+        if TensorUtils.product(new_shape) != TensorUtils.product(self.shape()):
             raise TypeError(f"original dimension ({self.shape()}) product != proposed ({new_shape})")
 
         new_stride = []

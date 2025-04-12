@@ -73,11 +73,7 @@ void Tensor<T>::print() const {
     }
     std::cout << "]\n";
 
-    std::cout << "Data: [";
-    for (size_t i = 0; i < this->data->size(); ++i) {
-        std::cout << this->data->at(i) << (i < this->data->size() - 1 ? ", " : "");
-    }
-    std::cout << "]\n";
+    std::cout << "Data size: " << this->data->size() << std::endl;
     std::cout << "Offset: " << this->offset << std::endl;
     std::cout << "Total size: " << this->total_size << std::endl;
 }

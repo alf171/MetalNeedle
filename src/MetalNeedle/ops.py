@@ -5,6 +5,8 @@ from MetalNeedle.data import TensorData
 LAZY_MODE = False
 TENSOR_COUNTER = 0
 
+# TODO: might be a decent refactor but only taking in TensorData
+# seems like a better abstraction
 class TensorOperations:
     @staticmethod
     def add(tensor1, tensor2) -> Tuple[TensorData, Any]:
@@ -92,7 +94,7 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def exp(tensor1, tensor2) -> Tuple[TensorData, Any]:
+    def pow(tensor1, tensor2) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             # dx(x^y) = y * x^(y-1)
             if tensor1.requires_grad:
@@ -108,13 +110,23 @@ class TensorOperations:
 
 
     @staticmethod
-    def scalar_exp(tensor1, value) -> Tuple[TensorData, Any]:
+    def scalar_pow(tensor1, value) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 tensor1_grad = (grad * (value * tensor1.tensor_data ** (value-1)))
                 tensor1.grad(tensor1_grad)
 
         tensor_data = tensor1.tensor_data ** value
+        return tensor_data, _grad_fn
+
+    @staticmethod
+    def exp(tensor1) -> Tuple[TensorData, Any]:
+        def _grad_fn(grad):
+            if tensor1.requires_grad:
+                tensor1_grad = (grad * tensor1.tensor_data.exp())
+                tensor1.grad(tensor1_grad)
+
+        tensor_data = tensor1.tensor_data.exp()
         return tensor_data, _grad_fn
 
     @staticmethod

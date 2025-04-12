@@ -1,9 +1,11 @@
 from functools import reduce
+from typing import List, Union
 
-class ShapeUtils:
+
+class TensorUtils:
     @staticmethod
     def flatten(array):
-        return [item for sublist in array for item in (ShapeUtils.flatten(sublist) if isinstance(sublist, list) else [sublist])]
+        return [item for sublist in array for item in (TensorUtils.flatten(sublist) if isinstance(sublist, list) else [sublist])]
 
     @staticmethod
     def get_shape(data) -> list[int]:
@@ -19,14 +21,14 @@ class ShapeUtils:
 
     @staticmethod
     def create_data_struct(tensor, array, shape):
-        return tensor.initialize(ShapeUtils.flatten(array), shape)
+        return tensor.initialize(TensorUtils.flatten(array), shape)
 
     @staticmethod
     def cartesian_product(array):
         if not array:
             return [[]]
 
-        rest = (ShapeUtils.cartesian_product(array[1:]))
+        rest = (TensorUtils.cartesian_product(array[1:]))
 
         res = []
         for start_item in array[0]:
@@ -51,5 +53,25 @@ class ShapeUtils:
                return False
 
         return True
+
+    @staticmethod
+    def normalize_axes(axes: Union[int, List[int]], shape: List[int], operation: str):
+        """
+        Handle negative indexes and partial indexing
+        """
+        if axes is None or axes == []:
+            axes = range(len(shape))
+        elif isinstance(axes, int):
+            axes = [axes]
+
+        normalized_axes = []
+        ndim = len(shape)
+        for axis in axes:
+            normalized_axis = (ndim + axis) if axis < 0 else axis
+            if not (0 <= normalized_axis < ndim):
+                raise ValueError(f"[{operation}] index out of range")
+            normalized_axes.append(normalized_axis)
+        return normalized_axes
+
 
 

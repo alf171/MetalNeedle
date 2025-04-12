@@ -11,6 +11,7 @@
 namespace py = pybind11;
 const size_t TILE = 128;
 
+// TODO: shape checks are bad and wrong because broadcasting
 template<typename T>
 class CPUBackend {
 public:
@@ -60,7 +61,7 @@ public:
      * input: Tensor1: Tensor, pow: float
      * output: Tensor: Tensor
     **/
-    Tensor<T> ewise_exp(Tensor<T>& e1, float v1) {
+    Tensor<T> ewise_pow(Tensor<T>& e1, float v1) {
         std::vector<T> result_data(e1.data->size());
         for(int i = 0; i < e1.data->size(); i++) {
             std::vector<size_t> multi_dim = e1.flat_index_to_mult_dim(i);
@@ -212,10 +213,23 @@ public:
      * input: tensor: Tensor, scalar: T
      * output: result: Tensor
     **/
-    Tensor<T> scalar_exp(Tensor<T>& tensor, T scalar) {
+    Tensor<T> scalar_pow(Tensor<T>& tensor, T scalar) {
         std::vector<T> result_data(tensor.data->size());
         for(int i = 0; i < tensor.data->size(); i++) {
             result_data[i] = pow(tensor.data->at(i), scalar);
+        }
+        return Tensor<T>::create(result_data, tensor.shape);
+    }
+
+    /**
+     * description: result = e^(tensor)
+     * input: tensor: Tensor
+     * output: result: Tensor
+    **/
+    Tensor<T> exp(Tensor<T>& tensor) {
+        std::vector<T> result_data(tensor.data->size());
+        for(int i = 0; i < tensor.data->size(); i++) {
+            result_data[i] = std::exp(tensor.data->at(i));
         }
         return Tensor<T>::create(result_data, tensor.shape);
     }
@@ -268,8 +282,8 @@ public:
             for(size_t j = 0; j < (size_t)multi_dim.size(); j++) {
                 if(std::find(axes.begin(), axes.end(), j) == axes.end()) {
                     reduced_index.push_back(multi_dim[j]);
-                } else if(keepDims) {
-                    reduced_index.push_back(1);
+                } else if (keepDims) {
+                    reduced_index.push_back(0);
                 }
             }
             size_t flat_index = reduced_all ? 0 : result.mult_dim_to_flat_index(reduced_index);
@@ -393,7 +407,7 @@ void bind_operations(pybind11::module& m, const std::string& class_name) {
         .def(py::init<>())
         .def("ewise_add", &CPUBackend<T>::ewise_add)
         .def("ewise_sub", &CPUBackend<T>::ewise_sub)
-        .def("ewise_exp", &CPUBackend<T>::ewise_exp)
+        .def("ewise_pow", &CPUBackend<T>::ewise_pow)
         .def("ewise_div", &CPUBackend<T>::ewise_div)
         .def("ewise_mul", &CPUBackend<T>::ewise_mul)
         .def("ewise_max", &CPUBackend<T>::ewise_max)
@@ -402,8 +416,9 @@ void bind_operations(pybind11::module& m, const std::string& class_name) {
         .def("scalar_sub", &CPUBackend<T>::scalar_sub)
         .def("scalar_mul", &CPUBackend<T>::scalar_mul)
         .def("scalar_div", &CPUBackend<T>::scalar_div)
-        .def("scalar_exp", &CPUBackend<T>::scalar_exp)
+        .def("scalar_pow", &CPUBackend<T>::scalar_pow)
         .def("scalar_max", &CPUBackend<T>::scalar_max)
+        .def("exp", &CPUBackend<T>::exp)
         .def("log", &CPUBackend<T>::log)
         .def("sum", &CPUBackend<T>::sum)
         .def("slice", &CPUBackend<T>::slice);
