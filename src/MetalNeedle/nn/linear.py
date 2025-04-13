@@ -1,5 +1,6 @@
 from .module import Module
-from MetalNeedle import randn
+from MetalNeedle import randn, Tensor
+
 
 class Linear(Module):
     """
@@ -13,5 +14,5 @@ class Linear(Module):
         self.weight = randn([out_features, in_features])
         self.bias = randn([out_features])
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         return (x @ self.weight.T) + self.bias

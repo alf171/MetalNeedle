@@ -20,10 +20,6 @@ class TensorUtils:
             raise ValueError("tensor data must be a list")
 
     @staticmethod
-    def create_data_struct(tensor, array, shape):
-        return tensor.initialize(TensorUtils.flatten(array), shape)
-
-    @staticmethod
     def cartesian_product(array):
         if not array:
             return [[]]

@@ -1,3 +1,5 @@
+from typing import NoReturn
+
 from ..tensor import Tensor
 class Module:
     """
@@ -59,7 +61,7 @@ class Module:
             raise ValueError(f"invalid module type {type(value)}")
 
 
-    def forward(self, *args, **kwargs):
+    def forward(self, *args, **kwargs) -> NoReturn:
         """
         inheritor must implement a custom forward for their module
         """

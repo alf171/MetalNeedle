@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, List
 
 from .device import DeviceManager
 from .util import TensorUtils
 
 
 class TensorData:
-    def __init__(self, data: list[int], dtype, device, debug_name=None):
+    def __init__(self, data: List[Any], dtype: str, device: str, debug_name=None):
         self.raw_tensor, self.operations = DeviceManager.set_dtype_tensor(dtype, device)
         _shape = TensorUtils.get_shape(data)
-        TensorUtils.create_data_struct(self.raw_tensor, data, _shape)
+        self.raw_tensor.initialize(TensorUtils.flatten(data), _shape)
         self._debug_name = debug_name
 
     @staticmethod
@@ -18,6 +18,14 @@ class TensorData:
         result = TensorData.__new__(TensorData)
         result.raw_tensor = raw_tensor
         result.operations = operations
+        result._debug_name = debug_name
+        return result
+
+    @staticmethod
+    def load(data: List[Any], shape: List[int], dtype: str, device: str, debug_name: str) -> TensorData:
+        result = TensorData.__new__(TensorData)
+        result.raw_tensor, result.operations = DeviceManager.set_dtype_tensor(dtype, device)
+        result.raw_tensor.initialize(data, shape)
         result._debug_name = debug_name
         return result
 

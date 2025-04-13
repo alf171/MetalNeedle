@@ -21,6 +21,31 @@ class Tensor:
         self.grad: TensorData or None = None
         self.grad_fn = None
 
+    @staticmethod
+    def create(raw_tensor: List[Any], device: str, dtype: str, operations, requires_grad=False, debug_name=None) -> Tensor:
+        """
+        used externally to create a new tensor or create a copy
+        """
+        result = Tensor.__new__(Tensor)
+        result.device = device
+        result.dtype = dtype
+        result.tensor_data = TensorData.create(raw_tensor, operations, debug_name)
+        result.requires_grad = requires_grad
+        result.grad = None
+        result.grad_fn = None
+        return result
+
+    @staticmethod
+    def load(data: List[Any], shape: List[int], device = "cpu", dtype = "int32", requires_grad=False, debug_name=None) -> Tensor:
+        result = Tensor.__new__(Tensor)
+        result.device = device
+        result.dtype = dtype
+        result.tensor_data = TensorData.load(data, shape, dtype, device, debug_name)
+        result.requires_grad = requires_grad
+        result.grad = None
+        result.grad_fn = None
+        return result
+
     def clone(self) -> Tensor:
         """
         Creates a deep copy of the tensor with completely independent memory.
@@ -38,20 +63,6 @@ class Tensor:
         )
         res.grad_fn = lambda grad: self.backward(grad)
         return res
-
-    @staticmethod
-    def create(raw_tensor: list[any], device: str, dtype: str, operations, requires_grad=False, debug_name=None) -> Tensor:
-        """
-        used externally to create a new tensor or create a copy
-        """
-        result = Tensor.__new__(Tensor)
-        result.device = device
-        result.dtype = dtype
-        result.tensor_data = TensorData.create(raw_tensor, operations, debug_name)
-        result.requires_grad = requires_grad
-        result.grad = None
-        result.grad_fn = None
-        return result
 
     def _init(self, data: TensorData, _grad_fn = None, debug_name = None) -> Tensor:
         """
