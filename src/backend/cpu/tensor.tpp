@@ -3,6 +3,8 @@
 #include "tensor.h"
 #include <random>
 
+namespace py = pybind11;
+
 template<typename T>
 void Tensor<T>::initialize(const std::vector<T>& data, const std::vector<size_t>& shape) {
     size_t total_size = calculate_size(shape);
@@ -10,6 +12,31 @@ void Tensor<T>::initialize(const std::vector<T>& data, const std::vector<size_t>
         throw std::invalid_argument("Data size does not match shape dimensions.");
     }
     this->data = std::make_shared<std::vector<T>>(data);
+    this->shape = shape;
+    this->stride = calculate_stride(shape);
+    this->offset = 0;
+    this->total_size = total_size;
+}
+
+template<typename T>
+void Tensor<T>::initialize(py::bytes bytes_data, const std::vector<size_t>& shape) {
+    size_t total_size = calculate_size(shape);
+
+    // Get raw buffer from Python bytes
+    py::buffer_info buffer = py::buffer(bytes_data).request();
+    if (buffer.size != total_size) {
+        throw std::invalid_argument("Data size does not match shape dimensions.");
+    }
+
+    // Create vector and copy data from buffer
+    std::vector<T> data_vec(total_size);
+    const char* ptr = static_cast<const char*>(buffer.ptr);
+
+    for (size_t i = 0; i < total_size; i++) {
+        data_vec[i] = static_cast<T>(static_cast<unsigned char>(ptr[i]));
+    }
+
+    this->data = std::make_shared<std::vector<T>>(data_vec);
     this->shape = shape;
     this->stride = calculate_stride(shape);
     this->offset = 0;
@@ -106,7 +133,7 @@ void Tensor<T>::reshape(const std::vector<size_t>& new_shape) {
 template<typename T>
 void Tensor<T>::compact() {
     std::vector<T> new_data(this->total_size);
-    for (size_t i = 0; i < num_elements; ++i) {
+    for (size_t i = 0; i < this->total_size; ++i) {
         std::vector<size_t> multi_dim = flat_index_to_mult_dim(i);
         size_t source_index = mult_dim_to_flat_index(multi_dim);
         new_data[i] = this->data->at(source_index);
@@ -171,6 +198,29 @@ int Tensor<T>::get_tensor_count() {
 }
 
 template<typename T>
+bool Tensor<T>::is_contiguous() const {
+    return this->offset == 0 && (this->stride == calculate_stride(this->shape));
+}
+
+template<typename T>
+template<typename U>
+Tensor<U> Tensor<T>::as_type() const {
+    if (!this->is_contiguous()) {
+        Tensor<T> compact_tensor = *this;
+        compact_tensor.compact();
+        return compact_tensor.template as_type<U>();
+    }
+    std::vector<U> new_data;
+    new_data.reserve(this->total_size);
+
+    for (size_t i = 0; i < this->total_size; i++) {
+        new_data.push_back(static_cast<U>(this->data->at(i)));
+    }
+
+    return Tensor<U>(new_data, this->shape);
+}
+
+template<typename T>
 Tensor<T> Tensor<T>::max(const std::vector<size_t>& axes, const bool keep_dims) {
     std::vector<bool> reduce_dim(this->shape.size(), true);
     for (size_t axis : axes) {
@@ -225,8 +275,14 @@ void bind_tensor(pybind11::module& m, const std::string& class_name) {
         .def_readwrite("shape", &Tensor<T>::shape)
         .def_readwrite("stride", &Tensor<T>::stride)
         .def_readwrite("offset", &Tensor<T>::offset)
-        .def("initialize", &Tensor<T>::initialize, "Initialize a Tensor",
-            pybind11::arg("data"), pybind11::arg("shape"))
+        .def("initialize",
+             py::overload_cast<const std::vector<T>&, const std::vector<size_t>&>(&Tensor<T>::initialize),
+             "Initialize a Tensor with vector data",
+             pybind11::arg("data"), pybind11::arg("shape"))
+        .def("initialize",
+             py::overload_cast<py::bytes, const std::vector<size_t>&>(&Tensor<T>::initialize),
+             "Initialize a Tensor with bytes data",
+             pybind11::arg("bytes_data"), pybind11::arg("shape"))
         .def_static("create", [](const std::vector<T>& data, const std::vector<size_t>& shape) {
               return Tensor<T>::create(data, shape);
            },
@@ -241,5 +297,8 @@ void bind_tensor(pybind11::module& m, const std::string& class_name) {
         .def("swap", &Tensor<T>::swap, "swap shape and stride of a tensor",
             pybind11::arg("axis1"), pybind11::arg("axis2"))
         .def("max", &Tensor<T>::max, "get the max value of a tensor")
+        .def("as_float", [](const Tensor<T>& tensor) {
+            return tensor.template as_type<float>();
+        }, "convert tensor to a float")
         .def("get_tensor_count", &Tensor<T>::get_tensor_count);
 }

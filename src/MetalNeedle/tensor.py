@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 from typing import Any, List, Union
 
 from .util import TensorUtils
@@ -13,8 +12,9 @@ class Tensor:
         default initialization when size is unknown
         like when data is provided ex. mn.Tensor([1,2,3])
         """
-        self.device: str = device
-        self.dtype: str = dtype
+        # todo: deprecate since tensor data already contains
+        self._device: str = device
+        self._dtype: str = dtype
         self.tensor_data: TensorData = TensorData(data, dtype, device, debug_name)
         # autograd related
         self.requires_grad: bool = requires_grad
@@ -27,9 +27,9 @@ class Tensor:
         used externally to create a new tensor or create a copy
         """
         result = Tensor.__new__(Tensor)
-        result.device = device
-        result.dtype = dtype
-        result.tensor_data = TensorData.create(raw_tensor, operations, debug_name)
+        result._device = device
+        result._dtype = dtype
+        result.tensor_data = TensorData.create(raw_tensor, operations, dtype, device, debug_name)
         result.requires_grad = requires_grad
         result.grad = None
         result.grad_fn = None
@@ -38,8 +38,8 @@ class Tensor:
     @staticmethod
     def load(data: List[Any], shape: List[int], device = "cpu", dtype = "int32", requires_grad=False, debug_name=None) -> Tensor:
         result = Tensor.__new__(Tensor)
-        result.device = device
-        result.dtype = dtype
+        result._device = device
+        result._dtype = dtype
         result.tensor_data = TensorData.load(data, shape, dtype, device, debug_name)
         result.requires_grad = requires_grad
         result.grad = None
@@ -69,8 +69,8 @@ class Tensor:
         Used internally to create a new tensor from TensorData
         """
         result = Tensor.__new__(Tensor)
-        result.device = self.device
-        result.dtype = self.dtype
+        result._device = self.device
+        result._dtype = self.dtype
         result.tensor_data = data
         result.tensor_data._debug_name = debug_name
         result.requires_grad = self.requires_grad
@@ -84,13 +84,21 @@ class Tensor:
     def data(self) -> list[Any]:
         return self.tensor_data.data()
 
+    @property
+    def device(self):
+        return self.tensor_data.device
+
+    @property
+    def dtype(self):
+        return self.tensor_data.dtype
+
     def tensor_count(self) -> int:
         return self.tensor_data.tensor_count()
 
     def debug_name(self) -> str or None:
         return self.tensor_data._debug_name
 
-    def __getitem__(self, multi_dim_index: Any, debug_name=None) -> Tensor:
+    def __getitem__(self, multi_dim_index: Any, debug_name=None) -> Union[Tensor, Any]:
         if isinstance(multi_dim_index, (int, float)):
             multi_dim_index = [multi_dim_index]
 
@@ -120,7 +128,6 @@ class Tensor:
         # be propagated into `gotten` items
         tensor_data = self.tensor_data[ranges]
         return self._init(tensor_data, None, debug_name)
-
 
     @property
     def T(self, debug_name = None) -> Tensor:

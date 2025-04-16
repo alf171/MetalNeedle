@@ -428,11 +428,13 @@ void bind_operations(pybind11::module& m, const std::string& class_name) {
 void bind_cpu(py::module &m) {
     auto cpu = m.def_submodule("cpu");
     // operations
+    bind_operations<int8_t>(cpu, "ByteOperation");
     bind_operations<int32_t>(cpu, "IntOperation");
     bind_operations<int64_t>(cpu, "LongOperation");
     bind_operations<float>(cpu, "FloatOperation");
     bind_operations<double>(cpu, "DoubleOperation");
     // data
+    bind_tensor<int8_t>(cpu, "ByteTensor");
     bind_tensor<int32_t>(cpu, "IntTensor");
     bind_tensor<int64_t>(cpu, "LongTensor");
     bind_tensor<float>(cpu, "FloatTensor");

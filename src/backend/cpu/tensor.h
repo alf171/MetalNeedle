@@ -3,6 +3,8 @@
 #include <pybind11/pybind11.h>
 #include <vector>
 
+namespace py = pybind11;
+
 template<typename T>
 struct Tensor {
     std::shared_ptr<std::vector<T>> data;
@@ -44,6 +46,8 @@ struct Tensor {
 
     void initialize(const std::vector<T>& data, const std::vector<size_t>& shape);
 
+    void initialize(py::bytes bytes_data, const std::vector<size_t>& shape);
+
     static Tensor<T> create(const std::vector<T>& data, const std::vector<size_t>& shape);
 
     static Tensor<T> create(const std::vector<T>& data, const std::vector<size_t>& shape,
@@ -72,10 +76,15 @@ struct Tensor {
 
     void print() const;
 
+    template<typename U>
+    Tensor<U> as_type() const;
+
 private:
     static size_t calculate_size(const std::vector<size_t>& shape);
 
     static std::vector<size_t> calculate_stride(const std::vector<size_t>& shape);
+
+    bool is_contiguous() const;
 };
 
 template <typename T>

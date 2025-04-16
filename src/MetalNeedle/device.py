@@ -1,25 +1,57 @@
-import sys; sys.path.append("tmp")
+import sys;
+from enum import Enum
+
+sys.path.append("tmp")
 import re
 import backend
 
+class TensorDtypes(Enum):
+    byte = "int8"
+    int = "int32"
+    long = "int64"
+    float = "float32"
+    double = "float64"
+
+class TensorDevices(Enum):
+    cpu = "cpu"
+    metal = "metal"
+
+    def __str__(self):
+        return self.value
+
 class DeviceManager:
     @staticmethod
-    def set_dtype_tensor(dtype: str, device: str):
-        # Validate device
-        if device not in ["cpu", "metal"]:
-            raise ValueError(f"device {device} is not supported")
+    def get_tensor(dtype: TensorDtypes, device: TensorDevices):
+        cur_backend = getattr(backend, device.__str__(), None)
+        if cur_backend is None:
+            raise AttributeError(f"backend does not have attribute {device}")
 
-        # Dynamically fetch backend attribute
-        cur_backend = getattr(backend, device, None)
+        tensors = {
+            TensorDtypes.byte: lambda: cur_backend.ByteTensor(),
+            TensorDtypes.int: lambda: cur_backend.IntTensor(),
+            TensorDtypes.long: lambda: cur_backend.LongTensor(),
+            TensorDtypes.float: lambda: cur_backend.FloatTensor(),
+            TensorDtypes.double: lambda: cur_backend.DoubleTensor(),
+        }
+
+        if dtype not in tensors:
+            raise ValueError(f"dtype {dtype} is not supported")
+
+        return tensors[dtype]()
+
+    @staticmethod
+    def get_backend(dtype: TensorDtypes, device: TensorDevices):
+        cur_backend = getattr(backend, device.__str__(), None)
         if cur_backend is None:
             raise AttributeError(f"backend does not have attribute {device}")
 
         # Define backends with lazy evaluation
         backends = {
-            "int32": lambda: (cur_backend.IntTensor(), cur_backend.IntOperation()),
-            "int64": lambda: (cur_backend.LongTensor(), cur_backend.LongOperation()),
-            "float32": lambda: (cur_backend.FloatTensor(), cur_backend.FloatOperation()),
-            "float64": lambda: (cur_backend.DoubleTensor(), cur_backend.DoubleOperation()),
+            TensorDtypes.byte: lambda: cur_backend.ByteOperation(),
+            TensorDtypes.int: lambda: cur_backend.IntOperation(),
+            TensorDtypes.long: lambda: cur_backend.LongOperation(),
+            TensorDtypes.float: lambda: cur_backend.FloatOperation(),
+            TensorDtypes.double: lambda: cur_backend.DoubleOperation(),
         }
 
         if dtype not in backends:

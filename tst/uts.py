@@ -174,12 +174,12 @@ def Maximums():
 
 # run UTs
 if __name__ == "__main__":
-    # ThreeByThreeMatMulCheck()
-    # ScalarOperations()
-    # SlicingOperations()
-    # SumOperation()
-    # BroadcastOperation()
-    # ReshapeOperations()
-    # Autograd()
+    ThreeByThreeMatMulCheck()
+    ScalarOperations()
+    SlicingOperations()
+    SumOperation()
+    BroadcastOperation()
+    ReshapeOperations()
+    Autograd()
     # Pytorch()
     Maximums()
