@@ -147,7 +147,7 @@ public:
     #pragma omp parallel for collapse(2) schedule(static)
     for(size_t block_x = 0; block_x < e1_rows; block_x += TILE) {
         for(size_t block_y = 0; block_y < e2.shape[e2_last_dim]; block_y += TILE) {
-            tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1_cols, e2_cols, e1_rows);
+            m_tile_compute(e1.data, e2.data, result_data, block_x, block_y, e1_cols, e2_cols, e1_rows);
         }
     }
 //    }
@@ -314,9 +314,91 @@ public:
         return Tensor<T>::create(result_data, tensor.shape);
     }
 
+    Tensor<T> ewise_min(Tensor<T>& e1, Tensor<T>& e2) {
+        if (e1.shape != e2.shape) {
+            throw std::invalid_argument("Tensors must have same shapes for ewise operations");
+        }
+        std::vector<T> result_data(e1.data->size());
+        for(int i = 0; i < e1.data->size(); i++) {
+            std::vector<size_t> multi_dim = e1.flat_index_to_mult_dim(i);
+            size_t e1_index = e1.mult_dim_to_flat_index(multi_dim);
+            size_t e2_index = e2.mult_dim_to_flat_index(multi_dim);
+            result_data[i] = std::min(e1.data->at(e1_index), e2.data->at(e2_index));
+        }
+        return Tensor<T>::create(result_data, e1.shape);
+    }
+
+    Tensor<T> scalar_min(Tensor<T>& tensor, T scalar) {
+        std::vector<T> result_data(tensor.data->size());
+        for(int i = 0; i < tensor.data->size(); i++) {
+            std::vector<size_t> multi_dim = tensor.flat_index_to_mult_dim(i);
+            size_t tensor_index = tensor.mult_dim_to_flat_index(multi_dim);
+            result_data[i] = std::min(tensor.data->at(tensor_index), scalar);
+        }
+        return Tensor<T>::create(result_data, tensor.shape);
+    }
+
+    Tensor<T> clip_scalar_scalar(Tensor<T>& tensor, T lower, T upper) {
+        std::vector<T> result_data(tensor.data->size());
+        for(int i = 0; i < tensor.data->size(); i++) {
+            std::vector<size_t> multi_dim = tensor.flat_index_to_mult_dim(i);
+            size_t tensor_index = tensor.mult_dim_to_flat_index(multi_dim);
+            T min = std::min(tensor.data->at(tensor_index), lower);
+            result_data[i] = std::max(upper, min);
+        }
+        return Tensor<T>::create(result_data, tensor.shape);
+    }
+
+    Tensor<T> clip_tensor_scalar(Tensor<T>& tensor, Tensor<T>& lower, T upper) {
+        if (tensor.shape != lower.shape) {
+            throw std::invalid_argument("Tensors must have same shapes for clip operations");
+        }
+        std::vector<T> result_data(tensor.data->size());
+        for(int i = 0; i < tensor.data->size(); i++) {
+            std::vector<size_t> multi_dim = tensor.flat_index_to_mult_dim(i);
+            size_t tensor_index = tensor.mult_dim_to_flat_index(multi_dim);
+            size_t lower_index = lower.mult_dim_to_flat_index(multi_dim);
+            T min = std::min(tensor.data->at(tensor_index), lower.data->at(lower_index));
+            result_data[i] = std::max(upper, min);
+        }
+        return Tensor<T>::create(result_data, tensor.shape);
+    }
+
+    Tensor<T> clip_scalar_tensor(Tensor<T>& tensor, T lower, Tensor<T>& upper) {
+        if (tensor.shape != upper.shape) {
+            throw std::invalid_argument("Tensors must have same shapes for clip operations");
+        }
+        std::vector<T> result_data(tensor.data->size());
+        for(int i = 0; i < tensor.data->size(); i++) {
+            std::vector<size_t> multi_dim = tensor.flat_index_to_mult_dim(i);
+            size_t tensor_index = tensor.mult_dim_to_flat_index(multi_dim);
+            T min = std::min(tensor.data->at(tensor_index), lower);
+            size_t upper_index = upper.mult_dim_to_flat_index(multi_dim);
+            result_data[i] = std::max(upper.data->at(upper_index), min);
+        }
+        return Tensor<T>::create(result_data, tensor.shape);
+    }
+
+    Tensor<T> clip_tensor_tensor(Tensor<T>& tensor, Tensor<T>& lower, Tensor<T>& upper) {
+        if (tensor.shape != upper.shape) {
+            throw std::invalid_argument("Tensors must have same shapes for clip operations");
+        }
+        std::vector<T> result_data(tensor.data->size());
+        for(int i = 0; i < tensor.data->size(); i++) {
+            std::vector<size_t> multi_dim = tensor.flat_index_to_mult_dim(i);
+            size_t tensor_index = tensor.mult_dim_to_flat_index(multi_dim);
+            size_t lower_index = upper.mult_dim_to_flat_index(multi_dim);
+            T min = std::min(tensor.data->at(tensor_index), lower.data->at(lower_index));
+            size_t upper_index = upper.mult_dim_to_flat_index(multi_dim);
+            result_data[i] = std::max(upper.data->at(upper_index), min);
+        }
+        return Tensor<T>::create(result_data, tensor.shape);
+    }
+
+    // TODO: move to tensor.tpp
     // following view pattern: only metadata is changed while pointing to the same
     // underlying data. this is crucial for speed when dealing with large tensors
-    // in pytorch you can call .is_contiguous() or .storage().data_ptr() to see if
+    // in pytorch you can call .m_is_contiguous() or .storage().data_ptr() to see if
     // tensor are identical under the hood
     Tensor<T> slice(Tensor<T>& tensor, std::vector<std::pair<size_t, size_t>>& ranges) {
         std::vector<size_t> new_shape;
@@ -339,7 +421,7 @@ public:
     }
 
 private:
-    void tile_compute(const std::shared_ptr<std::vector<T>>& e1, const std::shared_ptr<std::vector<T>>& e2, std::vector<T>& res,
+    void m_tile_compute(const std::shared_ptr<std::vector<T>>& e1, const std::shared_ptr<std::vector<T>>& e2, std::vector<T>& res,
                       size_t block_x, size_t block_y, size_t e1_cols, size_t e2_cols, size_t e1_rows) {
 
         // adjust for when SIZE % TILE != 0
@@ -411,6 +493,7 @@ void bind_operations(pybind11::module& m, const std::string& class_name) {
         .def("ewise_div", &CPUBackend<T>::ewise_div)
         .def("ewise_mul", &CPUBackend<T>::ewise_mul)
         .def("ewise_max", &CPUBackend<T>::ewise_max)
+        .def("ewise_min", &CPUBackend<T>::ewise_min)
         .def("mat_mul", &CPUBackend<T>::tiled_mat_mul)
         .def("scalar_add", &CPUBackend<T>::scalar_add)
         .def("scalar_sub", &CPUBackend<T>::scalar_sub)
@@ -418,9 +501,14 @@ void bind_operations(pybind11::module& m, const std::string& class_name) {
         .def("scalar_div", &CPUBackend<T>::scalar_div)
         .def("scalar_pow", &CPUBackend<T>::scalar_pow)
         .def("scalar_max", &CPUBackend<T>::scalar_max)
+        .def("scalar_min", &CPUBackend<T>::scalar_min)
         .def("exp", &CPUBackend<T>::exp)
         .def("log", &CPUBackend<T>::log)
         .def("sum", &CPUBackend<T>::sum)
+        .def("clip_scalar_scalar", &CPUBackend<T>::clip_scalar_scalar)
+        .def("clip_scalar_tensor", &CPUBackend<T>::clip_scalar_tensor)
+        .def("clip_tensor_scalar", &CPUBackend<T>::clip_tensor_scalar)
+        .def("clip_tensor_tensor", &CPUBackend<T>::clip_tensor_tensor)
         .def("slice", &CPUBackend<T>::slice);
 }
 

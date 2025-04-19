@@ -255,22 +255,40 @@ class Tensor:
         """
         """
         if isinstance(other, Tensor):
-            (tensor_data, _grad_fn) = TensorOperations.maximum(self, other)
+            (tensor_data, _grad_fn) = TensorOperations.minimum(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
         elif isinstance(other, (int, float)):
-            (tensor_data, _grad_fn) = TensorOperations.scalar_maximum(self, other)
-            res = self._init(tensor_data, _grad_fn)
-            return res
+            (tensor_data, _grad_fn) = TensorOperations.scalar_minimum(self, other)
+            return self._init(tensor_data, _grad_fn)
 
-        raise TypeError(f"other is of type {type(other)} not Tensor")
+        raise TypeError(f"[minimum] {type(other)} is not a supported type")
 
     def clip(self, lower: Union[Tensor, Any], upper: Union[Tensor, Any]) -> Tensor:
         """
         Clip a tensor in between min and max.
         A combination of maximum and minimum
         """
-        pass
+        lower_is_scalar = isinstance(lower, (int, float))
+        upper_is_scalar = isinstance(upper, (int, float))
+        lower_is_tensor = isinstance(lower, Tensor)
+        upper_is_tensor = isinstance(upper, Tensor)
+
+        if lower_is_scalar and upper_is_scalar:
+            (tensor_data, _grad_fn) = TensorOperations.clip_scalar_scalar(self, lower, upper)
+            return self._init(tensor_data, _grad_fn)
+        elif lower_is_scalar and upper_is_tensor:
+            (tensor_data, _grad_fn) = TensorOperations.clip_scalar_tensor(self, lower, upper)
+            return self._init(tensor_data, _grad_fn)
+        elif lower_is_tensor and upper_is_scalar:
+            (tensor_data, _grad_fn) = TensorOperations.clip_tensor_scalar(self, lower, upper)
+            return self._init(tensor_data, _grad_fn)
+        elif lower_is_tensor and upper_is_tensor:
+            (tensor_data, _grad_fn) = TensorOperations.clip_tensor_tensor(self, lower, upper)
+            return self._init(tensor_data, _grad_fn)
+
+        raise TypeError(f"[clip] lower: {type(lower)} and upper: {type(upper)} is not a supported type")
+
 
     def sum(self, axes = None, keep_dims = False) -> Tensor:
         normalized_axes = TensorUtils.normalize_axes(axes, self.shape(), "sum")

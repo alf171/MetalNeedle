@@ -7,12 +7,12 @@
 
 template<typename T>
 void MetalTensor<T>::initialize(const std::vector<T>& data, const std::vector<size_t>& shape) {
-    if (data.size() != calculate_size(shape)) {
+    if (data.size() != m_calculate_size(shape)) {
         throw std::invalid_argument("Data size does not match shape dimensions.");
     }
     this->cpu_data = data;
     this->shape = shape;
-    this->stride = calculate_stride(shape);
+    this->stride = m_calculate_stride(shape);
     this->offset = 0;
     this->gpu_buffer = nullptr;
     this->cpu_valid = true;
@@ -21,13 +21,13 @@ void MetalTensor<T>::initialize(const std::vector<T>& data, const std::vector<si
 
 template<typename T>
 MetalTensor<T> MetalTensor<T>::create(const std::vector<T>& data, const std::vector<size_t>& shape) {
-    if (data.size() != calculate_size(shape)) {
+    if (data.size() != m_calculate_size(shape)) {
         throw std::invalid_argument("Data size does not match shape dimensions.");
     }
     MetalTensor<T> tensor;
     tensor.cpu_data = data;
     tensor.shape = shape;
-    tensor.stride = calculate_stride(shape);
+    tensor.stride = m_calculate_stride(shape);
     tensor.offset = 0;
     tensor.gpu_buffer = nullptr;
     tensor.cpu_valid = true;
@@ -93,11 +93,11 @@ std::vector<T> MetalTensor<T>::fill(const std::vector<int>& size, T val) {
 
 template <typename T>
 void MetalTensor<T>::reshape(const std::vector<size_t>& new_shape) {
-    if (calculate_size(new_shape) != this->cpu_data.size()) {
+    if (m_calculate_size(new_shape) != this->cpu_data.size()) {
         throw std::invalid_argument("New shape must have the same number of elements.");
     }
     this->shape = new_shape;
-    this->stride = calculate_stride(new_shape);
+    this->stride = m_calculate_stride(new_shape);
 }
 
 // Make our array contiguous. Many matrix operation are implemented by manipulating
@@ -115,12 +115,12 @@ void MetalTensor<T>::compact() {
         new_data[i] = this->cpu_data[source_index];
     }
     this->cpu_data = new_data;
-    this->stride = calculate_stride(this->shape);
+    this->stride = m_calculate_stride(this->shape);
     this->offset = 0;
 }
 
 template<typename T>
-size_t MetalTensor<T>::calculate_size(const std::vector<size_t>& shape) {
+size_t MetalTensor<T>::m_calculate_size(const std::vector<size_t>& shape) {
     size_t r_size = 1;
     for (size_t s : shape) {
         r_size *= s;
@@ -129,7 +129,7 @@ size_t MetalTensor<T>::calculate_size(const std::vector<size_t>& shape) {
 }
 
 template<typename T>
-std::vector<size_t> MetalTensor<T>::calculate_stride(const std::vector<size_t>& shape) {
+std::vector<size_t> MetalTensor<T>::m_calculate_stride(const std::vector<size_t>& shape) {
     std::vector<size_t> stride(shape.size());
     size_t product = 1;
     for(int i = shape.size() - 1; i >= 0; --i) {

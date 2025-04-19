@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any, List, Union
 
 from .device import DeviceManager, TensorDtypes, TensorDevices
 from .util import TensorUtils
@@ -14,6 +14,15 @@ class TensorData:
         _shape = TensorUtils.get_shape(data)
         self.raw_tensor.initialize(TensorUtils.flatten(data), _shape)
         self._debug_name = debug_name
+
+    def _create(self, raw_tensor, debug_name=None) -> TensorData:
+        result = TensorData.__new__(TensorData)
+        result.raw_tensor = raw_tensor
+        result.operations = self.operations
+        result._dtype = self.dtype
+        result._device = self.device
+        result._debug_name = debug_name
+        return result
 
     @staticmethod
     def create(raw_tensor, operations, dtype, device, debug_name=None) -> TensorData:
@@ -101,74 +110,74 @@ class TensorData:
     def __add__(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
             raw_tensor = self.operations.ewise_add(self.raw_tensor, value)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self.dtype)
+            return self._create(raw_tensor)
         elif isinstance(value, TensorData):
             raw_tensor = self.operations.ewise_add(self.raw_tensor, value.raw_tensor)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         elif isinstance(value, (int, float)):
             raw_tensor = self.operations.scalar_add(self.raw_tensor, value)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         raise TypeError("invalid add")
 
     def __sub__(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
             raw_tensor = self.operations.ewise_sub(self.raw_tensor, value)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         elif isinstance(value, TensorData):
             raw_tensor = self.operations.ewise_sub(self.raw_tensor, value.raw_tensor)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         elif isinstance(value, (int, float)):
             raw_tensor = self.operations.scalar_sub(self.raw_tensor, value)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         raise TypeError("invalid sub")
 
     def __mul__(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
             raw_tensor = self.operations.ewise_mul(self.raw_tensor, value)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         elif isinstance(value, TensorData):
             raw_tensor = self.operations.ewise_mul(self.raw_tensor, value.raw_tensor)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         elif isinstance(value, (int, float)):
             raw_tensor = self.operations.scalar_mul(self.raw_tensor, value)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         raise TypeError("invalid mul")
 
     def __truediv__(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
             raw_tensor = self.operations.ewise_div(self.raw_tensor, value)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         elif isinstance(value, TensorData):
             raw_tensor = self.operations.ewise_div(self.raw_tensor, value.raw_tensor)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         elif isinstance(value, (int, float)):
             raw_tensor = self.operations.scalar_div(self.raw_tensor, value)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         raise TypeError("invalid div")
 
     def __pow__(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
             raw_tensor = self.operations.ewise_pow(self.raw_tensor, value)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         elif isinstance(value, TensorData):
             raw_tensor = self.operations.ewise_pow(self.raw_tensor, value.raw_tensor)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         elif isinstance(value, (int, float)):
             raw_tensor = self.operations.scalar_pow(self.raw_tensor, value)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         raise TypeError("invalid exp")
 
     def exp(self):
         raw_tensor = self.operations.exp(self.raw_tensor)
-        return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+        return self._create(raw_tensor)
 
     def log(self) -> TensorData:
         raw_tensor = self.operations.log(self.raw_tensor)
-        return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+        return self._create(raw_tensor)
 
     def __matmul__(self, value) -> TensorData:
         raw_tensor = self.operations.mat_mul(self.raw_tensor, value.raw_tensor)
-        return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+        return self._create(raw_tensor)
 
     def broadcast(self, new_shape: list[int]) -> TensorData:
         result = self.clone()
@@ -217,8 +226,8 @@ class TensorData:
         return result
 
     def sum(self, axes: list[int], keep_dims) -> TensorData:
-        _data = self.operations.sum(self.raw_tensor, axes, keep_dims)
-        return TensorData.create(_data, self.operations, self._dtype, self._device)
+        raw_tensor = self.operations.sum(self.raw_tensor, axes, keep_dims)
+        return self._create(raw_tensor)
 
     @property
     def T(self) -> TensorData:
@@ -238,25 +247,57 @@ class TensorData:
 
     def ones_like(self) -> TensorData:
         ones_data = self.raw_tensor.fill(self.shape(), 1)
-        return TensorData.create(ones_data, self.operations, self._dtype, self._device,'ones')
+        return self._create(ones_data, 'ones')
 
     def maximum(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
             raw_tensor = self.operations.ewise_max(self.raw_tensor, value)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         elif isinstance(value, TensorData):
             raw_tensor = self.operations.ewise_max(self.raw_tensor, value.raw_tensor)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return self._create(raw_tensor)
         elif isinstance(value, (int, float)):
             raw_tensor = self.operations.scalar_max(self.raw_tensor, value)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
-        raise TypeError("invalid maximum")
+            return self._create(raw_tensor)
+        raise TypeError(f"invalid maximum type {type(value)}")
+
+    def minimum(self, value) -> TensorData:
+        if DeviceManager.is_tensor(value):
+            raw_tensor = self.operations.ewise_min(self.raw_tensor, value)
+            return self._create(raw_tensor)
+        elif isinstance(value, TensorData):
+            raw_tensor = self.operations.ewise_min(self.raw_tensor, value.raw_tensor)
+            return self._create(raw_tensor)
+        elif isinstance(value, (int, float)):
+            raw_tensor = self.operations.scalar_min(self.raw_tensor, value)
+            return self._create(raw_tensor)
+        raise TypeError(f"invalid minimum type {type(value)}")
 
     def max(self, axes: tuple[int], keep_dims: bool) -> Any:
-        raw_tenor = self.raw_tensor.max(axes, keep_dims)
-        return TensorData.create(raw_tenor, self.operations, self._dtype, self._device)
+        raw_tensor = self.raw_tensor.max(axes, keep_dims)
+        return self._create(raw_tensor)
 
-    def compact(self):
+    def clip(self, lower: Union[TensorData, Any], upper: Union[TensorData, Any]) -> TensorData:
+        lower_is_scalar = isinstance(lower, (int, float))
+        upper_is_scalar = isinstance(upper, (int, float))
+        lower_is_tensor = isinstance(lower, TensorData)
+        upper_is_tensor = isinstance(upper, TensorData)
+        if lower_is_scalar and upper_is_scalar:
+            raw_tensor = self.operations.clip_scalar_scalar(self.raw_tensor, lower, upper)
+            return self._create(raw_tensor)
+        elif lower_is_scalar and upper_is_tensor:
+            raw_tensor = self.operations.clip_scalar_tensor(self.raw_tensor, lower, upper.raw_tensor)
+            return self._create(raw_tensor)
+        elif lower_is_tensor and upper_is_scalar:
+            raw_tensor = self.operations.clip_tensor_scalar(self.raw_tensor, lower.raw_tensor, upper)
+            return self._create(raw_tensor)
+        elif lower_is_tensor and upper_is_tensor:
+            raw_tensor = self.operations.clip_tensor_tensor(self.raw_tensor, lower.raw_tensor, upper.raw_tensor)
+            return self._create(raw_tensor)
+
+        raise TypeError(f"[clip] lower: {type(lower)} and upper: {type(upper)} is not a supported type")
+
+    def compact(self) -> None:
         self.raw_tensor.compact()
 
     def __str__(self) -> str:

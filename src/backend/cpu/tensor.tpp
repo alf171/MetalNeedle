@@ -7,20 +7,20 @@ namespace py = pybind11;
 
 template<typename T>
 void Tensor<T>::initialize(const std::vector<T>& data, const std::vector<size_t>& shape) {
-    size_t total_size = calculate_size(shape);
+    size_t total_size = m_calculate_size(shape);
     if (data.size() != total_size) {
         throw std::invalid_argument("Data size does not match shape dimensions.");
     }
     this->data = std::make_shared<std::vector<T>>(data);
     this->shape = shape;
-    this->stride = calculate_stride(shape);
+    this->stride = m_calculate_stride(shape);
     this->offset = 0;
     this->total_size = total_size;
 }
 
 template<typename T>
 void Tensor<T>::initialize(py::bytes bytes_data, const std::vector<size_t>& shape) {
-    size_t total_size = calculate_size(shape);
+    size_t total_size = m_calculate_size(shape);
 
     // Get raw buffer from Python bytes
     py::buffer_info buffer = py::buffer(bytes_data).request();
@@ -38,7 +38,7 @@ void Tensor<T>::initialize(py::bytes bytes_data, const std::vector<size_t>& shap
 
     this->data = std::make_shared<std::vector<T>>(data_vec);
     this->shape = shape;
-    this->stride = calculate_stride(shape);
+    this->stride = m_calculate_stride(shape);
     this->offset = 0;
     this->total_size = total_size;
 }
@@ -119,12 +119,12 @@ Tensor<T> Tensor<T>::fill(const std::vector<size_t>& size, T val) {
 
 template <typename T>
 void Tensor<T>::reshape(const std::vector<size_t>& new_shape) {
-    size_t new_total_size = calculate_size(new_shape);
-    if (calculate_size(new_shape) != this->data->size()) {
+    size_t new_total_size = m_calculate_size(new_shape);
+    if (m_calculate_size(new_shape) != this->data->size()) {
         throw std::invalid_argument("New shape must have the same number of elements.");
     }
     this->shape = new_shape;
-    this->stride = calculate_stride(new_shape);
+    this->stride = m_calculate_stride(new_shape);
     this->total_size = new_total_size;
 }
 
@@ -139,12 +139,12 @@ void Tensor<T>::compact() {
         new_data[i] = this->data->at(source_index);
     }
     this->data = std::make_shared<std::vector<T>>(new_data);
-    this->stride = calculate_stride(shape);
+    this->stride = m_calculate_stride(shape);
     this->offset = 0;
 }
 
 template<typename T>
-size_t Tensor<T>::calculate_size(const std::vector<size_t>& input_shape) {
+size_t Tensor<T>::m_calculate_size(const std::vector<size_t>& input_shape) {
     size_t r_size = 1;
     for (size_t s : input_shape) {
         r_size *= s;
@@ -153,7 +153,7 @@ size_t Tensor<T>::calculate_size(const std::vector<size_t>& input_shape) {
 }
 
 template<typename T>
-std::vector<size_t> Tensor<T>::calculate_stride(const std::vector<size_t>& input_shape) {
+std::vector<size_t> Tensor<T>::m_calculate_stride(const std::vector<size_t>& input_shape) {
     std::vector<size_t> stride(input_shape.size());
     size_t product = 1;
     for(int i = input_shape.size() - 1; i >= 0; --i) {
@@ -198,14 +198,14 @@ int Tensor<T>::get_tensor_count() {
 }
 
 template<typename T>
-bool Tensor<T>::is_contiguous() const {
-    return this->offset == 0 && (this->stride == calculate_stride(this->shape));
+bool Tensor<T>::m_is_contiguous() const {
+    return this->offset == 0 && (this->stride == m_calculate_stride(this->shape));
 }
 
 template<typename T>
 template<typename U>
 Tensor<U> Tensor<T>::as_type() const {
-    if (!this->is_contiguous()) {
+    if (!this->m_is_contiguous()) {
         Tensor<T> compact_tensor = *this;
         compact_tensor.compact();
         return compact_tensor.template as_type<U>();
@@ -243,18 +243,24 @@ Tensor<T> Tensor<T>::max(const std::vector<size_t>& axes, const bool keep_dims) 
         shape = {1};
     }
 
-    std::vector<T> data(this->calculate_size(this->shape), std::numeric_limits<T>::lowest());
-    Tensor<T> result_tensor = Tensor<T>(data, shape, calculate_stride(shape), 0);
+    std::vector<T> data(this->m_calculate_size(shape), std::numeric_limits<T>::lowest());
+    Tensor<T> result_tensor = Tensor<T>(data, shape, m_calculate_stride(shape), 0);
 
     for(size_t i = 0; i < this->total_size; i++) {
         std::vector<size_t> multi_dim = this->flat_index_to_mult_dim(i);
         std::vector<size_t> result_indices;
-        for (size_t dim = 0; dim < multi_dim.size(); dim++) {
-            // if we aren't reducing across dim
-            if(reduce_dim[dim]) {
-                result_indices.push_back(multi_dim[dim]);
-            } else if (keep_dims) {
-                result_indices.push_back(0);
+        // if we reduce across whole tensor, we need to ensure we have at least on value
+        // so we index into [1] properly
+        if (shape.size() == 1 && shape[0] == 1) {
+            result_indices.push_back(0);
+        } else {
+            for (size_t dim = 0; dim < multi_dim.size(); dim++) {
+                // if we aren't reducing across dim
+                if(reduce_dim[dim]) {
+                    result_indices.push_back(multi_dim[dim]);
+                } else if (keep_dims) {
+                    result_indices.push_back(0);
+                }
             }
         }
 

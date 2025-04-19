@@ -27,9 +27,9 @@ struct Tensor {
     Tensor(const std::vector<T>& data, const std::vector<size_t>& shape) {
         this->data = std::make_shared<std::vector<T>>(data);
         this->shape = shape;
-        this->stride = calculate_stride(shape);
+        this->stride = m_calculate_stride(shape);
         this->offset = 0;
-        this->total_size = calculate_size(shape);
+        this->total_size = m_calculate_size(shape);
         Tensor<T>::tensor_count++;
     }
 
@@ -38,7 +38,7 @@ struct Tensor {
         this->shape = shape;
         this->stride = stride;
         this->offset = offset;
-        this->total_size = calculate_size(shape);
+        this->total_size = m_calculate_size(shape);
         Tensor<T>::tensor_count++;
     }
 
@@ -80,11 +80,11 @@ struct Tensor {
     Tensor<U> as_type() const;
 
 private:
-    static size_t calculate_size(const std::vector<size_t>& shape);
+    static size_t m_calculate_size(const std::vector<size_t>& shape);
 
-    static std::vector<size_t> calculate_stride(const std::vector<size_t>& shape);
+    static std::vector<size_t> m_calculate_stride(const std::vector<size_t>& shape);
 
-    bool is_contiguous() const;
+    bool m_is_contiguous() const;
 };
 
 template <typename T>

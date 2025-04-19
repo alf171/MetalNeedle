@@ -207,6 +207,16 @@ class TensorOperations:
     # TODO: need support for operators like >= on tensors
     # in order to implement backwards
     @staticmethod
+    def scalar_minimum(tensor, val) -> Tuple[TensorData, Any]:
+        def _grad_fn(grad):
+            if tensor.requires_grad:
+                pass
+        tensor_data = tensor.tensor_data.minimum(val)
+        return tensor_data, _grad_fn
+
+    # TODO: need support for operators like >= on tensors
+    # in order to implement backwards
+    @staticmethod
     def maximum(tensor1, tensor2) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
@@ -236,8 +246,48 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
-    def clip(tensor, axes) -> Tuple[TensorData, Any]:
-        pass
+    def clip_scalar_scalar(tensor, lower_scalar, upper_scalar) -> Tuple[TensorData, Any]:
+        def _grad_fn(grad):
+            if tensor.requires_grad:
+                pass
+
+        tensor_data = tensor.tensor_data.clip(lower_scalar, upper_scalar)
+        return tensor_data, _grad_fn
+
+    @staticmethod
+    def clip_tensor_scalar(tensor, lower_tensor, upper_scalar) -> Tuple[TensorData, Any]:
+        def _grad_fn(grad):
+            if tensor.requires_grad:
+                pass
+            if lower_tensor.requires_grad:
+                pass
+
+        tensor_data = tensor.tensor_data.clip(lower_tensor.tensor_data, upper_scalar)
+        return tensor_data, _grad_fn
+
+    @staticmethod
+    def clip_scalar_tensor(tensor, lower_scalar, upper_tensor) -> Tuple[TensorData, Any]:
+        def _grad_fn(grad):
+            if tensor.requires_grad:
+                pass
+            if upper_tensor.requires_grad:
+                pass
+
+        tensor_data = tensor.tensor_data.clip(lower_scalar, upper_tensor.tensor_data)
+        return tensor_data, _grad_fn
+
+    @staticmethod
+    def clip_tensor_tensor(tensor, lower_tensor, upper_tensor) -> Tuple[TensorData, Any]:
+        def _grad_fn(grad):
+            if tensor.requires_grad:
+                pass
+            if lower_tensor.requires_grad:
+                pass
+            if upper_tensor.requires_grad:
+                pass
+
+        tensor_data = tensor.tensor_data.clip(lower_tensor.tensor_data, upper_tensor.tensor_data)
+        return tensor_data, _grad_fn
 
 
     @staticmethod

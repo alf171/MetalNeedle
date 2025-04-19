@@ -5,7 +5,7 @@ from MetalNeedle.loader import MnistDataLoader
 from MetalNeedle.nn import Linear, ReLU, Softmax
 
 # Input (784) -> Linear (784->128) -> ReLU -> Linear (128->10) -> Softmax
-def mnist():
+def mnist() -> None:
     data = MnistDataLoader("data/mnist/test-images", "data/mnist/test-labels", 10000)
     layer = Linear(784, 128)
     l1 = layer.forward(data.images)

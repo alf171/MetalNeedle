@@ -33,9 +33,13 @@ public:
     Tensor<T> log(Tensor<T>& tensor);
     Tensor<T> sum(Tensor<T>& tensor, bool keepDims);
     Tensor<T> slice(Tensor<T>& tensor, std::vector<std::pair<size_t, size_t>>& ranges);
+    Tensor<T> clip_scalar_scalar(Tensor<T>& tensor, T lower, T upper);
+    Tensor<T> clip_tensor_scalar(Tensor<T>& tensor, Tensor<T>& lower, T upper);
+    Tensor<T> clip_scalar(Tensor<T>& tensor, T lower, Tensor<T>& upper);
+    Tensor<T> clip_tensor_tensor(Tensor<T>& tensor, Tensor<T>& lower, Tensor<T>& upper);
 
 private:
-    void tile_compute(const std::vector<T>& e1, const std::vector<T>& e2, std::vector<T>& res,
+    void m_tile_compute(const std::vector<T>& e1, const std::vector<T>& e2, std::vector<T>& res,
                       size_t block_x, size_t block_y, size_t e1_cols, size_t e2_cols, size_t e1_rows);
 };
 

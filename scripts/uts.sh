@@ -1,11 +1,10 @@
 #!/bin/bash
 
-# export DYLD_PRINT_LIBRARIES=1
-# export DYLD_PRINT_STATISTICS=1
+export PYTHONPATH="$PYTHONPATH:$(pwd)"
 
 source ./scripts/setup.sh
 # run testing script
-#python3.13 -m tst.uts
+python3.13 -m tst.test_tensor
 #python3.13 -m tst.metal
 #python3.13 -m tst.nn
-python3.13 -m tst.mnsit
+#python3.13 -m tst.mnsit

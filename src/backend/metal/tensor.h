@@ -35,8 +35,8 @@ struct MetalTensor {
     void print() const;
 
 private:
-    static size_t calculate_size(const std::vector<size_t>& shape);
-    static std::vector<size_t> calculate_stride(const std::vector<size_t>& shape);
+    static size_t m_calculate_size(const std::vector<size_t>& shape);
+    static std::vector<size_t> m_calculate_stride(const std::vector<size_t>& shape);
 };
 
 template <typename T>
