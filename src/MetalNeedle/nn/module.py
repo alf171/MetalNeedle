@@ -3,9 +3,9 @@ from typing import NoReturn
 from ..tensor import Tensor
 class Module:
     """
-    this is our base module class all other neural network
-    modules will piggyback off of this one
-    small trick we do here to avoid calling our custom __setattr__ on initialization
+    Base module class all other neural network.
+    Other modules will piggyback off of this one.
+    Small trick we do here to avoid calling our custom __setattr__ on initialization.
     """
     def __init__(self):
         # store tensors

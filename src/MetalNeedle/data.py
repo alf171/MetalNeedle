@@ -40,24 +40,25 @@ class TensorData:
         new_raw_tensor = self.raw_tensor.create(self.data(), self.shape())
         result = TensorData.__new__(TensorData)
         result.raw_tensor = new_raw_tensor
-        # result.tensor = self.tensor
         result.operations = self.operations
+        result._dtype = self.dtype
+        result._device = self.device
         result._debug_name = self._debug_name + "_clone" if self._debug_name is not None else "tensor_clone"
         return result
 
-    def shape(self) -> list[int]:
+    def shape(self) -> List[int]:
         return self.raw_tensor.shape
 
     def set_shape(self, shape) -> None:
         self.raw_tensor.shape = shape
 
-    def stride(self) -> list[int]:
+    def stride(self) -> List[int]:
         return self.raw_tensor.stride
 
     def set_stride(self, shape) -> None:
         self.raw_tensor.stride = shape
 
-    def data(self) -> list[Any]:
+    def data(self) -> List[Any]:
         return self.raw_tensor.data()
 
     def offset(self) -> int:

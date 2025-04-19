@@ -2,9 +2,7 @@ import MetalNeedle as mn
 
 
 class MnistDataLoader:
-    """
-    Load data
-    """
+    """ Load mnist data set """
     def __init__(self, images_file, label_file, batch_size, shuffle=True):
         # meta data
         self.batch_size = batch_size

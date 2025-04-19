@@ -217,6 +217,16 @@ class TensorOperations:
         return tensor_data, _grad_fn
 
     @staticmethod
+    def minimum(tensor1, tensor2) -> Tuple[TensorData, Any]:
+        def _grad_fn(grad):
+            if tensor1.requires_grad:
+                pass
+            if tensor2.requires_grad:
+                pass
+        tensor_data = tensor1.tensor_data.minimum(tensor2.tensor_data)
+        return tensor_data, _grad_fn
+
+    @staticmethod
     def max(tensor, axes, keep_dims) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor.requires_grad:
@@ -224,6 +234,10 @@ class TensorOperations:
 
         tensor_data = tensor.tensor_data.max(axes, keep_dims)
         return tensor_data, _grad_fn
+
+    @staticmethod
+    def clip(tensor, axes) -> Tuple[TensorData, Any]:
+        pass
 
 
     @staticmethod

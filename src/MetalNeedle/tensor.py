@@ -12,9 +12,6 @@ class Tensor:
         default initialization when size is unknown
         like when data is provided ex. mn.Tensor([1,2,3])
         """
-        # todo: deprecate since tensor data already contains
-        self._device: str = device
-        self._dtype: str = dtype
         self.tensor_data: TensorData = TensorData(data, dtype, device, debug_name)
         # autograd related
         self.requires_grad: bool = requires_grad
@@ -27,8 +24,6 @@ class Tensor:
         used externally to create a new tensor or create a copy
         """
         result = Tensor.__new__(Tensor)
-        result._device = device
-        result._dtype = dtype
         result.tensor_data = TensorData.create(raw_tensor, operations, dtype, device, debug_name)
         result.requires_grad = requires_grad
         result.grad = None
@@ -37,6 +32,9 @@ class Tensor:
 
     @staticmethod
     def load(data: List[Any], shape: List[int], device = "cpu", dtype = "int32", requires_grad=False, debug_name=None) -> Tensor:
+        """
+        Useful for outside data loads since we already know shape and have flat data
+        """
         result = Tensor.__new__(Tensor)
         result._device = device
         result._dtype = dtype
@@ -49,9 +47,6 @@ class Tensor:
     def clone(self) -> Tensor:
         """
         Creates a deep copy of the tensor with completely independent memory.
-
-        Returns:
-            Tensor: A new tensor with identical values but separate memory
         """
         res = Tensor.create(
             raw_tensor=self.data(),
@@ -69,8 +64,6 @@ class Tensor:
         Used internally to create a new tensor from TensorData
         """
         result = Tensor.__new__(Tensor)
-        result._device = self.device
-        result._dtype = self.dtype
         result.tensor_data = data
         result.tensor_data._debug_name = debug_name
         result.requires_grad = self.requires_grad
@@ -249,13 +242,35 @@ class Tensor:
 
     def max(self, axes = None, keep_dims = False) -> Tensor:
         """
-        maximum value with a tensor or axis
+        Maximum value with a tensor or axis
         """
         normalized_axes = TensorUtils.normalize_axes(axes, self.shape(), "max")
 
         tensor_data, _grad_fn = TensorOperations.max(self, normalized_axes, keep_dims)
         res = self._init(tensor_data, _grad_fn)
         return res
+
+
+    def minimum(self, other: Union[Tensor, Any]) -> Tensor:
+        """
+        """
+        if isinstance(other, Tensor):
+            (tensor_data, _grad_fn) = TensorOperations.maximum(self, other)
+            res = self._init(tensor_data, _grad_fn)
+            return res
+        elif isinstance(other, (int, float)):
+            (tensor_data, _grad_fn) = TensorOperations.scalar_maximum(self, other)
+            res = self._init(tensor_data, _grad_fn)
+            return res
+
+        raise TypeError(f"other is of type {type(other)} not Tensor")
+
+    def clip(self, lower: Union[Tensor, Any], upper: Union[Tensor, Any]) -> Tensor:
+        """
+        Clip a tensor in between min and max.
+        A combination of maximum and minimum
+        """
+        pass
 
     def sum(self, axes = None, keep_dims = False) -> Tensor:
         normalized_axes = TensorUtils.normalize_axes(axes, self.shape(), "sum")
