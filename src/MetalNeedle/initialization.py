@@ -3,7 +3,6 @@ from typing import List
 from .tensor import Tensor
 from .device import DeviceManager, TensorDtypes, TensorDevices
 
-
 def randn(shape: List[int], mean = 0, std = 1, dtype="float32", device="cpu", requires_grad=False, debug_name=None) -> Tensor:
     dtype_enum = TensorDtypes(dtype)
     device_enum = TensorDevices(device)

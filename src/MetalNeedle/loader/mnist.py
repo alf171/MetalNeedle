@@ -36,4 +36,5 @@ class MnistDataLoader:
             buffer = f.read(self.batch_size)
             float_data = [float(b) for b in buffer]
 
-            return mn.Tensor.load(float_data, [self.batch_size], dtype="float32")
+            labels =  mn.Tensor.load(float_data, [self.batch_size], dtype="float32")
+            return labels.one_hot(10)

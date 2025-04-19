@@ -91,6 +91,13 @@ class Tensor:
     def debug_name(self) -> str or None:
         return self.tensor_data._debug_name
 
+    def __neg__(self):
+        debug_name = f"negative_{self.debug_name()}" if self.debug_name() is not None else "negative_tensor"
+        return self.__mul__(-1, debug_name)
+
+    def __setitem__(self, key: Any, value: Any, debug_name=None) -> None:
+        self.tensor_data[key] = value
+
     def __getitem__(self, multi_dim_index: Any, debug_name=None) -> Union[Tensor, Any]:
         if isinstance(multi_dim_index, (int, float)):
             multi_dim_index = [multi_dim_index]
@@ -289,6 +296,17 @@ class Tensor:
 
         raise TypeError(f"[clip] lower: {type(lower)} and upper: {type(upper)} is not a supported type")
 
+    def mean(self, axes = None, keep_dims = False) -> Tensor:
+        """ Mean of a tensor reducing across axes """
+        reduce_sum = self.sum(axes, keep_dims)
+        if axes is None:
+             divisor = TensorUtils.product(self.tensor_data.shape())
+        elif isinstance(axes, int):
+            divisor = self.shape()[axes]
+        elif isinstance(axes, list):
+            divisor = TensorUtils.product(self.shape()[ax] for ax in axes)
+
+        return reduce_sum / divisor
 
     def sum(self, axes = None, keep_dims = False) -> Tensor:
         normalized_axes = TensorUtils.normalize_axes(axes, self.shape(), "sum")
@@ -314,6 +332,22 @@ class Tensor:
 
         if self.grad_fn is not None:
             self.grad_fn(grad)
+
+    def one_hot(self, num_classes):
+        """
+        one_hot(y)_i = 1[i = y]
+        tensor of shape goes from shape -> [...shape, num_classes]
+        """
+        print(f"self.shape {self.shape()}")
+        print(f"num classes {num_classes}")
+        new_shape = self.shape() + [num_classes]
+        one_hot = self.tensor_data.zeros_like(new_shape)
+        one_hot_tensor = self._init(one_hot, None, "one_hot")
+        for i in range(self.shape()[0]):
+            scalar = int(self[i])
+            one_hot_tensor[i, scalar] = 1
+
+        return one_hot_tensor
 
     def compact(self):
         """

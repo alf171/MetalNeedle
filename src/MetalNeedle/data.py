@@ -97,6 +97,9 @@ class TensorData:
     def device(self):
         return self._device
 
+    def __setitem__(self, key, value):
+        self.raw_tensor.set_item(key, value)
+
     def __getitem__(self, index) -> TensorData:
         if isinstance(index, list):
             raw_tensor = self.operations.slice(self.raw_tensor, index)
@@ -245,9 +248,15 @@ class TensorData:
         self.raw_tensor.swap(axis1, axis2)
         return self
 
-    def ones_like(self) -> TensorData:
-        ones_data = self.raw_tensor.fill(self.shape(), 1)
+    def ones_like(self, new_shape = None) -> TensorData:
+        new_shape = new_shape if new_shape is not None else self.shape()
+        ones_data = self.raw_tensor.fill(new_shape, 1)
         return self._create(ones_data, 'ones')
+
+    def zeros_like(self, new_shape = None) -> TensorData:
+        new_shape = new_shape if new_shape is not None else self.shape()
+        zero_data = self.raw_tensor.fill(new_shape, 0)
+        return self._create(zero_data, 'zeros')
 
     def maximum(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):

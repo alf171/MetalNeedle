@@ -202,6 +202,11 @@ class TestTensor(unittest.TestCase):
         expected_grad = mn.Tensor([0, 1, 1, 0, 0], dtype="float32")
         # self.assertTrue(np.allclose(z.grad.data(), expected_grad.data()))
 
+    def test_get_items(self):
+        y = mn.ones([3,3])
+        y[0, 0] = 10
+        self.assertEqual(y[0,0], 10)
+
     # run UTs
 if __name__ == '__main__':
     unittest.main(verbosity=2)

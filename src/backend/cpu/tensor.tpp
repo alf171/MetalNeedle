@@ -272,6 +272,12 @@ Tensor<T> Tensor<T>::max(const std::vector<size_t>& axes, const bool keep_dims) 
     return result_tensor;
 }
 
+template<typename T>
+void Tensor<T>::set_item(std::vector<size_t>& indices, T value) {
+    size_t flat_index = this->mult_dim_to_flat_index(indices);
+    this->data->at(flat_index) = value;
+}
+
 template <typename T>
 void bind_tensor(pybind11::module& m, const std::string& class_name) {
     // TODO: should be just read
@@ -306,5 +312,6 @@ void bind_tensor(pybind11::module& m, const std::string& class_name) {
         .def("as_float", [](const Tensor<T>& tensor) {
             return tensor.template as_type<float>();
         }, "convert tensor to a float")
-        .def("get_tensor_count", &Tensor<T>::get_tensor_count);
+        .def("get_tensor_count", &Tensor<T>::get_tensor_count)
+        .def("set_item", &Tensor<T>::set_item);
 }

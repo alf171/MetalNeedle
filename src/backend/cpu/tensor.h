@@ -76,6 +76,8 @@ struct Tensor {
 
     void print() const;
 
+    void set_item(std::vector<size_t>& index, T value);
+
     template<typename U>
     Tensor<U> as_type() const;
 
