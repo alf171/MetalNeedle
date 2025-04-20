@@ -243,10 +243,11 @@ class TensorData:
         return result
 
     def swap(self, axis1, axis2) -> TensorData:
+        result = self.clone()
         if axis1 >= len(self.shape()) or axis2 >= len(self.shape()):
             raise ValueError("axes for swap out of range")
-        self.raw_tensor.swap(axis1, axis2)
-        return self
+        result.raw_tensor.swap(axis1, axis2)
+        return result
 
     def ones_like(self, new_shape = None) -> TensorData:
         new_shape = new_shape if new_shape is not None else self.shape()
