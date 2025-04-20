@@ -104,9 +104,12 @@ class TensorData:
         if isinstance(index, list):
             raw_tensor = self.operations.slice(self.raw_tensor, index)
             return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+        elif isinstance(index, int):
+            return self.get_single_item([index])
+
         raise TypeError("index must be a list or int")
 
-    def get_single_item(self, index) -> Any:
+    def get_single_item(self, index: List[int]) -> Any:
         index = self.raw_tensor.mult_dim_to_flat_index(index)
         return self.data()[index]
 
@@ -144,7 +147,7 @@ class TensorData:
         elif isinstance(value, (int, float)):
             raw_tensor = self.operations.scalar_mul(self.raw_tensor, value)
             return self._create(raw_tensor)
-        raise TypeError("invalid mul")
+        raise TypeError(f"invalid mul self type: {type(self)} value type {type(value)}")
 
     def __truediv__(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
@@ -287,6 +290,60 @@ class TensorData:
         raw_tensor = self.raw_tensor.max(axes, keep_dims)
         return self._create(raw_tensor)
 
+    def __gt__(self, other: Union[TensorData, Any]) -> TensorData:
+        if isinstance(other, TensorData):
+            raw_tensor = self.operations.greater_than_tensor(self.raw_tensor, other.raw_tensor)
+            return self._create(raw_tensor)
+        elif isinstance(other, (int, float)):
+            raw_tensor = self.operations.greater_than_scalar(self.raw_tensor, other)
+            return self._create(raw_tensor)
+        raise TypeError(f"other is not a supported type: {type(other)}")
+
+    def __ge__(self, other: Union[TensorData, Any]) -> TensorData:
+        if isinstance(other, TensorData):
+            raw_tensor = self.operations.greater_equal_tensor(self.raw_tensor, other.raw_tensor)
+            return self._create(raw_tensor)
+        elif isinstance(other, (int, float)):
+            raw_tensor = self.operations.greater_equal_scalar(self.raw_tensor, other)
+            return self._create(raw_tensor)
+        raise TypeError(f"other is not a supported type: {type(other)}")
+
+    def __lt__(self, other: Union[TensorData, Any]) -> TensorData:
+        if isinstance(other, TensorData):
+            raw_tensor = self.operations.less_than_tensor(self.raw_tensor, other.raw_tensor)
+            return self._create(raw_tensor)
+        elif isinstance(other, (int, float)):
+            raw_tensor = self.operations.less_than_scalar(self.raw_tensor, other)
+            return self._create(raw_tensor)
+        raise TypeError(f"other is not a supported type: {type(other)}")
+
+    def __le__(self, other: Union[TensorData, Any]) -> TensorData:
+        if isinstance(other, TensorData):
+            raw_tensor = self.operations.less_equal_tensor(self.raw_tensor, other.raw_tensor)
+            return self._create(raw_tensor)
+        elif isinstance(other, (int, float)):
+            raw_tensor = self.operations.less_equal_scalar(self.raw_tensor, other)
+            return self._create(raw_tensor)
+        raise TypeError(f"other is not a supported type: {type(other)}")
+
+    def __eq__(self, other: Union[TensorData, Any]) -> TensorData:
+        if isinstance(other, TensorData):
+            raw_tensor = self.operations.equal_tensor(self.raw_tensor, other.raw_tensor)
+            return self._create(raw_tensor)
+        elif isinstance(other, (int, float)):
+            raw_tensor = self.operations.equal_scalar(self.raw_tensor, other)
+            return self._create(raw_tensor)
+        raise TypeError(f"other is not a supported type: {type(other)}")
+
+    def __ne__(self, other: Union[TensorData, Any]) -> TensorData:
+        if isinstance(other, TensorData):
+            raw_tensor = self.operations.not_equal_tensor(self.raw_tensor, other.raw_tensor)
+            return self._create(raw_tensor)
+        elif isinstance(other, (int, float)):
+            raw_tensor = self.operations.not_equal_scalar(self.raw_tensor, other)
+            return self._create(raw_tensor)
+        raise TypeError(f"other is not a supported type: {type(other)}")
+
     def clip(self, lower: Union[TensorData, Any], upper: Union[TensorData, Any]) -> TensorData:
         lower_is_scalar = isinstance(lower, (int, float))
         upper_is_scalar = isinstance(upper, (int, float))
@@ -309,6 +366,10 @@ class TensorData:
 
     def compact(self) -> None:
         self.raw_tensor.compact()
+
+    def _zero(self) -> None:
+        """ Zero out tensor data """
+        self.raw_tensor.fill(self.shape(), 0)
 
     def __str__(self) -> str:
         shape = ', '.join(str(x) for x in self.shape())

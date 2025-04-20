@@ -18,25 +18,55 @@ public:
     CPUBackend() = default;
 
     Tensor<T> ewise_add(Tensor<T>& e1, Tensor<T>& e2);
+
     Tensor<T> ewise_sub(Tensor<T>& e1, Tensor<T>& e2);
+
     Tensor<T> ewise_exp(Tensor<T>& e1, float v1);
+
     Tensor<T> ewise_div(Tensor<T>& e1, Tensor<T>& e2);
+
     Tensor<T> ewise_mul(Tensor<T>& e1, Tensor<T>& e2);
+
     Tensor<T> ewise_max(Tensor<T>& e1, Tensor<T>& e2);
+
     Tensor<T> tiled_mat_mul(Tensor<T>& e1, Tensor<T>& e2);
+
     Tensor<T> scalar_add(Tensor<T>& tensor, T scalar);
+
     Tensor<T> scalar_sub(Tensor<T>& tensor, T scalar);
+
     Tensor<T> scalar_mul(Tensor<T>& tensor, T scalar);
+
     Tensor<T> scalar_div(Tensor<T>& tensor, T scalar);
+
     Tensor<T> scalar_exp(Tensor<T>& tensor, T scalar);
+
     Tensor<T> scalar_max(Tensor<T>& tensor, T scalar);
+
     Tensor<T> log(Tensor<T>& tensor);
+
     Tensor<T> sum(Tensor<T>& tensor, bool keepDims);
+
     Tensor<T> slice(Tensor<T>& tensor, std::vector<std::pair<size_t, size_t>>& ranges);
+
     Tensor<T> clip_scalar_scalar(Tensor<T>& tensor, T lower, T upper);
     Tensor<T> clip_tensor_scalar(Tensor<T>& tensor, Tensor<T>& lower, T upper);
     Tensor<T> clip_scalar(Tensor<T>& tensor, T lower, Tensor<T>& upper);
     Tensor<T> clip_tensor_tensor(Tensor<T>& tensor, Tensor<T>& lower, Tensor<T>& upper);
+
+    Tensor<T> greater_than_scalar(Tensor<T>& tensor, T val);
+    Tensor<T> greater_equal_scalar(Tensor<T>& tensor, T val);
+    Tensor<T> less_than_scalar(Tensor<T>& tensor, T val);
+    Tensor<T> less_equal_scalar(Tensor<T>& tensor, T val);
+    Tensor<T> equal_scalar(Tensor<T>& tensor, T val);
+    Tensor<T> not_equal_scalar(Tensor<T>& tensor, T val);
+
+    Tensor<T> greater_than_tensor(Tensor<T>& e1, Tensor<T>& e2);
+    Tensor<T> greater_equal_tensor(Tensor<T>& e1, Tensor<T>& e2);
+    Tensor<T> less_than_tensor(Tensor<T>& e1, Tensor<T>& e2);
+    Tensor<T> less_equal_tensor(Tensor<T>& e1, Tensor<T>& e2);
+    Tensor<T> equal_tensor(Tensor<T>& e1, Tensor<T>& e2);
+    Tensor<T> not_equal_tensor(Tensor<T>& e1, Tensor<T>& e2);
 
 private:
     void m_tile_compute(const std::vector<T>& e1, const std::vector<T>& e2, std::vector<T>& res,

@@ -13,7 +13,7 @@ class CategoricalCrossEntropy(Loss):
         safe_predictions = predictions.clip(self.epsilon, 1 - self.epsilon)
 
         # negative log likelihood
-        loss = -targets * predictions.log()
+        loss = -targets * safe_predictions.log()
 
         return self._reduce(loss)
 

@@ -13,9 +13,8 @@ class Tensor:
         like when data is provided ex. mn.Tensor([1,2,3])
         """
         self.tensor_data: TensorData = TensorData(data, dtype, device, debug_name)
-        # autograd related
         self.requires_grad: bool = requires_grad
-        self.grad: TensorData or None = None
+        self.grad: Union[TensorData, None] = None
         self.grad_fn = None
 
     @staticmethod
@@ -36,8 +35,6 @@ class Tensor:
         Useful for outside data loads since we already know shape and have flat data
         """
         result = Tensor.__new__(Tensor)
-        result._device = device
-        result._dtype = dtype
         result.tensor_data = TensorData.load(data, shape, dtype, device, debug_name)
         result.requires_grad = requires_grad
         result.grad = None
@@ -90,6 +87,9 @@ class Tensor:
 
     def debug_name(self) -> str or None:
         return self.tensor_data._debug_name
+
+    def numel(self):
+        return TensorUtils.product(self.shape())
 
     def __neg__(self):
         debug_name = f"negative_{self.debug_name()}" if self.debug_name() is not None else "negative_tensor"
@@ -338,8 +338,6 @@ class Tensor:
         one_hot(y)_i = 1[i = y]
         tensor of shape goes from shape -> [...shape, num_classes]
         """
-        print(f"self.shape {self.shape()}")
-        print(f"num classes {num_classes}")
         new_shape = self.shape() + [num_classes]
         one_hot = self.tensor_data.zeros_like(new_shape)
         one_hot_tensor = self._init(one_hot, None, "one_hot")
@@ -354,6 +352,61 @@ class Tensor:
         compactify the tensor we are looking at
         """
         self.tensor_data.compact()
+
+    def __gt__(self, other: Union[Tensor, Any]) -> Tensor:
+        if isinstance(other, Tensor):
+            tensor_data, _grad_fn = TensorOperations.greater_than_tensor(self, other)
+            return self._init(tensor_data, _grad_fn)
+        elif isinstance(other, (int, float)):
+            tensor_data, _grad_fn = TensorOperations.greater_than_scalar(self, other)
+            return self._init(tensor_data, _grad_fn)
+        raise TypeError(f"other is not a supported type: {type(other)}")
+
+    def __ge__(self, other: Union[Tensor, Any]) -> Tensor:
+        if isinstance(other, Tensor):
+            tensor_data, _grad_fn = TensorOperations.greater_than_or_eq_tensor(self, other)
+            return self._init(tensor_data, _grad_fn)
+        elif isinstance(other, (int, float)):
+            tensor_data, _grad_fn = TensorOperations.greater_than_or_eq_scalar(self, other)
+            return self._init(tensor_data, _grad_fn)
+        raise TypeError(f"other is not a supported type: {type(other)}")
+
+    def __lt__(self, other: Union[Tensor, Any]) -> Tensor:
+        if isinstance(other, Tensor):
+            tensor_data, _grad_fn = TensorOperations.less_than_tensor(self, other)
+            return self._init(tensor_data, _grad_fn)
+        elif isinstance(other, (int, float)):
+            tensor_data, _grad_fn = TensorOperations.less_than_scalar(self, other)
+            return self._init(tensor_data, _grad_fn)
+        raise TypeError(f"other is not a supported type: {type(other)}")
+
+    def __le__(self, other: Union[Tensor, Any]) -> Tensor:
+        if isinstance(other, Tensor):
+            tensor_data, _grad_fn = TensorOperations.less_than_or_eq_tensor(self, other)
+            return self._init(tensor_data, _grad_fn)
+        elif isinstance(other, (int, float)):
+            tensor_data, _grad_fn = TensorOperations.less_than_or_eq_scalar(self, other)
+            return self._init(tensor_data, _grad_fn)
+        raise TypeError(f"other is not a supported type: {type(other)}")
+
+    def __eq__(self, other: Union[Tensor, Any]) -> Tensor:
+        if isinstance(other, Tensor):
+            tensor_data, _grad_fn = TensorOperations.eq_tensor(self, other)
+            return self._init(tensor_data, _grad_fn)
+        elif isinstance(other, (int, float)):
+            tensor_data, _grad_fn = TensorOperations.eq_scalar(self, other)
+            return self._init(tensor_data, _grad_fn)
+        raise TypeError(f"other is not a supported type: {type(other)}")
+
+    def __ne__(self, other: Union[Tensor, Any]) -> Tensor:
+        if isinstance(other, Tensor):
+            tensor_data, _grad_fn = TensorOperations.neq_tensor(self, other)
+            return self._init(tensor_data, _grad_fn)
+        elif isinstance(other, (int, float)):
+            tensor_data, _grad_fn = TensorOperations.neq_scalar(self, other)
+            return self._init(tensor_data, _grad_fn)
+        raise TypeError(f"other is not a supported type: {type(other)}")
+
 
     def __str__(self) -> str:
         shape = ', '.join(str(x) for x in self.shape())

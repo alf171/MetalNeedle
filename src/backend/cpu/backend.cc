@@ -420,6 +420,151 @@ public:
         return Tensor<T>::create_view(tensor.data, new_shape, new_stride, new_offset);
     }
 
+    Tensor<T> greater_than_scalar(Tensor<T>& tensor, T val) {
+        std::vector<T> result_data(tensor.total_size);
+        for(size_t i = 0; i < tensor.total_size; i++) {
+            std::vector<size_t> indices = tensor.flat_index_to_mult_dim(i);
+            size_t flat_index = tensor.mult_dim_to_flat_index(indices);
+            result_data[i] = tensor.data->at(flat_index) > val ? 1 : 0;
+        }
+        Tensor<T> result = Tensor<T>::create(result_data, tensor.shape);
+        return result;
+    }
+
+    Tensor<T> greater_equal_scalar(Tensor<T>& tensor, T val) {
+        std::vector<T> result_data(tensor.total_size);
+        for(size_t i = 0; i < tensor.total_size; i++) {
+            std::vector<size_t> indices = tensor.flat_index_to_mult_dim(i);
+            size_t flat_index = tensor.mult_dim_to_flat_index(indices);
+            result_data[i] = tensor.data->at(flat_index) >= val ? 1 : 0;
+        }
+        return Tensor<T>::create(result_data, tensor.shape);
+    }
+
+    Tensor<T> less_than_scalar(Tensor<T>& tensor, T val) {
+        std::vector<T> result_data(tensor.total_size);
+        for(size_t i = 0; i < tensor.total_size; i++) {
+            std::vector<size_t> indices = tensor.flat_index_to_mult_dim(i);
+            size_t flat_index = tensor.mult_dim_to_flat_index(indices);
+            result_data[i] = tensor.data->at(flat_index) < val ? 1 : 0;
+        }
+        return Tensor<T>::create(result_data, tensor.shape);
+    }
+
+    Tensor<T> less_equal_scalar(Tensor<T>& tensor, T val) {
+        std::vector<T> result_data(tensor.total_size);
+        for(size_t i = 0; i < tensor.total_size; i++) {
+            std::vector<size_t> indices = tensor.flat_index_to_mult_dim(i);
+            size_t flat_index = tensor.mult_dim_to_flat_index(indices);
+            result_data[i] = tensor.data->at(flat_index) <= val ? 1 : 0;
+        }
+        return Tensor<T>::create(result_data, tensor.shape);
+    }
+
+    Tensor<T> equal_scalar(Tensor<T>& tensor, T val) {
+        std::vector<T> result_data(tensor.total_size);
+        for(size_t i = 0; i < tensor.total_size; i++) {
+            std::vector<size_t> indices = tensor.flat_index_to_mult_dim(i);
+            size_t flat_index = tensor.mult_dim_to_flat_index(indices);
+            result_data[i] = tensor.data->at(flat_index) == val ? 1 : 0;
+        }
+        return Tensor<T>::create(result_data, tensor.shape);
+    }
+
+    Tensor<T> not_equal_scalar(Tensor<T>& tensor, T val) {
+        std::vector<T> result_data(tensor.total_size);
+        for(size_t i = 0; i < tensor.total_size; i++) {
+            std::vector<size_t> indices = tensor.flat_index_to_mult_dim(i);
+            size_t flat_index = tensor.mult_dim_to_flat_index(indices);
+            result_data[i] = tensor.data->at(flat_index) != val ? 1 : 0;
+        }
+        return Tensor<T>::create(result_data, tensor.shape);
+    }
+
+    Tensor<T> greater_than_tensor(Tensor<T>& e1, Tensor<T>& e2) {
+        if (e1.shape != e2.shape) {
+            throw std::invalid_argument("Tensors must have same shapes for ge operations");
+        }
+        std::vector<T> result_data(e1.total_size);
+        for(size_t i = 0; i < e1.total_size; i++) {
+            std::vector<size_t> indices = e1.flat_index_to_mult_dim(i);
+            size_t e1_index = e1.mult_dim_to_flat_index(indices);
+            size_t e2_index = e2.mult_dim_to_flat_index(indices);
+            result_data[i] = e1.data->at(e1_index) > e2.data->at(e2_index) ? 1 : 0;
+        }
+        return Tensor<T>::create(result_data, e1.shape);
+    }
+
+    Tensor<T> greater_equal_tensor(Tensor<T>& e1, Tensor<T>& e2) {
+        if (e1.shape != e2.shape) {
+            throw std::invalid_argument("Tensors must have same shapes for geq operations");
+        }
+        std::vector<T> result_data(e1.total_size);
+        for(size_t i = 0; i < e1.total_size; i++) {
+            std::vector<size_t> indices = e1.flat_index_to_mult_dim(i);
+            size_t e1_index = e1.mult_dim_to_flat_index(indices);
+            size_t e2_index = e2.mult_dim_to_flat_index(indices);
+            result_data[i] = e1.data->at(e1_index) >= e2.data->at(e2_index) ? 1 : 0;
+        }
+        return Tensor<T>::create(result_data, e1.shape);
+    }
+
+    Tensor<T> less_than_tensor(Tensor<T>& e1, Tensor<T>& e2) {
+        if (e1.shape != e2.shape) {
+            throw std::invalid_argument("Tensors must have same shapes for le operations");
+        }
+        std::vector<T> result_data(e1.total_size);
+        for(size_t i = 0; i < e1.total_size; i++) {
+            std::vector<size_t> indices = e1.flat_index_to_mult_dim(i);
+            size_t e1_index = e1.mult_dim_to_flat_index(indices);
+            size_t e2_index = e2.mult_dim_to_flat_index(indices);
+            result_data[i] = e1.data->at(e1_index) < e2.data->at(e2_index) ? 1 : 0;
+        }
+        return Tensor<T>::create(result_data, e1.shape);
+    }
+
+    Tensor<T> less_equal_tensor(Tensor<T>& e1, Tensor<T>& e2) {
+        if (e1.shape != e2.shape) {
+            throw std::invalid_argument("Tensors must have same shapes for leq operations");
+        }
+        std::vector<T> result_data(e1.total_size);
+        for(size_t i = 0; i < e1.total_size; i++) {
+            std::vector<size_t> indices = e1.flat_index_to_mult_dim(i);
+            size_t e1_index = e1.mult_dim_to_flat_index(indices);
+            size_t e2_index = e2.mult_dim_to_flat_index(indices);
+            result_data[i] = e1.data->at(e1_index) <= e2.data->at(e2_index) ? 1 : 0;
+        }
+        return Tensor<T>::create(result_data, e1.shape);
+    }
+
+    Tensor<T> equal_tensor(Tensor<T>& e1, Tensor<T>& e2) {
+        if (e1.shape != e2.shape) {
+            throw std::invalid_argument("Tensors must have same shapes for eq operations");
+        }
+        std::vector<T> result_data(e1.total_size);
+        for(size_t i = 0; i < e1.total_size; i++) {
+            std::vector<size_t> indices = e1.flat_index_to_mult_dim(i);
+            size_t e1_index = e1.mult_dim_to_flat_index(indices);
+            size_t e2_index = e2.mult_dim_to_flat_index(indices);
+            result_data[i] = e1.data->at(e1_index) == e2.data->at(e2_index) ? 1 : 0;
+        }
+        return Tensor<T>::create(result_data, e1.shape);
+    }
+
+    Tensor<T> not_equal_tensor(Tensor<T>& e1, Tensor<T>& e2) {
+        if (e1.shape != e2.shape) {
+            throw std::invalid_argument("Tensors must have same shapes for neq operations");
+        }
+        std::vector<T> result_data(e1.total_size);
+        for(size_t i = 0; i < e1.total_size; i++) {
+            std::vector<size_t> indices = e1.flat_index_to_mult_dim(i);
+            size_t e1_index = e1.mult_dim_to_flat_index(indices);
+            size_t e2_index = e2.mult_dim_to_flat_index(indices);
+            result_data[i] = e1.data->at(e1_index) != e2.data->at(e2_index) ? 1 : 0;
+        }
+        return Tensor<T>::create(result_data, e1.shape);
+    }
+
 private:
     void m_tile_compute(const std::shared_ptr<std::vector<T>>& e1, const std::shared_ptr<std::vector<T>>& e2, std::vector<T>& res,
                       size_t block_x, size_t block_y, size_t e1_cols, size_t e2_cols, size_t e1_rows) {
@@ -509,7 +654,19 @@ void bind_operations(pybind11::module& m, const std::string& class_name) {
         .def("clip_scalar_tensor", &CPUBackend<T>::clip_scalar_tensor)
         .def("clip_tensor_scalar", &CPUBackend<T>::clip_tensor_scalar)
         .def("clip_tensor_tensor", &CPUBackend<T>::clip_tensor_tensor)
-        .def("slice", &CPUBackend<T>::slice);
+        .def("slice", &CPUBackend<T>::slice)
+        .def("greater_than_scalar", &CPUBackend<T>::greater_than_scalar)
+        .def("greater_equal_scalar", &CPUBackend<T>::greater_equal_scalar)
+        .def("less_than_scalar", &CPUBackend<T>::less_than_scalar)
+        .def("less_equal_scalar", &CPUBackend<T>::less_equal_scalar)
+        .def("equal_scalar", &CPUBackend<T>::equal_scalar)
+        .def("not_equal_scalar", &CPUBackend<T>::not_equal_scalar)
+        .def("greater_than_tensor", &CPUBackend<T>::greater_than_tensor)
+        .def("greater_equal_tensor", &CPUBackend<T>::greater_equal_tensor)
+        .def("less_than_tensor", &CPUBackend<T>::less_than_tensor)
+        .def("less_equal_tensor", &CPUBackend<T>::less_equal_tensor)
+        .def("equal_tensor", &CPUBackend<T>::equal_tensor)
+        .def("not_equal_tensor", &CPUBackend<T>::not_equal_tensor);
 }
 
 // could consider moving this

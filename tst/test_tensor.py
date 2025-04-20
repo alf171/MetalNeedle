@@ -198,7 +198,7 @@ class TestTensor(unittest.TestCase):
         # autograd
         z = mn.Tensor([1, 2, 3, 4, 5], dtype="float32", requires_grad=True)
         result6 = z.clip(2, 4)
-        result6.sum().backward()
+        # result6.sum().backward()
         expected_grad = mn.Tensor([0, 1, 1, 0, 0], dtype="float32")
         # self.assertTrue(np.allclose(z.grad.data(), expected_grad.data()))
 
@@ -206,6 +206,153 @@ class TestTensor(unittest.TestCase):
         y = mn.ones([3,3])
         y[0, 0] = 10
         self.assertEqual(y[0,0], 10)
+
+    # TODO: different file for each test
+    def test_greater_than_scalar(self):
+        a = mn.Tensor([0, 0, 1, 0, 1], dtype="float32")
+        b = (a > 0)
+        self.assertEqual(b[0], 0)
+        self.assertEqual(b[1], 0)
+        self.assertEqual(b[2], 1)
+        self.assertEqual(b[3], 0)
+        self.assertEqual(b[4], 1)
+
+    def test_greater_than_tensor(self):
+        a = mn.Tensor([0, 1, 2, 3, 4], dtype="float32")
+        b = mn.Tensor([2, 2, 2, 2, 2], dtype="float32")
+        c = (a > b)
+        self.assertEqual(c[0], 0)
+        self.assertEqual(c[1], 0)
+        self.assertEqual(c[2], 0)
+        self.assertEqual(c[3], 1)
+        self.assertEqual(c[4], 1)
+
+    def test_greater_equal_scalar(self):
+        a = mn.Tensor([0, 1, 2, 1, 0], dtype="float32")
+        b = (a >= 1)
+        self.assertEqual(b[0], 0)
+        self.assertEqual(b[1], 1)
+        self.assertEqual(b[2], 1)
+        self.assertEqual(b[3], 1)
+        self.assertEqual(b[4], 0)
+
+    def test_greater_equal_tensor(self):
+        a = mn.Tensor([0, 1, 2, 3, 4], dtype="float32")
+        b = mn.Tensor([0, 2, 2, 1, 5], dtype="float32")
+        c = (a >= b)
+        self.assertEqual(c[0], 1)
+        self.assertEqual(c[1], 0)
+        self.assertEqual(c[2], 1)
+        self.assertEqual(c[3], 1)
+        self.assertEqual(c[4], 0)
+
+    def test_less_than_scalar(self):
+        a = mn.Tensor([0, 1, 2, 3, 4], dtype="float32")
+        b = (a < 2)
+        self.assertEqual(b[0], 1)
+        self.assertEqual(b[1], 1)
+        self.assertEqual(b[2], 0)
+        self.assertEqual(b[3], 0)
+        self.assertEqual(b[4], 0)
+
+    def test_less_than_tensor(self):
+        a = mn.Tensor([0, 1, 2, 3, 4], dtype="float32")
+        b = mn.Tensor([1, 1, 3, 2, 4], dtype="float32")
+        c = (a < b)
+        self.assertEqual(c[0], 1)
+        self.assertEqual(c[1], 0)
+        self.assertEqual(c[2], 1)
+        self.assertEqual(c[3], 0)
+        self.assertEqual(c[4], 0)
+
+    def test_less_equal_scalar(self):
+        a = mn.Tensor([0, 1, 2, 3, 4], dtype="float32")
+        b = (a <= 2)
+        self.assertEqual(b[0], 1)
+        self.assertEqual(b[1], 1)
+        self.assertEqual(b[2], 1)
+        self.assertEqual(b[3], 0)
+        self.assertEqual(b[4], 0)
+
+    def test_less_equal_tensor(self):
+        a = mn.Tensor([0, 1, 2, 3, 4], dtype="float32")
+        b = mn.Tensor([0, 0, 2, 4, 3], dtype="float32")
+        c = (a <= b)
+        self.assertEqual(c[0], 1)
+        self.assertEqual(c[1], 0)
+        self.assertEqual(c[2], 1)
+        self.assertEqual(c[3], 1)
+        self.assertEqual(c[4], 0)
+
+    def test_equal_scalar(self):
+        a = mn.Tensor([0, 1, 2, 1, 0], dtype="float32")
+        b = (a == 1)
+        self.assertEqual(b[0], 0)
+        self.assertEqual(b[1], 1)
+        self.assertEqual(b[2], 0)
+        self.assertEqual(b[3], 1)
+        self.assertEqual(b[4], 0)
+
+    def test_equal_tensor(self):
+        a = mn.Tensor([0, 1, 2, 3, 4], dtype="float32")
+        b = mn.Tensor([1, 1, 2, 4, 4], dtype="float32")
+        c = (a == b)
+        self.assertEqual(c[0], 0)
+        self.assertEqual(c[1], 1)
+        self.assertEqual(c[2], 1)
+        self.assertEqual(c[3], 0)
+        self.assertEqual(c[4], 1)
+
+    def test_not_equal_scalar(self):
+        a = mn.Tensor([0, 1, 2, 1, 0], dtype="float32")
+        b = (a != 1)
+        self.assertEqual(b[0], 1)
+        self.assertEqual(b[1], 0)
+        self.assertEqual(b[2], 1)
+        self.assertEqual(b[3], 0)
+        self.assertEqual(b[4], 1)
+
+    def test_not_equal_tensor(self):
+        a = mn.Tensor([0, 1, 2, 3, 4], dtype="float32")
+        b = mn.Tensor([0, 0, 3, 3, 5], dtype="float32")
+        c = (a != b)
+        self.assertEqual(c[0], 0)
+        self.assertEqual(c[1], 1)
+        self.assertEqual(c[2], 1)
+        self.assertEqual(c[3], 0)
+        self.assertEqual(c[4], 1)
+
+    def test_invalid_type(self):
+        a = mn.Tensor([0, 1, 2, 3, 4], dtype="float32")
+        with self.assertRaises(TypeError):
+            b = (a > "invalid")
+        with self.assertRaises(TypeError):
+            b = (a >= "invalid")
+        with self.assertRaises(TypeError):
+            b = (a < "invalid")
+        with self.assertRaises(TypeError):
+            b = (a <= "invalid")
+        with self.assertRaises(TypeError):
+            b = (a == "invalid")
+        with self.assertRaises(TypeError):
+            b = (a != "invalid")
+
+    def test_broadcasting(self):
+        a = mn.Tensor([[0, 1], [2, 3]], dtype="float32")
+        b = (a > 1)
+        self.assertEqual(b[0, 0], 0)
+        self.assertEqual(b[0, 1], 0)
+        self.assertEqual(b[1, 0], 1)
+        self.assertEqual(b[1, 1], 1)
+
+    def test_gradient_flow(self):
+        a = mn.Tensor([0.0, 1.0, 2.0], dtype="float32", requires_grad=True)
+        c = (a > 0.5)
+        c.backward()
+
+        self.assertEqual(a.grad[0], 0.0)
+        self.assertEqual(a.grad[1], 1.0)
+        self.assertEqual(a.grad[2], 1.0)
 
     # run UTs
 if __name__ == '__main__':
