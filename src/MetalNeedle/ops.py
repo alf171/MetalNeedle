@@ -7,6 +7,7 @@ TENSOR_COUNTER = 0
 
 # TODO: might be a decent refactor but only taking in TensorData
 # seems like a better abstraction
+# TODO: move all grad fns into their own file
 class TensorOperations:
     @staticmethod
     def add(tensor1, tensor2) -> Tuple[TensorData, Any]:
@@ -34,7 +35,7 @@ class TensorOperations:
             if tensor1.requires_grad:
                 tensor1.backward(grad)
             if tensor2.requires_grad:
-                tensor2_grad = (-1 * grad)
+                tensor2_grad = -grad
                 tensor2.backward(tensor2_grad)
 
         tensor_data = tensor1.tensor_data - tensor2.tensor_data
@@ -98,7 +99,7 @@ class TensorOperations:
         def _grad_fn(grad):
             # dx(x^y) = y * x^(y-1)
             if tensor1.requires_grad:
-                tensor1_grad = (grad * tensor2.tensor_data * (tensor1.tensor_data ** tensor2.tensor_data))
+                tensor1_grad = (grad * tensor2.tensor_data * (tensor1.tensor_data ** (tensor2.tensor_data - 1)))
                 tensor1.backward(tensor1_grad)
             # dy(x^y) = dy(e^(y*lnx)) = lnx*e^(y*lnx) = lnx * x^y
             if tensor2.requires_grad:
@@ -165,7 +166,7 @@ class TensorOperations:
     def swap(tensor1, axis1, axis2) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor1.requires_grad:
-                tensor1.grad(grad.swap(axis1, axis2))
+                tensor1.backward(grad.swap(axis1, axis2))
 
         tensor_data = tensor1.tensor_data.swap(axis1, axis2)
         return tensor_data, _grad_fn
@@ -175,10 +176,12 @@ class TensorOperations:
         def _grad_fn(grad):
             if tensor1.requires_grad:
                 sum_dims = []
-                for i, (ts, ns) in enumerate(zip(tensor1.shape(), new_shape)):
-                    if ts != ns:
+                # get dims that were broadcasted so we can sum across
+                input_shape = tensor1.tensor_data.shape()
+                for (i, dim) in enumerate(new_shape):
+                    if i >= len(input_shape) or input_shape[i] == 1 and dim != 1:
                         sum_dims.append(i)
-                tensor1_grad = grad.ones_like().sum(sum_dims)
+                tensor1_grad = grad.sum(sum_dims).reshape(input_shape)
                 tensor1.backward(tensor1_grad)
 
         tensor_data = tensor1.tensor_data.broadcast(new_shape)
@@ -200,7 +203,8 @@ class TensorOperations:
     def scalar_maximum(tensor, val) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor.requires_grad:
-                raise NotImplemented("scalar max back not implemented")
+                mask = tensor.tensor_data > val
+                tensor.backward(mask * grad)
         tensor_data = tensor.tensor_data.maximum(val)
         return tensor_data, _grad_fn
 
@@ -240,6 +244,28 @@ class TensorOperations:
     def max(tensor, axes, keep_dims) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor.requires_grad:
+                original_shape = tensor.shape()
+                broadcast_tensor_data = tensor.tensor_data
+
+                if not keep_dims:
+                    expanded_shape = tensor.shape()
+                    for a in reversed(axes):
+                        expanded_shape[a] = 1
+
+                    broadcast_max = broadcast_tensor_data.reshape(expanded_shape)
+
+
+                # Create a mask where the original tensor equals the max value
+                # Element is 1 if it's equal to the max, 0 otherwise
+
+                # Broadcast the incoming gradient to match the original tensor shape
+                # Again, this depends on your broadcasting implementation
+
+                # Apply the mask to the gradient
+
+                # If multiple elements equal the max, we need to divide the gradient
+                # among them to maintain proper gradient flow
+                # This is optional but makes the gradient more mathematically correct
                 raise NotImplemented("max back not implemented")
 
         tensor_data = tensor.tensor_data.max(axes, keep_dims)

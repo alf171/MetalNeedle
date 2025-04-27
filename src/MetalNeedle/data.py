@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, List, Union
+from typing import Any, List, Union, TypeVar
 
 from .device import DeviceManager, TensorDtypes, TensorDevices
 from .util import TensorUtils
 
+T = TypeVar('T', bound=Union[int, float])
+
 class TensorData:
-    def __init__(self, data: List[Any], dtype: str, device: str, debug_name=None):
+    def __init__(self, data: List[T], dtype: str, device: str, debug_name=None):
         self._dtype = TensorDtypes(dtype)
         self._device = TensorDevices(device)
         self.raw_tensor = DeviceManager.get_tensor(self.dtype, self._device)
@@ -35,14 +37,15 @@ class TensorData:
         return result
 
     @staticmethod
-    def load(data: List[Any], shape: List[int], dtype: str, device: str, debug_name: str) -> TensorData:
+    def load(data: List[T], shape: List[int], dtype: str, device: str, debug_name: Union[str, None]) -> TensorData:
         result = TensorData.__new__(TensorData)
         result._dtype = TensorDtypes(dtype)
         result._device = TensorDevices(device)
         result.raw_tensor = DeviceManager.get_tensor(result._dtype, result._device)
         result.operations = DeviceManager.get_backend(result._dtype, result._device)
         result.raw_tensor.initialize(data, shape)
-        result._debug_name = debug_name
+        if debug_name is not None:
+            result._debug_name = debug_name
         return result
 
     def clone(self) -> TensorData:
@@ -67,7 +70,7 @@ class TensorData:
     def set_stride(self, shape) -> None:
         self.raw_tensor.stride = shape
 
-    def data(self) -> List[Any]:
+    def data(self) -> List[T]:
         return self.raw_tensor.data()
 
     def offset(self) -> int:
@@ -97,6 +100,9 @@ class TensorData:
     def device(self):
         return self._device
 
+    def __neg__(self):
+        return TensorData.__mul__(self, -1)
+
     def __setitem__(self, key, value):
         self.raw_tensor.set_item(key, value)
 
@@ -109,7 +115,7 @@ class TensorData:
 
         raise TypeError("index must be a list or int")
 
-    def get_single_item(self, index: List[int]) -> Any:
+    def get_single_item(self, index: List[int]) -> T:
         index = self.raw_tensor.mult_dim_to_flat_index(index)
         return self.data()[index]
 
@@ -185,7 +191,7 @@ class TensorData:
         raw_tensor = self.operations.mat_mul(self.raw_tensor, value.raw_tensor)
         return self._create(raw_tensor)
 
-    def broadcast(self, new_shape: list[int]) -> TensorData:
+    def broadcast(self, new_shape: List[int]) -> TensorData:
         result = self.clone()
         current_shape = result.shape()[:]
         new_stride = []
@@ -216,7 +222,7 @@ class TensorData:
     # like this. The question then becomes why not always read memory regardless of the
     # output, the point is we can amortize the cost of flattening our data for better
     # caching properties
-    def reshape(self, new_shape) -> TensorData:
+    def reshape(self, new_shape: List[int]) -> TensorData:
         if TensorUtils.product(new_shape) != TensorUtils.product(self.shape()):
             raise TypeError(f"original dimension ({self.shape()}) product != proposed ({new_shape})")
 
@@ -231,7 +237,7 @@ class TensorData:
         result.set_stride(new_stride)
         return result
 
-    def sum(self, axes: list[int], keep_dims) -> TensorData:
+    def sum(self, axes: List[int], keep_dims = False) -> TensorData:
         raw_tensor = self.operations.sum(self.raw_tensor, axes, keep_dims)
         return self._create(raw_tensor)
 
@@ -245,14 +251,14 @@ class TensorData:
         result.raw_tensor.swap(0, 1)
         return result
 
-    def swap(self, axis1, axis2) -> TensorData:
+    def swap(self, axis1: int, axis2: int) -> TensorData:
         result = self.clone()
         if axis1 >= len(self.shape()) or axis2 >= len(self.shape()):
             raise ValueError("axes for swap out of range")
         result.raw_tensor.swap(axis1, axis2)
         return result
 
-    def ones_like(self, new_shape = None) -> TensorData:
+    def ones_like(self, new_shape: Union[List[int], None] = None) -> TensorData:
         new_shape = new_shape if new_shape is not None else self.shape()
         ones_data = self.raw_tensor.fill(new_shape, 1)
         return self._create(ones_data, 'ones')
@@ -286,11 +292,11 @@ class TensorData:
             return self._create(raw_tensor)
         raise TypeError(f"invalid minimum type {type(value)}")
 
-    def max(self, axes: tuple[int], keep_dims: bool) -> Any:
+    def max(self, axes: tuple[int], keep_dims: bool) -> TensorData:
         raw_tensor = self.raw_tensor.max(axes, keep_dims)
         return self._create(raw_tensor)
 
-    def __gt__(self, other: Union[TensorData, Any]) -> TensorData:
+    def __gt__(self, other: Union[TensorData, T]) -> TensorData:
         if isinstance(other, TensorData):
             raw_tensor = self.operations.greater_than_tensor(self.raw_tensor, other.raw_tensor)
             return self._create(raw_tensor)
@@ -299,7 +305,7 @@ class TensorData:
             return self._create(raw_tensor)
         raise TypeError(f"other is not a supported type: {type(other)}")
 
-    def __ge__(self, other: Union[TensorData, Any]) -> TensorData:
+    def __ge__(self, other: Union[TensorData, T]) -> TensorData:
         if isinstance(other, TensorData):
             raw_tensor = self.operations.greater_equal_tensor(self.raw_tensor, other.raw_tensor)
             return self._create(raw_tensor)
@@ -308,7 +314,7 @@ class TensorData:
             return self._create(raw_tensor)
         raise TypeError(f"other is not a supported type: {type(other)}")
 
-    def __lt__(self, other: Union[TensorData, Any]) -> TensorData:
+    def __lt__(self, other: Union[TensorData, T]) -> TensorData:
         if isinstance(other, TensorData):
             raw_tensor = self.operations.less_than_tensor(self.raw_tensor, other.raw_tensor)
             return self._create(raw_tensor)
@@ -317,7 +323,7 @@ class TensorData:
             return self._create(raw_tensor)
         raise TypeError(f"other is not a supported type: {type(other)}")
 
-    def __le__(self, other: Union[TensorData, Any]) -> TensorData:
+    def __le__(self, other: Union[TensorData, T]) -> TensorData:
         if isinstance(other, TensorData):
             raw_tensor = self.operations.less_equal_tensor(self.raw_tensor, other.raw_tensor)
             return self._create(raw_tensor)
@@ -326,7 +332,7 @@ class TensorData:
             return self._create(raw_tensor)
         raise TypeError(f"other is not a supported type: {type(other)}")
 
-    def __eq__(self, other: Union[TensorData, Any]) -> TensorData:
+    def __eq__(self, other: Union[TensorData, T]) -> TensorData:
         if isinstance(other, TensorData):
             raw_tensor = self.operations.equal_tensor(self.raw_tensor, other.raw_tensor)
             return self._create(raw_tensor)
@@ -335,7 +341,7 @@ class TensorData:
             return self._create(raw_tensor)
         raise TypeError(f"other is not a supported type: {type(other)}")
 
-    def __ne__(self, other: Union[TensorData, Any]) -> TensorData:
+    def __ne__(self, other: Union[TensorData, T]) -> TensorData:
         if isinstance(other, TensorData):
             raw_tensor = self.operations.not_equal_tensor(self.raw_tensor, other.raw_tensor)
             return self._create(raw_tensor)
@@ -344,7 +350,7 @@ class TensorData:
             return self._create(raw_tensor)
         raise TypeError(f"other is not a supported type: {type(other)}")
 
-    def clip(self, lower: Union[TensorData, Any], upper: Union[TensorData, Any]) -> TensorData:
+    def clip(self, lower: Union[TensorData, T], upper: Union[TensorData, T]) -> TensorData:
         lower_is_scalar = isinstance(lower, (int, float))
         upper_is_scalar = isinstance(upper, (int, float))
         lower_is_tensor = isinstance(lower, TensorData)
