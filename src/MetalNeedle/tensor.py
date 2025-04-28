@@ -77,11 +77,11 @@ class Tensor:
         return self.tensor_data.data()
 
     @property
-    def device(self):
+    def device(self) -> str:
         return self.tensor_data.device
 
     @property
-    def dtype(self):
+    def dtype(self) -> str:
         return self.tensor_data.dtype
 
     def tensor_count(self) -> int:
@@ -90,10 +90,10 @@ class Tensor:
     def debug_name(self) -> str or None:
         return self.tensor_data._debug_name
 
-    def numel(self):
+    def numel(self) -> int:
         return TensorUtils.product(self.shape())
 
-    def __neg__(self):
+    def __neg__(self) -> TensorData:
         debug_name = f"negative_{self.debug_name()}" if self.debug_name() is not None else "negative_tensor"
         return self.__mul__(-1, debug_name)
 

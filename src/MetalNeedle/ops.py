@@ -1,9 +1,11 @@
-from typing import Tuple, Any
+from typing import Tuple, Any, TypeVar, Union, List
 
 from MetalNeedle.data import TensorData
+from MetalNeedle.grad import TensorGrad
 
 LAZY_MODE = False
 TENSOR_COUNTER = 0
+T = TypeVar('T', bound=Union[int, float])
 
 # TODO: might be a decent refactor but only taking in TensorData
 # seems like a better abstraction
@@ -11,215 +13,118 @@ TENSOR_COUNTER = 0
 class TensorOperations:
     @staticmethod
     def add(tensor1, tensor2) -> Tuple[TensorData, Any]:
-        def grad_fn(grad):
-            if tensor1.requires_grad:
-                tensor1.backward(grad)
-            if tensor2.requires_grad:
-                tensor2.backward(grad)
-
+        grad_fn = lambda grad: TensorGrad.add(grad, tensor1, tensor2)
         tensor_data = tensor1.tensor_data + tensor2.tensor_data
         return tensor_data, grad_fn
 
     @staticmethod
     def scalar_add(tensor1, value) -> Tuple[TensorData, Any]:
-        def grad_fn(grad):
-            if tensor1.requires_grad:
-                tensor1.backward(grad)
-
+        grad_fn = lambda grad: TensorGrad.scalar_add(grad, tensor1)
         tensor_data = tensor1.tensor_data + value
         return tensor_data, grad_fn
 
     @staticmethod
     def sub(tensor1, tensor2) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            if tensor1.requires_grad:
-                tensor1.backward(grad)
-            if tensor2.requires_grad:
-                tensor2_grad = -grad
-                tensor2.backward(tensor2_grad)
-
+        grad_fn = lambda grad: TensorGrad.sub(grad, tensor1, tensor2)
         tensor_data = tensor1.tensor_data - tensor2.tensor_data
-        return tensor_data, _grad_fn
+        return tensor_data, grad_fn
 
     @staticmethod
     def scalar_sub(tensor1, value) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            if tensor1.requires_grad:
-                tensor1.backward(grad)
+        grad_fn = lambda grad: TensorGrad.scalar_sub(grad, tensor1)
         tensor_data = tensor1.tensor_data - value
-        return tensor_data, _grad_fn
+        return tensor_data, grad_fn
 
     @staticmethod
     def mul(tensor1, tensor2) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            if tensor1.requires_grad:
-                tensor1_grad = (tensor2.tensor_data * grad)
-                tensor1.backward(tensor1_grad)
-            if tensor2.requires_grad:
-                tensor2_grad = (tensor1.tensor_data * grad)
-                tensor2.backward(tensor2_grad)
-
+        grad_fn = lambda grad: TensorGrad.mul(grad, tensor1, tensor2)
         tensor_data = tensor1.tensor_data * tensor2.tensor_data
-        return tensor_data, _grad_fn
+        return tensor_data, grad_fn
 
     @staticmethod
-    def scalar_mul(tensor1, value) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            if tensor1.requires_grad:
-                tensor1.grad = (grad * value)
-
+    def scalar_mul(tensor1, value: T) -> Tuple[TensorData, Any]:
+        grad_fn = lambda grad: TensorGrad.scalar_mul(grad, tensor1, value)
         tensor_data = tensor1.tensor_data * value
-        return tensor_data, _grad_fn
+        return tensor_data, grad_fn
 
     @staticmethod
     def div(tensor1, tensor2) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            # da(A/B) = 1/B
-            if tensor1.requires_grad:
-                tensor1_grad = (grad / tensor2.tensor_data)
-                tensor1.backward(tensor1_grad)
-            # db(A/B) = -A/B^2
-            if tensor2.requires_grad:
-                tensor2_grad = (-grad * tensor1.tensor_data) / (tensor2.tensor_data ** 2)
-                tensor2.backward(tensor2_grad)
-
+        grad_fn = lambda grad: TensorGrad.div(grad, tensor1, tensor2)
         tensor_data = tensor1.tensor_data / tensor2.tensor_data
-        return tensor_data, _grad_fn
+        return tensor_data, grad_fn
 
     @staticmethod
-    def scalar_div(tensor1, value) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            if tensor1.requires_grad:
-                tensor1.backward(grad / value)
+    def scalar_div(tensor1, value: T) -> Tuple[TensorData, Any]:
+        grad_fn = lambda grad: TensorGrad.scalar_div(grad, tensor1, value)
         tensor_data = tensor1.tensor_data / value
-        return tensor_data, _grad_fn
+        return tensor_data, grad_fn
 
     @staticmethod
     def pow(tensor1, tensor2) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            # dx(x^y) = y * x^(y-1)
-            if tensor1.requires_grad:
-                tensor1_grad = (grad * tensor2.tensor_data * (tensor1.tensor_data ** (tensor2.tensor_data - 1)))
-                tensor1.backward(tensor1_grad)
-            # dy(x^y) = dy(e^(y*lnx)) = lnx*e^(y*lnx) = lnx * x^y
-            if tensor2.requires_grad:
-                tensor2_grad = (grad * tensor1.tensor_data.log() * (tensor1.tensor_data ** tensor2.tensor_data))
-                tensor2.backward(tensor2_grad)
-
+        grad_fn = lambda grad: TensorGrad.pow(grad, tensor1, tensor2)
         tensor_data = tensor1.tensor_data ** tensor2.tensor_data
-        return tensor_data, _grad_fn
-
+        return tensor_data, grad_fn
 
     @staticmethod
     def scalar_pow(tensor1, value) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            if tensor1.requires_grad:
-                tensor1_grad = (grad * (value * tensor1.tensor_data ** (value-1)))
-                tensor1.backward(tensor1_grad)
-
+        grad_fn = lambda grad: TensorGrad.scalar_pow(grad, tensor1, value)
         tensor_data = tensor1.tensor_data ** value
-        return tensor_data, _grad_fn
+        return tensor_data, grad_fn
 
     @staticmethod
     def exp(tensor1) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            if tensor1.requires_grad:
-                tensor1_grad = (grad * tensor1.tensor_data.exp())
-                tensor1.backward(tensor1_grad)
-
+        grad_fn = lambda grad: TensorGrad.exp(grad, tensor1)
         tensor_data = tensor1.tensor_data.exp()
-        return tensor_data, _grad_fn
+        return tensor_data, grad_fn
 
     @staticmethod
     def scalar_log(tensor1) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            if tensor1.requires_grad:
-                tensor1.backward(grad / tensor1.tensor_data)
-
+        grad_fn = lambda grad: TensorGrad.scalar_log(grad, tensor1)
         tensor_data = tensor1.tensor_data.log()
-        return tensor_data, _grad_fn
+        return tensor_data, grad_fn
 
     @staticmethod
     def matmul(tensor1, tensor2) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            if tensor1.requires_grad:
-                tensor1_grad = (grad @ tensor2.tensor_data.T)
-                tensor1.backward (tensor1_grad)
-            if tensor2.requires_grad:
-                tensor2_grad = (tensor1.tensor_data.T @ grad)
-                tensor2.backward(tensor2_grad)
-
+        grad_fn = lambda grad: TensorGrad.matmul(grad, tensor1, tensor2)
         tensor_data = tensor1.tensor_data @ tensor2.tensor_data
-        return tensor_data, _grad_fn
+        return tensor_data, grad_fn
 
     @staticmethod
     def sum(tensor1, axes, keep_dims) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            if tensor1.requires_grad:
-                tensor1_grad = grad.broadcast(tensor1.tensor_data.shape())
-                tensor1.backward(tensor1_grad)
-
+        grad_fn = lambda grad: TensorGrad.sum(grad, tensor1)
         tensor_data = tensor1.tensor_data.sum(axes, keep_dims)
-        return tensor_data, _grad_fn
+        return tensor_data, grad_fn
 
     @staticmethod
-    def swap(tensor1, axis1, axis2) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            if tensor1.requires_grad:
-                tensor1.backward(grad.swap(axis1, axis2))
-
+    def swap(tensor1, axis1: int, axis2: int) -> Tuple[TensorData, Any]:
+        grad_fn = lambda grad: TensorGrad.swap(tensor1. axis1, axis2)
         tensor_data = tensor1.tensor_data.swap(axis1, axis2)
-        return tensor_data, _grad_fn
+        return tensor_data, grad_fn
 
     @staticmethod
-    def broadcast(tensor1, new_shape) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            if tensor1.requires_grad:
-                sum_dims = []
-                # get dims that were broadcasted so we can sum across
-                input_shape = tensor1.tensor_data.shape()
-                for (i, dim) in enumerate(new_shape):
-                    if i >= len(input_shape) or input_shape[i] == 1 and dim != 1:
-                        sum_dims.append(i)
-                tensor1_grad = grad.sum(sum_dims).reshape(input_shape)
-                tensor1.backward(tensor1_grad)
-
+    def broadcast(tensor1, new_shape: List[int]) -> Tuple[TensorData, Any]:
+        grad_fn = lambda grad: TensorGrad.broadcast(grad, tensor1)
         tensor_data = tensor1.tensor_data.broadcast(new_shape)
-        return tensor_data, _grad_fn
+        return tensor_data, grad_fn
 
     @staticmethod
-    def reshape(tensor1, new_shape) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            if tensor1.requires_grad:
-                tensor1_grad = grad.reshape(tensor1.shape())
-                tensor1.backward(tensor1_grad)
-
+    def reshape(tensor1, new_shape: List[int]) -> Tuple[TensorData, Any]:
+        grad_fn = lambda grad: TensorGrad.reshape(grad, tensor1)
         tensor_data = tensor1.tensor_data.reshape(new_shape)
-        return tensor_data, _grad_fn
+        return tensor_data, grad_fn
 
-    # TODO: need support for operators like >= on tensors
-    # in order to implement backwards
     @staticmethod
-    def scalar_maximum(tensor, val) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            if tensor.requires_grad:
-                mask = tensor.tensor_data > val
-                tensor.backward(mask * grad)
-        tensor_data = tensor.tensor_data.maximum(val)
-        return tensor_data, _grad_fn
+    def scalar_maximum(tensor1, val: T) -> Tuple[TensorData, Any]:
+        grad_fn = lambda grad: TensorGrad.scalar_maximum(grad, tensor1, val)
+        tensor_data = tensor1.tensor_data.maximum(val)
+        return tensor_data, grad_fn
 
-    # TODO: need support for operators like >= on tensors
-    # in order to implement backwards
     @staticmethod
-    def scalar_minimum(tensor, val) -> Tuple[TensorData, Any]:
-        def _grad_fn(grad):
-            if tensor.requires_grad:
-                raise NotImplemented("scalar min back not implemented")
-        tensor_data = tensor.tensor_data.minimum(val)
-        return tensor_data, _grad_fn
+    def scalar_minimum(tensor1, val: T) -> Tuple[TensorData, Any]:
+        grad_fn = lambda grad: TensorGrad.scalar_minimum(grad, tensor1, val)
+        tensor_data = tensor1.tensor_data.minimum(val)
+        return tensor_data, grad_fn
 
-    # TODO: need support for operators like >= on tensors
-    # in order to implement backwards
     @staticmethod
     def maximum(tensor1, tensor2) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
@@ -244,28 +149,10 @@ class TensorOperations:
     def max(tensor, axes, keep_dims) -> Tuple[TensorData, Any]:
         def _grad_fn(grad):
             if tensor.requires_grad:
-                original_shape = tensor.shape()
-                broadcast_tensor_data = tensor.tensor_data
-
-                if not keep_dims:
-                    expanded_shape = tensor.shape()
-                    for a in reversed(axes):
-                        expanded_shape[a] = 1
-
-                    broadcast_max = broadcast_tensor_data.reshape(expanded_shape)
-
-
-                # Create a mask where the original tensor equals the max value
-                # Element is 1 if it's equal to the max, 0 otherwise
-
-                # Broadcast the incoming gradient to match the original tensor shape
-                # Again, this depends on your broadcasting implementation
-
-                # Apply the mask to the gradient
-
-                # If multiple elements equal the max, we need to divide the gradient
-                # among them to maintain proper gradient flow
-                # This is optional but makes the gradient more mathematically correct
+                # During forward, save the argmax locations (where the max happened).
+                # During backward, create a mask (1s where input == max, 0s elsewhere).
+                # Multiply incoming grad by the mask.
+                # Then broadcast it back to the original input shape if needed.
                 raise NotImplemented("max back not implemented")
 
         tensor_data = tensor.tensor_data.max(axes, keep_dims)

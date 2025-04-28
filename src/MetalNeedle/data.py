@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Union, TypeVar
+from typing import List, Union, TypeVar
 
 from .device import DeviceManager, TensorDtypes, TensorDevices
 from .util import TensorUtils
@@ -44,8 +44,7 @@ class TensorData:
         result.raw_tensor = DeviceManager.get_tensor(result._dtype, result._device)
         result.operations = DeviceManager.get_backend(result._dtype, result._device)
         result.raw_tensor.initialize(data, shape)
-        if debug_name is not None:
-            result._debug_name = debug_name
+        result._debug_name = debug_name
         return result
 
     def clone(self) -> TensorData:
@@ -194,24 +193,26 @@ class TensorData:
     def broadcast(self, new_shape: List[int]) -> TensorData:
         result = self.clone()
         current_shape = result.shape()[:]
+        current_stride = result.stride()[:]
         new_stride = []
-        if len(current_shape) > len(new_shape):
-            raise ValueError("Cannot broadcast to smaller dimensions")
 
-        for i in range(1, len(new_shape) + 1):
-            curr_dim = current_shape[-i] if i <= len(current_shape) else 1
-            target_dim = new_shape[-i]
+        while len(current_shape) < len(new_shape):
+            current_shape.insert(0, 1)
+            current_stride.insert(0, 0)
+
+        for i in range(len(new_shape)):
+            curr_dim = current_shape[i]
+            target_dim = new_shape[i]
 
             if curr_dim == 1 and target_dim > 1:
-                new_stride.insert(0, 0)
+                new_stride.append(0)
             elif curr_dim == target_dim:
-                stride_item = result.stride()[-i]
-                new_stride.insert(0,  stride_item)
+                new_stride.append(current_stride[i])
             else:
                 raise ValueError(f"Incompatible broadcast: {curr_dim} to {target_dim}")
 
-        result.raw_tensor.stride = new_stride
-        result.raw_tensor.shape = new_shape
+        result.set_stride(new_stride)
+        result.set_shape(new_shape)
         return result
 
     # TODO: this implementation assumes the data in contiguous
