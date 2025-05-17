@@ -1,7 +1,12 @@
 from __future__ import annotations
 
-from typing import List, Union, TypeVar
+import array
+import os
+import struct
+import uuid
+from typing import List, Union, TypeVar, Optional
 
+from .device import DTYPE_TO_ARRAY_ENCODE, TensorDevices, TensorDtypes, DTYPE_TO_SIZE_ENCODE
 from .util import TensorUtils
 from .ops import TensorOperations
 from .data import TensorData
@@ -25,23 +30,50 @@ class Tensor:
         used externally to create a new tensor or create a copy
         """
         result = Tensor.__new__(Tensor)
-        result.tensor_data = TensorData.create(raw_tensor, operations, dtype, device, debug_name)
+        result.tensor_data = TensorData.create(raw_tensor, operations, TensorDtypes(dtype), TensorDevices(device), debug_name)
         result.requires_grad = requires_grad
         result.grad = None
         result.grad_fn = None
         return result
 
     @staticmethod
-    def load(data: List[T], shape: List[int], device = "cpu", dtype = "int32", requires_grad=False, debug_name=None) -> Tensor:
+    def load_from_buffer(buffer: Union[bytes, list[T]], shape: List[int], device: str = "cpu", dtype: str = "int32", requires_grad=False, debug_name=None) -> Tensor:
         """
-        Useful for outside data loads since we already know shape and have flat data
+        Useful for outside data loads since we already know the shape and have flat data
         """
         result = Tensor.__new__(Tensor)
-        result.tensor_data = TensorData.load(data, shape, dtype, device, debug_name)
+        print(dtype)
+        result.tensor_data = TensorData.load_from_buffer(buffer, shape, dtype, device, debug_name)
+        print(result.dtype)
         result.requires_grad = requires_grad
         result.grad = None
         result.grad_fn = None
         return result
+
+    @staticmethod
+    def load_from_file(file: str, requires_grad=False, debug_name=None, offset = 0) -> Tensor:
+        """
+        Load a Tensor from a file. Shape, Dtype, and Device are stored in the file
+        while requires_grad and debug_name are not and must thus be set on load call.
+        """
+        try:
+            with open(file, 'rb') as f:
+                f.seek(offset)
+
+                shape_rank = struct.unpack('I', f.read(4))[0]
+                shape = struct.unpack(f"{shape_rank}I", f.read(4 * shape_rank))
+
+                dtype_rank = struct.unpack('I', f.read(4))[0]
+                dtype = f.read(dtype_rank).decode('utf-8')
+
+                device_rank = struct.unpack('I', f.read(4))[0]
+                device = f.read(device_rank).decode('utf-8')
+
+                element_size = DTYPE_TO_SIZE_ENCODE[TensorDtypes(dtype)]
+                buffer = f.read(TensorUtils.product(shape) * element_size)
+                return Tensor.load_from_buffer(buffer, shape, device, dtype, requires_grad, debug_name)
+        except (OSError, IOError) as e:
+            raise ValueError(f"Failed to open or read file '{file}': {e}")
 
     def clone(self) -> Tensor:
         """
@@ -70,6 +102,34 @@ class Tensor:
         result.grad = None
         return result
 
+    def save_to_file(self, file_name: Optional[str] = None, offset: int = 0, directory = ".") -> None:
+        """
+        Save a Tensors metadata and weights to a file
+        """
+        if file_name is None:
+            file_name = f"{self.debug_name()}_{uuid.uuid4().hex[:8]}"
+
+        path = os.path.join(directory, file_name)
+
+        dtype_str = self.dtype.value.encode('utf-8')
+        device_str = self.device.value.encode('utf-8')
+        data_bytes = self.to_bytes()
+        with open(path, 'wb') as f:
+            if offset:
+                f.seek(offset)
+
+            # write shape
+            f.write(struct.pack("I", len(self.shape())))
+            f.write(struct.pack(f"{len(self.shape())}I",*self.shape()))
+            # write dtype
+            f.write(struct.pack("I", len(dtype_str)))
+            f.write(dtype_str)
+            # write device
+            f.write(struct.pack("I", len(device_str)))
+            f.write(device_str)
+            # write data
+            f.write(data_bytes)
+
     def shape(self) -> List[int]:
         return self.tensor_data.shape()
 
@@ -77,21 +137,27 @@ class Tensor:
         return self.tensor_data.data()
 
     @property
-    def device(self) -> str:
+    def device(self) -> TensorDevices:
         return self.tensor_data.device
 
     @property
-    def dtype(self) -> str:
+    def dtype(self) -> TensorDtypes:
         return self.tensor_data.dtype
 
     def tensor_count(self) -> int:
         return self.tensor_data.tensor_count()
 
-    def debug_name(self) -> str or None:
+    def debug_name(self) -> Union[str, None]:
         return self.tensor_data._debug_name
 
     def numel(self) -> int:
         return TensorUtils.product(self.shape())
+
+    def to_bytes(self) -> bytes:
+        fmt = DTYPE_TO_ARRAY_ENCODE[self.dtype]
+        if fmt is None:
+            raise ValueError(f"dtype {self.dtype} is not recognized")
+        return array.array(fmt, self.data()).tobytes()
 
     def __neg__(self) -> TensorData:
         debug_name = f"negative_{self.debug_name()}" if self.debug_name() is not None else "negative_tensor"
@@ -100,8 +166,8 @@ class Tensor:
     def __setitem__(self, key: int, value: T, debug_name=None) -> None:
         self.tensor_data[key] = value
 
-    def __getitem__(self, multi_dim_index: List[int], debug_name=None) -> Union[Tensor, T]:
-        if isinstance(multi_dim_index, (int, float)):
+    def __getitem__(self, multi_dim_index: Union[int, List[int], tuple[int, ...]], debug_name=None) -> Union[Tensor, T]:
+        if isinstance(multi_dim_index, int):
             multi_dim_index = [multi_dim_index]
 
         if len(multi_dim_index) > len(self.tensor_data.shape()):

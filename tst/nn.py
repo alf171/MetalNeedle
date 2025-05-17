@@ -33,7 +33,7 @@ def softmax():
         [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],  # Test numerical stability
         [-1000.0, -1000.0, -1000.0, -1000.0, -1000.0]  # Test numerical stability
     ]
-    x = mn.Tensor.load([val for row in test_data for val in row], [5, 5], dtype="float32")
+    x = mn.Tensor.load_from_buffer([val for row in test_data for val in row], [5, 5], dtype="float32")
 
     tolerance = 1e-5
     output = softmax.forward(x)
@@ -42,7 +42,7 @@ def softmax():
         assert(abs(row_sum - 1.0) < tolerance)
 
     test_input = [2.0, 1.0, 0.0]
-    x = mn.Tensor.load(test_input, [1, 3], dtype="float32")
+    x = mn.Tensor.load_from_buffer(test_input, [1, 3], dtype="float32")
     output = softmax.forward(x)
 
     # Calculate expected values using numpy for comparison

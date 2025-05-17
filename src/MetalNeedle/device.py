@@ -5,6 +5,7 @@ sys.path.append("tmp")
 import re
 import backend
 
+
 class TensorDtypes(Enum):
     byte = "int8"
     int = "int32"
@@ -12,12 +13,29 @@ class TensorDtypes(Enum):
     float = "float32"
     double = "float64"
 
+DTYPE_TO_SIZE_ENCODE = {
+    TensorDtypes.byte: 1,
+    TensorDtypes.int: 4,
+    TensorDtypes.long: 8,
+    TensorDtypes.float: 4,
+    TensorDtypes.double: 8,
+}
+
+DTYPE_TO_ARRAY_ENCODE = {
+    TensorDtypes.byte: 'b',
+    TensorDtypes.int: 'i',
+    TensorDtypes.long: 'q',
+    TensorDtypes.float: 'f',
+    TensorDtypes.double: 'd'
+}
+
 class TensorDevices(Enum):
     cpu = "cpu"
     metal = "metal"
 
     def __str__(self):
         return self.value
+
 
 class DeviceManager:
     @staticmethod

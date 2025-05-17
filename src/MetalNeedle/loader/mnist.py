@@ -24,7 +24,7 @@ class MnistDataLoader:
 
             buffer = f.read(self.batch_size * num_rows * num_cols)
 
-            tensor = mn.Tensor.load(buffer, [self.batch_size, num_cols * num_rows], dtype="float32", requires_grad=True)
+            tensor = mn.Tensor.load_from_buffer(buffer, [self.batch_size, num_cols * num_rows], dtype="float32", requires_grad=True)
             normalized_tensor = tensor / 255
             return normalized_tensor
 
@@ -34,7 +34,5 @@ class MnistDataLoader:
             num_labels = int.from_bytes(f.read(4), 'big')
 
             buffer = f.read(self.batch_size)
-            float_data = [float(b) for b in buffer]
-
-            labels =  mn.Tensor.load(float_data, [self.batch_size], dtype="float32")
+            labels =  mn.Tensor.load_from_buffer(buffer, [self.batch_size], dtype="float32")
             return labels.one_hot(10)

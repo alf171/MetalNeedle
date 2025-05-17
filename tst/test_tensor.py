@@ -354,6 +354,17 @@ class TestTensor(unittest.TestCase):
         self.assertEqual(a.grad[1], 1.0)
         self.assertEqual(a.grad[2], 1.0)
 
+    def test_load_from_file(self):
+        a = mn.randn([10, 10], 0, 1, dtype="float64", device="cpu", debug_name="blah")
+
+        a.save_to_file(file_name="a", offset=0, directory="tmp")
+
+        b = mn.Tensor.load_from_file("tmp/a")
+
+        c = mn.Tensor.__pow__(a - b, 2) < 1e-2
+
+        self.assertEqual(c.sum()[0], 100)
+
     # run UTs
 if __name__ == '__main__':
     unittest.main(verbosity=2)

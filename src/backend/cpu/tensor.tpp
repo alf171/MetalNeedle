@@ -22,21 +22,20 @@ template<typename T>
 void Tensor<T>::initialize(py::bytes bytes_data, const std::vector<size_t>& shape) {
     size_t total_size = m_calculate_size(shape);
 
-    // Get raw buffer from Python bytes
-    py::buffer_info buffer = py::buffer(bytes_data).request();
-    if (buffer.size != total_size) {
+    // Convert py::bytes to std::string to get raw data pointer and size
+    std::string raw = bytes_data;
+
+    if (raw.size() != total_size * sizeof(T)) {
         throw std::invalid_argument("Data size does not match shape dimensions.");
     }
 
-    // Create vector and copy data from buffer
-    std::vector<T> data_vec(total_size);
-    const char* ptr = static_cast<const char*>(buffer.ptr);
+    // Reinterpret raw data pointer as pointer to T
+    const T* typed_ptr = reinterpret_cast<const T*>(raw.data());
 
-    for (size_t i = 0; i < total_size; i++) {
-        data_vec[i] = static_cast<T>(static_cast<unsigned char>(ptr[i]));
-    }
+    // Construct vector from typed pointer range
+    std::vector<T> data_vec(typed_ptr, typed_ptr + total_size);
 
-    this->data = std::make_shared<std::vector<T>>(data_vec);
+    this->data = std::make_shared<std::vector<T>>(std::move(data_vec));
     this->shape = shape;
     this->stride = m_calculate_stride(shape);
     this->offset = 0;

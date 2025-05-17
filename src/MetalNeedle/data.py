@@ -27,7 +27,7 @@ class TensorData:
         return result
 
     @staticmethod
-    def create(raw_tensor, operations, dtype, device, debug_name=None) -> TensorData:
+    def create(raw_tensor, operations, dtype: TensorDtypes, device: TensorDevices, debug_name=None) -> TensorData:
         result = TensorData.__new__(TensorData)
         result.raw_tensor = raw_tensor
         result.operations = operations
@@ -37,7 +37,7 @@ class TensorData:
         return result
 
     @staticmethod
-    def load(data: List[T], shape: List[int], dtype: str, device: str, debug_name: Union[str, None]) -> TensorData:
+    def load_from_buffer(data: bytes, shape: List[int], dtype: str, device: str, debug_name: Union[str, None]) -> TensorData:
         result = TensorData.__new__(TensorData)
         result._dtype = TensorDtypes(dtype)
         result._device = TensorDevices(device)
@@ -79,11 +79,11 @@ class TensorData:
         return self.raw_tensor.get_tensor_count()
 
     @property
-    def dtype(self):
+    def dtype(self) -> TensorDtypes:
         return self._dtype
 
     @dtype.setter
-    def dtype(self, new_dtype: TensorDtypes):
+    def dtype(self, new_dtype: TensorDtypes) -> None:
         """
         Convert tensor to different data type
         """
@@ -96,7 +96,7 @@ class TensorData:
             raise NotImplemented(f"dtype conversion from {self._dtype} to {new_dtype} not supported")
 
     @property
-    def device(self):
+    def device(self) -> TensorDevices:
         return self._device
 
     def __neg__(self):
