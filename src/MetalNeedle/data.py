@@ -5,7 +5,8 @@ from typing import List, Union, TypeVar
 from .device import DeviceManager, TensorDtypes, TensorDevices
 from .util import TensorUtils
 
-T = TypeVar('T', bound=Union[int, float])
+T = TypeVar("T", bound=Union[int, float])
+
 
 class TensorData:
     def __init__(self, data: List[T], dtype: str, device: str, debug_name=None):
@@ -27,7 +28,13 @@ class TensorData:
         return result
 
     @staticmethod
-    def create(raw_tensor, operations, dtype: TensorDtypes, device: TensorDevices, debug_name=None) -> TensorData:
+    def create(
+        raw_tensor,
+        operations,
+        dtype: TensorDtypes,
+        device: TensorDevices,
+        debug_name=None,
+    ) -> TensorData:
         result = TensorData.__new__(TensorData)
         result.raw_tensor = raw_tensor
         result.operations = operations
@@ -37,7 +44,13 @@ class TensorData:
         return result
 
     @staticmethod
-    def load_from_buffer(data: bytes, shape: List[int], dtype: str, device: str, debug_name: Union[str, None]) -> TensorData:
+    def load_from_buffer(
+        data: Union[bytes, list[T]],
+        shape: tuple[int],
+        dtype: str,
+        device: str,
+        debug_name: Union[str, None],
+    ) -> TensorData:
         result = TensorData.__new__(TensorData)
         result._dtype = TensorDtypes(dtype)
         result._device = TensorDevices(device)
@@ -54,7 +67,11 @@ class TensorData:
         result.operations = self.operations
         result._dtype = self.dtype
         result._device = self.device
-        result._debug_name = self._debug_name + "_clone" if self._debug_name is not None else "tensor_clone"
+        result._debug_name = (
+            self._debug_name + "_clone"
+            if self._debug_name is not None
+            else "tensor_clone"
+        )
         return result
 
     def shape(self) -> List[int]:
@@ -93,7 +110,9 @@ class TensorData:
                 self.raw_tensor = self.raw_tensor.as_float()
                 self.operations = DeviceManager.get_backend(new_dtype, self._device)
                 self._dtype = new_dtype
-            raise NotImplemented(f"dtype conversion from {self._dtype} to {new_dtype} not supported")
+            raise NotImplemented(
+                f"dtype conversion from {self._dtype} to {new_dtype} not supported"
+            )
 
     @property
     def device(self) -> TensorDevices:
@@ -108,7 +127,9 @@ class TensorData:
     def __getitem__(self, index) -> TensorData:
         if isinstance(index, list):
             raw_tensor = self.operations.slice(self.raw_tensor, index)
-            return TensorData.create(raw_tensor, self.operations, self._dtype, self._device)
+            return TensorData.create(
+                raw_tensor, self.operations, self._dtype, self._device
+            )
         elif isinstance(index, int):
             return self.get_single_item([index])
 
@@ -225,7 +246,9 @@ class TensorData:
     # caching properties
     def reshape(self, new_shape: List[int]) -> TensorData:
         if TensorUtils.product(new_shape) != TensorUtils.product(self.shape()):
-            raise TypeError(f"original dimension ({self.shape()}) product != proposed ({new_shape})")
+            raise TypeError(
+                f"original dimension ({self.shape()}) product != proposed ({new_shape})"
+            )
 
         new_stride = []
         acc = 1
@@ -238,7 +261,7 @@ class TensorData:
         result.set_stride(new_stride)
         return result
 
-    def sum(self, axes: List[int], keep_dims = False) -> TensorData:
+    def sum(self, axes: List[int], keep_dims=False) -> TensorData:
         raw_tensor = self.operations.sum(self.raw_tensor, axes, keep_dims)
         return self._create(raw_tensor)
 
@@ -262,12 +285,12 @@ class TensorData:
     def ones_like(self, new_shape: Union[List[int], None] = None) -> TensorData:
         new_shape = new_shape if new_shape is not None else self.shape()
         ones_data = self.raw_tensor.fill(new_shape, 1)
-        return self._create(ones_data, 'ones')
+        return self._create(ones_data, "ones")
 
-    def zeros_like(self, new_shape = None) -> TensorData:
+    def zeros_like(self, new_shape=None) -> TensorData:
         new_shape = new_shape if new_shape is not None else self.shape()
         zero_data = self.raw_tensor.fill(new_shape, 0)
-        return self._create(zero_data, 'zeros')
+        return self._create(zero_data, "zeros")
 
     def maximum(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
@@ -299,7 +322,9 @@ class TensorData:
 
     def __gt__(self, other: Union[TensorData, T]) -> TensorData:
         if isinstance(other, TensorData):
-            raw_tensor = self.operations.greater_than_tensor(self.raw_tensor, other.raw_tensor)
+            raw_tensor = self.operations.greater_than_tensor(
+                self.raw_tensor, other.raw_tensor
+            )
             return self._create(raw_tensor)
         elif isinstance(other, (int, float)):
             raw_tensor = self.operations.greater_than_scalar(self.raw_tensor, other)
@@ -308,7 +333,9 @@ class TensorData:
 
     def __ge__(self, other: Union[TensorData, T]) -> TensorData:
         if isinstance(other, TensorData):
-            raw_tensor = self.operations.greater_equal_tensor(self.raw_tensor, other.raw_tensor)
+            raw_tensor = self.operations.greater_equal_tensor(
+                self.raw_tensor, other.raw_tensor
+            )
             return self._create(raw_tensor)
         elif isinstance(other, (int, float)):
             raw_tensor = self.operations.greater_equal_scalar(self.raw_tensor, other)
@@ -317,7 +344,9 @@ class TensorData:
 
     def __lt__(self, other: Union[TensorData, T]) -> TensorData:
         if isinstance(other, TensorData):
-            raw_tensor = self.operations.less_than_tensor(self.raw_tensor, other.raw_tensor)
+            raw_tensor = self.operations.less_than_tensor(
+                self.raw_tensor, other.raw_tensor
+            )
             return self._create(raw_tensor)
         elif isinstance(other, (int, float)):
             raw_tensor = self.operations.less_than_scalar(self.raw_tensor, other)
@@ -326,7 +355,9 @@ class TensorData:
 
     def __le__(self, other: Union[TensorData, T]) -> TensorData:
         if isinstance(other, TensorData):
-            raw_tensor = self.operations.less_equal_tensor(self.raw_tensor, other.raw_tensor)
+            raw_tensor = self.operations.less_equal_tensor(
+                self.raw_tensor, other.raw_tensor
+            )
             return self._create(raw_tensor)
         elif isinstance(other, (int, float)):
             raw_tensor = self.operations.less_equal_scalar(self.raw_tensor, other)
@@ -344,40 +375,56 @@ class TensorData:
 
     def __ne__(self, other: Union[TensorData, T]) -> TensorData:
         if isinstance(other, TensorData):
-            raw_tensor = self.operations.not_equal_tensor(self.raw_tensor, other.raw_tensor)
+            raw_tensor = self.operations.not_equal_tensor(
+                self.raw_tensor, other.raw_tensor
+            )
             return self._create(raw_tensor)
         elif isinstance(other, (int, float)):
             raw_tensor = self.operations.not_equal_scalar(self.raw_tensor, other)
             return self._create(raw_tensor)
         raise TypeError(f"other is not a supported type: {type(other)}")
 
-    def clip(self, lower: Union[TensorData, T], upper: Union[TensorData, T]) -> TensorData:
+    def clip(
+        self, lower: Union[TensorData, T], upper: Union[TensorData, T]
+    ) -> TensorData:
         lower_is_scalar = isinstance(lower, (int, float))
         upper_is_scalar = isinstance(upper, (int, float))
         lower_is_tensor = isinstance(lower, TensorData)
         upper_is_tensor = isinstance(upper, TensorData)
         if lower_is_scalar and upper_is_scalar:
-            raw_tensor = self.operations.clip_scalar_scalar(self.raw_tensor, lower, upper)
+            raw_tensor = self.operations.clip_scalar_scalar(
+                self.raw_tensor, lower, upper
+            )
             return self._create(raw_tensor)
         elif lower_is_scalar and upper_is_tensor:
-            raw_tensor = self.operations.clip_scalar_tensor(self.raw_tensor, lower, upper.raw_tensor)
+            raw_tensor = self.operations.clip_scalar_tensor(
+                self.raw_tensor, lower, upper.raw_tensor
+            )
             return self._create(raw_tensor)
         elif lower_is_tensor and upper_is_scalar:
-            raw_tensor = self.operations.clip_tensor_scalar(self.raw_tensor, lower.raw_tensor, upper)
+            raw_tensor = self.operations.clip_tensor_scalar(
+                self.raw_tensor, lower.raw_tensor, upper
+            )
             return self._create(raw_tensor)
         elif lower_is_tensor and upper_is_tensor:
-            raw_tensor = self.operations.clip_tensor_tensor(self.raw_tensor, lower.raw_tensor, upper.raw_tensor)
+            raw_tensor = self.operations.clip_tensor_tensor(
+                self.raw_tensor, lower.raw_tensor, upper.raw_tensor
+            )
             return self._create(raw_tensor)
 
-        raise TypeError(f"[clip] lower: {type(lower)} and upper: {type(upper)} is not a supported type")
+        raise TypeError(
+            f"[clip] lower: {type(lower)} and upper: {type(upper)} is not a supported type"
+        )
 
     def compact(self) -> None:
         self.raw_tensor.compact()
 
     def _zero(self) -> None:
-        """ Zero out tensor data """
+        """Zero out tensor data"""
         self.raw_tensor.fill(self.shape(), 0)
 
     def __str__(self) -> str:
-        shape = ', '.join(str(x) for x in self.shape())
-        return f"<{self.__class__.__module__}.{self.__class__.__name__}> (size: [{shape}])"
+        shape = ", ".join(str(x) for x in self.shape())
+        return (
+            f"<{self.__class__.__module__}.{self.__class__.__name__}> (size: [{shape}])"
+        )

@@ -27,4 +27,6 @@ Inspired by taking the course 10-714, I am going to be porting needle to use met
 Tensor -> TensorData -> rawTensor (C++ tensor) -> data
 
 ## Operations
-Tensor -> TensorOperations -> TensorData -> C++ operations on data
+Tensor -> (TensorOperations + TensorGrad) -> TensorData -> C++ operations on data
+
+

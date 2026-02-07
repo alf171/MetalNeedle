@@ -35,6 +35,7 @@ def mnist() -> None:
         optimizer.zero_grad()
         optimizer.step()
 
+
 if __name__ == "__main__":
     # profiler = cProfile.Profile()
     # profiler.enable()
@@ -43,3 +44,4 @@ if __name__ == "__main__":
     # # Print sorted stats
     # stats = pstats.Stats(profiler).sort_stats(pstats.SortKey.CUMULATIVE)
     # stats.print_stats(10)
+

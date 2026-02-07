@@ -6,15 +6,28 @@ import struct
 import uuid
 from typing import List, Union, TypeVar, Optional
 
-from .device import DTYPE_TO_ARRAY_ENCODE, TensorDevices, TensorDtypes, DTYPE_TO_SIZE_ENCODE
+from .device import (
+    DTYPE_TO_ARRAY_ENCODE,
+    TensorDevices,
+    TensorDtypes,
+    DTYPE_TO_SIZE_ENCODE,
+)
 from .util import TensorUtils
 from .ops import TensorOperations
 from .data import TensorData
 
-T = TypeVar('T', bound=Union[int, float])
+T = TypeVar("T", bound=Union[int, float])
+
 
 class Tensor:
-    def __init__(self, data: list[T], device="cpu", dtype="int32", requires_grad=False, debug_name=None):
+    def __init__(
+        self,
+        data: list[T],
+        device="cpu",
+        dtype="int32",
+        requires_grad=False,
+        debug_name=None,
+    ):
         """
         default initialization when size is unknown
         like when data is provided ex. mn.Tensor([1,2,3])
@@ -25,53 +38,78 @@ class Tensor:
         self.grad_fn = None
 
     @staticmethod
-    def create(raw_tensor: List[T], device: str, dtype: str, operations, requires_grad=False, debug_name=None) -> Tensor:
+    def create(
+        raw_tensor: List[T],
+        device: str,
+        dtype: str,
+        operations,
+        requires_grad=False,
+        debug_name=None,
+    ) -> Tensor:
         """
         used externally to create a new tensor or create a copy
         """
         result = Tensor.__new__(Tensor)
-        result.tensor_data = TensorData.create(raw_tensor, operations, TensorDtypes(dtype), TensorDevices(device), debug_name)
+        result.tensor_data = TensorData.create(
+            raw_tensor,
+            operations,
+            TensorDtypes(dtype),
+            TensorDevices(device),
+            debug_name,
+        )
         result.requires_grad = requires_grad
         result.grad = None
         result.grad_fn = None
         return result
 
     @staticmethod
-    def load_from_buffer(buffer: Union[bytes, list[T]], shape: List[int], device: str = "cpu", dtype: str = "int32", requires_grad=False, debug_name=None) -> Tensor:
+    def load_from_buffer(
+        buffer: Union[bytes, list[T]],
+        shape: tuple[int],
+        device: str = "cpu",
+        dtype: str = "int32",
+        requires_grad=False,
+        debug_name=None,
+    ) -> Tensor:
         """
         Useful for outside data loads since we already know the shape and have flat data
         """
         result = Tensor.__new__(Tensor)
-        print(dtype)
-        result.tensor_data = TensorData.load_from_buffer(buffer, shape, dtype, device, debug_name)
-        print(result.dtype)
+        result.tensor_data = TensorData.load_from_buffer(
+            buffer, shape, dtype, device, debug_name
+        )
         result.requires_grad = requires_grad
         result.grad = None
         result.grad_fn = None
         return result
 
     @staticmethod
-    def load_from_file(file: str, requires_grad=False, debug_name=None, offset = 0) -> Tensor:
+    def load_from_file(
+        file: str, requires_grad=False, debug_name=None, offset=0
+    ) -> Tensor:
         """
         Load a Tensor from a file. Shape, Dtype, and Device are stored in the file
         while requires_grad and debug_name are not and must thus be set on load call.
         """
         try:
-            with open(file, 'rb') as f:
+            with open(file, "rb") as f:
                 f.seek(offset)
 
-                shape_rank = struct.unpack('I', f.read(4))[0]
+                shape_rank = struct.unpack("I", f.read(4))[0]
                 shape = struct.unpack(f"{shape_rank}I", f.read(4 * shape_rank))
 
-                dtype_rank = struct.unpack('I', f.read(4))[0]
-                dtype = f.read(dtype_rank).decode('utf-8')
+                dtype_rank = struct.unpack("I", f.read(4))[0]
+                dtype = f.read(dtype_rank).decode("utf-8")
 
-                device_rank = struct.unpack('I', f.read(4))[0]
-                device = f.read(device_rank).decode('utf-8')
+                device_rank = struct.unpack("I", f.read(4))[0]
+                device = f.read(device_rank).decode("utf-8")
 
                 element_size = DTYPE_TO_SIZE_ENCODE[TensorDtypes(dtype)]
                 buffer = f.read(TensorUtils.product(shape) * element_size)
-                return Tensor.load_from_buffer(buffer, shape, device, dtype, requires_grad, debug_name)
+                print(f"[load] shape={shape}, dtype={dtype}, read_bytes={len(buffer)}")
+                return Tensor.load_from_buffer(
+                    buffer, shape, device, dtype, requires_grad, debug_name
+                )
         except (OSError, IOError) as e:
             raise ValueError(f"Failed to open or read file '{file}': {e}")
 
@@ -81,16 +119,18 @@ class Tensor:
         """
         res = Tensor.create(
             raw_tensor=self.data(),
-            device=self.device,
-            dtype=self.dtype,
+            device=self.device.value,
+            dtype=self.dtype.value,
             operations=self.tensor_data.operations,
             requires_grad=self.requires_grad,
-            debug_name=f"{self.debug_name()}_clone" if self.debug_name else "cloned_tensor"
+            debug_name=f"{self.debug_name()}_clone"
+            if self.debug_name
+            else "cloned_tensor",
         )
         res.grad_fn = lambda grad: self.backward(grad)
         return res
 
-    def _init(self, data: TensorData, _grad_fn = None, debug_name = None) -> Tensor:
+    def _init(self, data: TensorData, _grad_fn=None, debug_name=None) -> Tensor:
         """
         Used internally to create a new tensor from TensorData
         """
@@ -102,25 +142,31 @@ class Tensor:
         result.grad = None
         return result
 
-    def save_to_file(self, file_name: Optional[str] = None, offset: int = 0, directory = ".") -> None:
+    def save_to_file(
+        self, file_name: Optional[str] = None, offset: int = 0, directory="."
+    ) -> None:
         """
         Save a Tensors metadata and weights to a file
         """
+
         if file_name is None:
             file_name = f"{self.debug_name()}_{uuid.uuid4().hex[:8]}"
 
         path = os.path.join(directory, file_name)
 
-        dtype_str = self.dtype.value.encode('utf-8')
-        device_str = self.device.value.encode('utf-8')
+        dtype_str = self.dtype.value.encode("utf-8")
+        device_str = self.device.value.encode("utf-8")
         data_bytes = self.to_bytes()
-        with open(path, 'wb') as f:
+        print(
+            f"[save] shape={self.shape()}, dtype={self.dtype.value}, bytes={len(data_bytes)}"
+        )
+        with open(path, "wb") as f:
             if offset:
                 f.seek(offset)
 
             # write shape
             f.write(struct.pack("I", len(self.shape())))
-            f.write(struct.pack(f"{len(self.shape())}I",*self.shape()))
+            f.write(struct.pack(f"{len(self.shape())}I", *self.shape()))
             # write dtype
             f.write(struct.pack("I", len(dtype_str)))
             f.write(dtype_str)
@@ -147,8 +193,10 @@ class Tensor:
     def tensor_count(self) -> int:
         return self.tensor_data.tensor_count()
 
-    def debug_name(self) -> Union[str, None]:
-        return self.tensor_data._debug_name
+    def debug_name(self) -> str:
+        if self.tensor_data._debug_name:
+            return self.tensor_data._debug_name
+        return ""
 
     def numel(self) -> int:
         return TensorUtils.product(self.shape())
@@ -159,14 +207,20 @@ class Tensor:
             raise ValueError(f"dtype {self.dtype} is not recognized")
         return array.array(fmt, self.data()).tobytes()
 
-    def __neg__(self) -> TensorData:
-        debug_name = f"negative_{self.debug_name()}" if self.debug_name() is not None else "negative_tensor"
+    def __neg__(self) -> Tensor:
+        debug_name = (
+            f"negative_{self.debug_name()}"
+            if self.debug_name() is not None
+            else "negative_tensor"
+        )
         return self.__mul__(-1, debug_name)
 
     def __setitem__(self, key: int, value: T, debug_name=None) -> None:
         self.tensor_data[key] = value
 
-    def __getitem__(self, multi_dim_index: Union[int, List[int], tuple[int, ...]], debug_name=None) -> Union[Tensor, T]:
+    def __getitem__(
+        self, multi_dim_index: Union[int, List[int], tuple[int, ...]], debug_name=None
+    ) -> Union[Tensor, T]:
         if isinstance(multi_dim_index, int):
             multi_dim_index = [multi_dim_index]
 
@@ -176,7 +230,7 @@ class Tensor:
         all_are_indices = True
 
         ranges = []
-        for (index, dim) in zip(multi_dim_index, self.tensor_data.shape()):
+        for index, dim in zip(multi_dim_index, self.tensor_data.shape()):
             if isinstance(index, slice):
                 start, stop, _ = index.indices(dim)
                 ranges.append((start, stop))
@@ -184,7 +238,7 @@ class Tensor:
             elif isinstance(index, int):
                 if not 0 <= index < dim:
                     raise ValueError(f"index {index} out of bounds on dim {dim}")
-                ranges.append((index, index+1))
+                ranges.append((index, index + 1))
             else:
                 raise TypeError(f"Unsupported index data type: {type(index)}")
 
@@ -198,10 +252,10 @@ class Tensor:
         return self._init(tensor_data, None, debug_name)
 
     @property
-    def T(self, debug_name = None) -> Tensor:
+    def T(self, debug_name=None) -> Tensor:
         return self.transpose(debug_name)
 
-    def transpose(self, debug_name = None) -> Tensor:
+    def transpose(self, debug_name=None) -> Tensor:
         (tensor_data, _grad_fn) = TensorOperations.swap(self, 0, 1)
         return self._init(tensor_data, _grad_fn, debug_name)
 
@@ -212,7 +266,7 @@ class Tensor:
             axis2 = len(self.shape()) + axis2
         TensorOperations.swap(self, axis1, axis2)
 
-    def reshape(self, new_shape: list[int], debug_name = None) -> Tensor:
+    def reshape(self, new_shape: list[int], debug_name=None) -> Tensor:
         (tensor_data, _grad_fn) = TensorOperations.reshape(self, new_shape)
         res = self._init(tensor_data, _grad_fn, debug_name)
         return res
@@ -220,7 +274,9 @@ class Tensor:
     def __add__(self, other: Union[Tensor, T], debug_name=None) -> Tensor:
         if isinstance(other, Tensor):
             if not TensorUtils.can_broadcast(self.shape(), other.shape()):
-                raise ValueError(f"[ADD] cant broadcast {self.shape} with {other.shape}")
+                raise ValueError(
+                    f"[ADD] cant broadcast {self.shape} with {other.shape}"
+                )
 
             if self.shape() == other.shape():
                 (tensor_data, _grad_fn) = TensorOperations.add(self, other)
@@ -247,7 +303,9 @@ class Tensor:
             (tensor_data, _grad_fn) = TensorOperations.scalar_sub(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
-        raise TypeError(f"Can't subtract Tensor of type {self.dtype} with {type(other)}")
+        raise TypeError(
+            f"Can't subtract Tensor of type {self.dtype} with {type(other)}"
+        )
 
     def __mul__(self, other: Union[Tensor, T], debug_name=None) -> Tensor:
         if isinstance(other, Tensor):
@@ -258,7 +316,9 @@ class Tensor:
             (tensor_data, _grad_fn) = TensorOperations.scalar_mul(self, other)
             res = self._init(tensor_data, _grad_fn, debug_name)
             return res
-        raise TypeError(f"Can't multiply Tensor of type {self.dtype} with {type(other)}")
+        raise TypeError(
+            f"Can't multiply Tensor of type {self.dtype} with {type(other)}"
+        )
 
     def __truediv__(self, other: Union[Tensor, T]) -> Tensor:
         if isinstance(other, Tensor):
@@ -280,7 +340,9 @@ class Tensor:
             (tensor_data, _grad_fn) = TensorOperations.scalar_pow(self, other)
             res = self._init(tensor_data, _grad_fn)
             return res
-        raise TypeError(f"Can't exponentiate Tensor of type {self.dtype} with {type(other)}")
+        raise TypeError(
+            f"Can't exponentiate Tensor of type {self.dtype} with {type(other)}"
+        )
 
     def exp(self):
         (tensor_data, _grad_fn) = TensorOperations.exp(self)
@@ -315,7 +377,7 @@ class Tensor:
 
         raise TypeError(f"other is of type {type(other)} not Tensor")
 
-    def max(self, axes = None, keep_dims = False) -> Tensor:
+    def max(self, axes: List[int] | int = [], keep_dims=False) -> Tensor:
         """
         Maximum value with a tensor or axis
         """
@@ -325,10 +387,8 @@ class Tensor:
         res = self._init(tensor_data, _grad_fn)
         return res
 
-
     def minimum(self, other: Union[Tensor, T]) -> Tensor:
-        """
-        """
+        """ """
         if isinstance(other, Tensor):
             (tensor_data, _grad_fn) = TensorOperations.minimum(self, other)
             res = self._init(tensor_data, _grad_fn)
@@ -350,25 +410,35 @@ class Tensor:
         upper_is_tensor = isinstance(upper, Tensor)
 
         if lower_is_scalar and upper_is_scalar:
-            (tensor_data, _grad_fn) = TensorOperations.clip_scalar_scalar(self, lower, upper)
+            (tensor_data, _grad_fn) = TensorOperations.clip_scalar_scalar(
+                self, lower, upper
+            )
             return self._init(tensor_data, _grad_fn)
         elif lower_is_scalar and upper_is_tensor:
-            (tensor_data, _grad_fn) = TensorOperations.clip_scalar_tensor(self, lower, upper)
+            (tensor_data, _grad_fn) = TensorOperations.clip_scalar_tensor(
+                self, lower, upper
+            )
             return self._init(tensor_data, _grad_fn)
         elif lower_is_tensor and upper_is_scalar:
-            (tensor_data, _grad_fn) = TensorOperations.clip_tensor_scalar(self, lower, upper)
+            (tensor_data, _grad_fn) = TensorOperations.clip_tensor_scalar(
+                self, lower, upper
+            )
             return self._init(tensor_data, _grad_fn)
         elif lower_is_tensor and upper_is_tensor:
-            (tensor_data, _grad_fn) = TensorOperations.clip_tensor_tensor(self, lower, upper)
+            (tensor_data, _grad_fn) = TensorOperations.clip_tensor_tensor(
+                self, lower, upper
+            )
             return self._init(tensor_data, _grad_fn)
 
-        raise TypeError(f"[clip] lower: {type(lower)} and upper: {type(upper)} is not a supported type")
+        raise TypeError(
+            f"[clip] lower: {type(lower)} and upper: {type(upper)} is not a supported type"
+        )
 
-    def mean(self, axes = None, keep_dims = False) -> Tensor:
-        """ Mean of a tensor reducing across axes """
+    def mean(self, axes=None, keep_dims=False) -> Tensor:
+        """Mean of a tensor reducing across axes"""
         reduce_sum = self.sum(axes, keep_dims)
         if axes is None:
-             divisor = TensorUtils.product(self.tensor_data.shape())
+            divisor = TensorUtils.product(self.tensor_data.shape())
         elif isinstance(axes, int):
             divisor = self.shape()[axes]
         elif isinstance(axes, list):
@@ -376,7 +446,7 @@ class Tensor:
 
         return reduce_sum / divisor
 
-    def sum(self, axes = None, keep_dims = False) -> Tensor:
+    def sum(self, axes=None, keep_dims=False) -> Tensor:
         normalized_axes = TensorUtils.normalize_axes(axes, self.shape(), "sum")
 
         (tensor_data, _grad_fn) = TensorOperations.sum(self, normalized_axes, keep_dims)
@@ -432,10 +502,14 @@ class Tensor:
 
     def __ge__(self, other: Union[Tensor, T]) -> Tensor:
         if isinstance(other, Tensor):
-            tensor_data, _grad_fn = TensorOperations.greater_than_or_eq_tensor(self, other)
+            tensor_data, _grad_fn = TensorOperations.greater_than_or_eq_tensor(
+                self, other
+            )
             return self._init(tensor_data, _grad_fn)
         elif isinstance(other, (int, float)):
-            tensor_data, _grad_fn = TensorOperations.greater_than_or_eq_scalar(self, other)
+            tensor_data, _grad_fn = TensorOperations.greater_than_or_eq_scalar(
+                self, other
+            )
             return self._init(tensor_data, _grad_fn)
         raise TypeError(f"other is not a supported type: {type(other)}")
 
@@ -475,7 +549,6 @@ class Tensor:
             return self._init(tensor_data, _grad_fn)
         raise TypeError(f"other is not a supported type: {type(other)}")
 
-
     def __str__(self) -> str:
-        shape = ', '.join(str(x) for x in self.shape())
+        shape = ", ".join(str(x) for x in self.shape())
         return f"<{self.__class__.__module__}.{self.__class__.__name__}> (size: [{shape}], dtype={self.dtype})"

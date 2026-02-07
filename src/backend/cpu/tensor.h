@@ -46,7 +46,7 @@ struct Tensor {
 
     void initialize(const std::vector<T>& data, const std::vector<size_t>& shape);
 
-    void initialize(py::bytes bytes_data, const std::vector<size_t>& shape);
+    void initialize(py::bytes bytes_data, const std::vector<size_t>& shape, float normalize = 255.0f);
 
     static Tensor<T> create(const std::vector<T>& data, const std::vector<size_t>& shape);
 

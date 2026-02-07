@@ -97,7 +97,7 @@ class TensorOperations:
 
     @staticmethod
     def swap(tensor1, axis1: int, axis2: int) -> Tuple[TensorData, Any]:
-        grad_fn = lambda grad: TensorGrad.swap(tensor1. axis1, axis2)
+        grad_fn = lambda grad: TensorGrad.swap(grad, tensor1, axis1, axis2)
         tensor_data = tensor1.tensor_data.swap(axis1, axis2)
         return tensor_data, grad_fn
 

@@ -5,7 +5,13 @@ from typing import List, Union
 class TensorUtils:
     @staticmethod
     def flatten(array):
-        return [item for sublist in array for item in (TensorUtils.flatten(sublist) if isinstance(sublist, list) else [sublist])]
+        return [
+            item
+            for sublist in array
+            for item in (
+                TensorUtils.flatten(sublist) if isinstance(sublist, list) else [sublist]
+            )
+        ]
 
     @staticmethod
     def get_shape(data) -> list[int]:
@@ -24,7 +30,7 @@ class TensorUtils:
         if not array:
             return [[]]
 
-        rest = (TensorUtils.cartesian_product(array[1:]))
+        rest = TensorUtils.cartesian_product(array[1:])
 
         res = []
         for start_item in array[0]:
@@ -45,8 +51,8 @@ class TensorUtils:
         r_shape1 = list(reversed(shape1))
         r_shape2 = list(reversed(shape2))
         for i in range(min(len(r_shape1), len(r_shape2))):
-           if r_shape1[i] != r_shape2[i] and r_shape1[i] != 1 and r_shape2[i] != 1:
-               return False
+            if r_shape1[i] != r_shape2[i] and r_shape1[i] != 1 and r_shape2[i] != 1:
+                return False
 
         return True
 
@@ -56,18 +62,17 @@ class TensorUtils:
         Handle negative indexes and partial indexing
         """
         if axes is None or axes == []:
-            axes = range(len(shape))
+            iterable_axes = range(len(shape))
         elif isinstance(axes, int):
-            axes = [axes]
+            iterable_axes = [axes]
+        else:
+            iterable_axes = axes
 
         normalized_axes = []
         ndim = len(shape)
-        for axis in axes:
+        for axis in iterable_axes:
             normalized_axis = (ndim + axis) if axis < 0 else axis
             if not (0 <= normalized_axis < ndim):
                 raise ValueError(f"[{operation}] index out of range")
             normalized_axes.append(normalized_axis)
         return normalized_axes
-
-
-
