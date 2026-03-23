@@ -24,7 +24,7 @@ public:
           "Tensors must have same shapes for ewise operations");
     }
     std::vector<T> result_data(e1.total_size);
-    for (int i = 0; i < e1.total_size; i++) {
+    for (int i = 0; i < e1.data->size(); i++) {
       std::vector<size_t> multi_dim = e1.flat_index_to_mult_dim(i);
       size_t e1_index = e1.mult_dim_to_flat_index(multi_dim);
       size_t e2_index = e2.mult_dim_to_flat_index(multi_dim);
@@ -60,7 +60,7 @@ public:
    **/
   Tensor<T> ewise_pow(Tensor<T> &e1, float v1) {
     std::vector<T> result_data(e1.data->size());
-    for (int i = 0; i < e1.data->size(); i++) {
+    for (int i = 0; i < e1.total_size; i++) {
       std::vector<size_t> multi_dim = e1.flat_index_to_mult_dim(i);
       size_t e1_index = e1.mult_dim_to_flat_index(multi_dim);
       result_data[i] = pow(e1.data->at(e1_index), v1);
@@ -133,18 +133,6 @@ public:
         e2_transposed[j * e2_rows + i] = e2.data->at(i * e2_cols + j);
       }
     }
-
-    //        if constexpr (std::is_same<T, float32_t>::value) {
-    ////            #pragma omp parallel for collapse(2) schedule(static)
-    //            for(size_t block_x = 0; block_x < e1_rows; block_x += TILE) {
-    //                for(size_t block_y = 0; block_y < e2_cols; block_y +=
-    //                TILE) {
-    //                    simd_tile_compute(e1.data, e2_transposed, result_data,
-    //                                        block_x, block_y, e1_cols,
-    //                                        e2_rows, e1_rows);
-    //                }
-    //            }
-    //        } else {
 #pragma omp parallel for collapse(2) schedule(static)
     for (size_t block_x = 0; block_x < e1_rows; block_x += TILE) {
       for (size_t block_y = 0; block_y < e2.shape[e2_last_dim];
@@ -153,7 +141,6 @@ public:
                        e2_cols, e1_rows);
       }
     }
-    //    }
 
     Tensor<T> result_tensor = Tensor<T>::create(result_data, result_shape);
     return result_tensor;
@@ -349,8 +336,8 @@ public:
     for (int i = 0; i < tensor.data->size(); i++) {
       std::vector<size_t> multi_dim = tensor.flat_index_to_mult_dim(i);
       size_t tensor_index = tensor.mult_dim_to_flat_index(multi_dim);
-      T min = std::min(tensor.data->at(tensor_index), lower);
-      result_data[i] = std::max(upper, min);
+      T max_val = std::max(tensor.data->at(tensor_index), lower);
+      result_data[i] = std::min(max_val, upper);
     }
     return Tensor<T>::create(result_data, tensor.shape);
   }
@@ -365,9 +352,9 @@ public:
       std::vector<size_t> multi_dim = tensor.flat_index_to_mult_dim(i);
       size_t tensor_index = tensor.mult_dim_to_flat_index(multi_dim);
       size_t lower_index = lower.mult_dim_to_flat_index(multi_dim);
-      T min =
-          std::min(tensor.data->at(tensor_index), lower.data->at(lower_index));
-      result_data[i] = std::max(upper, min);
+      T max_val =
+          std::max(tensor.data->at(tensor_index), lower.data->at(lower_index));
+      result_data[i] = std::min(max_val, upper);
     }
     return Tensor<T>::create(result_data, tensor.shape);
   }
@@ -381,9 +368,9 @@ public:
     for (int i = 0; i < tensor.data->size(); i++) {
       std::vector<size_t> multi_dim = tensor.flat_index_to_mult_dim(i);
       size_t tensor_index = tensor.mult_dim_to_flat_index(multi_dim);
-      T min = std::min(tensor.data->at(tensor_index), lower);
+      T max_val = std::max(tensor.data->at(tensor_index), lower);
       size_t upper_index = upper.mult_dim_to_flat_index(multi_dim);
-      result_data[i] = std::max(upper.data->at(upper_index), min);
+      result_data[i] = std::min(max_val, upper.data->at(upper_index));
     }
     return Tensor<T>::create(result_data, tensor.shape);
   }
@@ -398,11 +385,11 @@ public:
     for (int i = 0; i < tensor.data->size(); i++) {
       std::vector<size_t> multi_dim = tensor.flat_index_to_mult_dim(i);
       size_t tensor_index = tensor.mult_dim_to_flat_index(multi_dim);
-      size_t lower_index = upper.mult_dim_to_flat_index(multi_dim);
-      T min =
-          std::min(tensor.data->at(tensor_index), lower.data->at(lower_index));
+      size_t lower_index = lower.mult_dim_to_flat_index(multi_dim);
+      T max_val =
+          std::max(tensor.data->at(tensor_index), lower.data->at(lower_index));
       size_t upper_index = upper.mult_dim_to_flat_index(multi_dim);
-      result_data[i] = std::max(upper.data->at(upper_index), min);
+      result_data[i] = std::min(max_val, upper.data->at(upper_index));
     }
     return Tensor<T>::create(result_data, tensor.shape);
   }

@@ -91,8 +91,8 @@ class TensorOperations:
         return tensor_data, grad_fn
 
     @staticmethod
-    def sum(tensor1: Tensor, axes, keep_dims) -> Tuple[TensorData, Any]:
-        grad_fn = lambda grad: TensorGrad.sum(grad, tensor1)
+    def sum(tensor1: Tensor, axes: list[int], keep_dims: bool) -> Tuple[TensorData, Any]:
+        grad_fn = lambda grad: TensorGrad.sum(grad, tensor1, axes, keep_dims)
         tensor_data = tensor1.tensor_data.sum(axes, keep_dims)
         return tensor_data, grad_fn
 
@@ -140,14 +140,14 @@ class TensorOperations:
 
     @staticmethod
     def max(tensor1: Tensor, axes: list[int], keep_dims: bool) -> Tuple[TensorData, Any]:
-        grad_fn = lambda grad: TensorGrad.max(grad, tensor)
-        tensor_data = tensor.tensor_data.max(axes, keep_dims)
+        grad_fn = lambda grad: TensorGrad.max(grad, tensor1, axes, keep_dims)
+        tensor_data = tensor1.tensor_data.max(axes, keep_dims)
         return tensor_data, grad_fn
 
     @staticmethod
     def clip_scalar_scalar(tensor1: Tensor, lower_scalar: T, upper_scalar: T) -> Tuple[TensorData, Any]:
-        grad_fn = lambda grad: TensorGrad.clip_scalar_scalar(grad, tensor)
-        tensor_data = tensor.tensor_data.clip(lower_scalar, upper_scalar)
+        grad_fn = lambda grad: TensorGrad.clip_scalar_scalar(grad, tensor1, lower_scalar, upper_scalar)
+        tensor_data = tensor1.tensor_data.clip(lower_scalar, upper_scalar)
         return tensor_data, grad_fn
 
     @staticmethod

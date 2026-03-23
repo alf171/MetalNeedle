@@ -1,18 +1,15 @@
-from typing import NoReturn, List
-
-from MetalNeedle import Tensor
-
+from typing import Any, NoReturn
 
 class Optimizer:
     """" Base class for all optimizers """
 
-    def __init__(self, parameters):
+    def __init__(self, parameters: list[Any]):
         self.parameters = parameters
 
     def zero_grad(self):
         for parameter in self.parameters:
             if parameter.grad is not None:
-                parameter.grad._zero()
+                parameter.grad = parameter.grad.zeros_like()
 
     def step(self) -> NoReturn:
-        raise NotImplemented("step not implemented")
+        raise NotImplemented

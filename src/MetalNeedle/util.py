@@ -1,6 +1,5 @@
 from functools import reduce
-from typing import List, Union
-
+from typing import Union
 
 class TensorUtils:
     @staticmethod
@@ -40,7 +39,7 @@ class TensorUtils:
         return res
 
     @staticmethod
-    def product(lst):
+    def product(lst: list[int] | tuple[int]) -> int:
         return reduce(lambda x, y: x * y, lst, 1)
 
     @staticmethod
@@ -57,7 +56,7 @@ class TensorUtils:
         return True
 
     @staticmethod
-    def normalize_axes(axes: Union[int, List[int]], shape: List[int], operation: str):
+    def normalize_axes(axes: Union[int, list[int], None], shape: list[int], operation: str):
         """
         Handle negative indexes and partial indexing
         """

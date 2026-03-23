@@ -113,7 +113,14 @@ template <typename T> void Tensor<T>::print() const {
 }
 
 template <typename T> std::vector<T> Tensor<T>::get_data() const {
-  return *this->data;
+  size_t logical_size = m_calculate_size(this->shape);
+  std::vector<T> result(logical_size);
+  for (size_t i = 0; i < logical_size; ++i) {
+    std::vector<size_t> multi_dim = flat_index_to_mult_dim(i);
+    size_t flat_index = mult_dim_to_flat_index(multi_dim);
+    result[i] = this->data->at(flat_index);
+  }
+  return result;
 }
 
 template <typename T>
@@ -140,8 +147,9 @@ void Tensor<T>::reshape(const std::vector<size_t> &new_shape) {
 // manipulating shape, stride, and offset. However, some operations require our
 // matrix to be compact..
 template <typename T> void Tensor<T>::compact() {
-  std::vector<T> new_data(this->total_size);
-  for (size_t i = 0; i < this->total_size; ++i) {
+  size_t logical_size = m_calculate_size(shape);
+  std::vector<T> new_data(logical_size);
+  for (size_t i = 0; i < logical_size; ++i) {
     std::vector<size_t> multi_dim = flat_index_to_mult_dim(i);
     size_t source_index = mult_dim_to_flat_index(multi_dim);
     new_data[i] = this->data->at(source_index);

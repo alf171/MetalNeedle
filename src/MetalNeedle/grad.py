@@ -109,10 +109,14 @@ class TensorGrad:
             tensor2_grad = tensor1.tensor_data.T @ grad
             tensor2.backward(tensor2_grad)
 
-    # potential bug since we don't factor in axes and keep dims
     @staticmethod
-    def sum(grad: TensorData, tensor1: Tensor) -> None:
+    def sum(grad: TensorData, tensor1: Tensor, axes: list[int], keep_dims: bool) -> None:
         if tensor1.requires_grad:
+            if not keep_dims:
+                expanded_shape = tensor1.tensor_data.shape()[:]
+                for axis in axes:
+                    expanded_shape[axis] = 1
+                grad = grad.reshape(expanded_shape)
             tensor1_grad = grad.broadcast(tensor1.tensor_data.shape())
             tensor1.backward(tensor1_grad)
 
@@ -190,25 +194,39 @@ class TensorGrad:
             tensor2.backward(mask2 * grad + mask_equal * grad_half)
 
     @staticmethod
-    def max(grad: TensorData, tensor1: Tensor) -> None:
-        if tensor1.requires_grad:
-            # dx(max(x)) = 
-            raise NotImplementedError("max(T) not implemented")
+    def max(grad: TensorData, tensor1: Tensor, axes: list[int], keep_dims: bool) -> None:
+        if not tensor1.requires_grad:
+            return
+        # dx(max(x)) = (1[x = max(x)] / num_max_ties) * grad
+        max_vals = tensor1.tensor_data.max(axes, keep_dims)
+        if not keep_dims:
+            expanded_shape = tensor1.tensor_data.shape()[:]
+            for axis in axes:
+                expanded_shape[axis] = 1
+            grad = grad.reshape(expanded_shape)
+            max_vals = max_vals.reshape(expanded_shape)
+
+        grad = grad.broadcast(tensor1.tensor_data.shape())
+        max_vals = max_vals.broadcast(tensor1.tensor_data.shape())
+
+        mask = tensor1.tensor_data == max_vals
+        tensor1.backward(mask * grad)
 
     @staticmethod
-    def clip_scalar_scalar(grad: TensorData, tensor1: Tensor) -> None:
+    def clip_scalar_scalar(grad: TensorData, tensor1: Tensor, lower_scalar: T, upper_scalar: T) -> None:
         if tensor1.requires_grad:
-            raise NotImplementedError("clip back not implemented")
+            mask = (tensor1.tensor_data >= lower_scalar) and  (tensor1.tensor_data <= upper_scalar)
+            tensor1.backward(mask * grad)
 
     @staticmethod
-    def clip_tensor_scalar(grad: TensorData, tensor, lower_tensor) -> None:
+    def clip_tensor_scalar(grad: TensorData, tensor: Tensor, lower_tensor: Tensor) -> None:
         if tensor.requires_grad:
             raise NotImplementedError("clip back not implemented")
         if lower_tensor.requires_grad:
             raise NotImplementedError("clip back not implemented")
 
     @staticmethod
-    def clip_scalar_tensor(grad: TensorData, tensor, upper_tensor) -> None:
+    def clip_scalar_tensor(grad: TensorData, tensor: Tensor, upper_tensor: Tensor) -> None:
         if tensor.requires_grad:
             raise NotImplementedError("clip back not implemented")
         if upper_tensor.requires_grad:

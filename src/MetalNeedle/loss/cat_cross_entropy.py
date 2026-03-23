@@ -9,11 +9,7 @@ class CategoricalCrossEntropy(Loss):
         self.epsilon = epsilon
 
     def __call__(self, predictions: Tensor, targets: Tensor) -> Tensor:
-        # clip for numeric stability
-        safe_predictions = predictions.clip(self.epsilon, 1 - self.epsilon)
-
         # negative log likelihood
-        loss = -targets * safe_predictions.log()
+        per_example = -(targets * (predictions + self.epsilon).log()).sum(axes=-1)
 
-        return self._reduce(loss)
-
+        return per_example.mean()

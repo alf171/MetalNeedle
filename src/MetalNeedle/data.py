@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 from typing import List, Union, TypeVar
 
 from .device import DeviceManager, TensorDtypes, TensorDevices
@@ -46,7 +47,7 @@ class TensorData:
     @staticmethod
     def load_from_buffer(
         data: Union[bytes, list[T]],
-        shape: tuple[int],
+        shape: list[int] | tuple[int],
         dtype: str,
         device: str,
         debug_name: Union[str, None],
@@ -180,6 +181,9 @@ class TensorData:
             raw_tensor = self.operations.ewise_div(self.raw_tensor, value)
             return self._create(raw_tensor)
         elif isinstance(value, TensorData):
+            # HACK: since we dont have compaction properly
+            self.compact()
+            value.compact()
             raw_tensor = self.operations.ewise_div(self.raw_tensor, value.raw_tensor)
             return self._create(raw_tensor)
         elif isinstance(value, (int, float)):
@@ -316,7 +320,7 @@ class TensorData:
             return self._create(raw_tensor)
         raise TypeError(f"invalid minimum type {type(value)}")
 
-    def max(self, axes: tuple[int], keep_dims: bool) -> TensorData:
+    def max(self, axes: list[int], keep_dims: bool) -> TensorData:
         raw_tensor = self.raw_tensor.max(axes, keep_dims)
         return self._create(raw_tensor)
 

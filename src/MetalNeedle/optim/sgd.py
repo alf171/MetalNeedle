@@ -1,10 +1,11 @@
 from distutils.sysconfig import parse_makefile
 
 from MetalNeedle.optim.base import Optimizer
+from typing import Any
 
 
 class SGD(Optimizer):
-    def __init__(self, parameters, lr=0.01, momentum=0, weight_decay=0):
+    def __init__(self, parameters: list[Any] , lr: float =0.01, momentum: float = 0, weight_decay: float =0):
         super().__init__(parameters)
         self.lr = lr
         self.momentum = momentum
@@ -13,8 +14,8 @@ class SGD(Optimizer):
         self.velocity = {}
 
         if momentum > 0:
-            for (i, param) in enumerate(self.parameters):
-                    self.velocity[i] = None
+            for i in range(len(self.parameters)):
+                self.velocity[i] = None
 
     def step(self):
         for (i, param) in enumerate(self.parameters):
@@ -31,12 +32,9 @@ class SGD(Optimizer):
                 if self.velocity[i] is None:
                     self.velocity[i] = grad.zeros_like()
 
-                self.velocity[i] = self.momentum * self.velocity[i] + grad
+                self.velocity[i] = self.velocity[i] * self.momentum + grad
                 update = self.velocity[i]
             else:
                 update = grad
 
-
-            print(f"old data sum: {param.sum()}")
-            param.tensor_data -= (self.lr * update)
-            print(f"new data sum: {param.sum()}")
+            param.tensor_data -= update * self.lr

@@ -18,7 +18,6 @@ from .data import TensorData
 
 T = TypeVar("T", bound=Union[int, float])
 
-
 class Tensor:
     def __init__(
         self,
@@ -65,7 +64,7 @@ class Tensor:
     @staticmethod
     def load_from_buffer(
         buffer: Union[bytes, list[T]],
-        shape: tuple[int],
+        shape: list[int] | tuple[int],
         device: str = "cpu",
         dtype: str = "int32",
         requires_grad=False,
@@ -130,14 +129,14 @@ class Tensor:
         res.grad_fn = lambda grad: self.backward(grad)
         return res
 
-    def _init(self, data: TensorData, _grad_fn=None, debug_name=None) -> Tensor:
+    def _init(self, data: TensorData, _grad_fn=None, requires_grad: bool | None = None, debug_name=None) -> Tensor:
         """
         Used internally to create a new tensor from TensorData
         """
         result = Tensor.__new__(Tensor)
         result.tensor_data = data
         result.tensor_data._debug_name = debug_name
-        result.requires_grad = self.requires_grad
+        result.requires_grad = self.requires_grad if requires_grad is None else requires_grad
         result.grad_fn = _grad_fn
         result.grad = None
         return result
@@ -280,12 +279,12 @@ class Tensor:
 
             if self.shape() == other.shape():
                 (tensor_data, _grad_fn) = TensorOperations.add(self, other)
-                res = self._init(tensor_data, _grad_fn, debug_name)
+                res = self._init(tensor_data, _grad_fn, self.requires_grad or other.requires_grad, debug_name)
                 return res
             else:
                 broadcast_other = other.broadcast(self.shape())
                 (tensor_data, _grad_fn) = TensorOperations.add(self, broadcast_other)
-                res = self._init(tensor_data, _grad_fn, debug_name)
+                res = self._init(tensor_data, _grad_fn, self.requires_grad or other.requires_grad, debug_name)
                 return res
 
         elif isinstance(other, (int, float)):
@@ -297,11 +296,11 @@ class Tensor:
     def __sub__(self, other: Union[Tensor, T]) -> Tensor:
         if isinstance(other, Tensor):
             (tensor_data, _grad_fn) = TensorOperations.sub(self, other)
-            res = self._init(tensor_data, _grad_fn)
+            res = self._init(tensor_data, _grad_fn, self.requires_grad or other.requires_grad)
             return res
         elif isinstance(other, (int, float)):
             (tensor_data, _grad_fn) = TensorOperations.scalar_sub(self, other)
-            res = self._init(tensor_data, _grad_fn)
+            res = self._init(tensor_data, _grad_fn, self.requires_grad)
             return res
         raise TypeError(
             f"Can't subtract Tensor of type {self.dtype} with {type(other)}"
@@ -310,11 +309,11 @@ class Tensor:
     def __mul__(self, other: Union[Tensor, T], debug_name=None) -> Tensor:
         if isinstance(other, Tensor):
             (tensor_data, _grad_fn) = TensorOperations.mul(self, other)
-            res = self._init(tensor_data, _grad_fn, debug_name)
+            res = self._init(tensor_data, _grad_fn, self.requires_grad or other.requires_grad, debug_name)
             return res
         elif isinstance(other, (int, float)):
             (tensor_data, _grad_fn) = TensorOperations.scalar_mul(self, other)
-            res = self._init(tensor_data, _grad_fn, debug_name)
+            res = self._init(tensor_data, _grad_fn, self.requires_grad, debug_name)
             return res
         raise TypeError(
             f"Can't multiply Tensor of type {self.dtype} with {type(other)}"
@@ -323,22 +322,22 @@ class Tensor:
     def __truediv__(self, other: Union[Tensor, T]) -> Tensor:
         if isinstance(other, Tensor):
             (tensor_data, _grad_fn) = TensorOperations.div(self, other)
-            res = self._init(tensor_data, _grad_fn)
+            res = self._init(tensor_data, _grad_fn, self.requires_grad or other.requires_grad)
             return res
         elif isinstance(other, (int, float)):
             (tensor_data, _grad_fn) = TensorOperations.scalar_div(self, other)
-            res = self._init(tensor_data, _grad_fn)
+            res = self._init(tensor_data, _grad_fn, self.requires_grad)
             return res
         raise TypeError(f"Can't divide Tensor of type {self.dtype} with {type(other)}")
 
     def __pow__(self, other: Union[Tensor, T]) -> Tensor:
         if isinstance(other, Tensor):
             (tensor_data, _grad_fn) = TensorOperations.pow(self, other)
-            res = self._init(tensor_data, _grad_fn)
+            res = self._init(tensor_data, _grad_fn, self.requires_grad or other.requires_grad)
             return res
         if isinstance(other, (int, float)):
             (tensor_data, _grad_fn) = TensorOperations.scalar_pow(self, other)
-            res = self._init(tensor_data, _grad_fn)
+            res = self._init(tensor_data, _grad_fn, self.requires_grad)
             return res
         raise TypeError(
             f"Can't exponentiate Tensor of type {self.dtype} with {type(other)}"
@@ -357,7 +356,7 @@ class Tensor:
     def __matmul__(self, other: Union[Tensor, T]) -> Tensor:
         if isinstance(other, Tensor):
             (tensor_data, _grad_fn) = TensorOperations.matmul(self, other)
-            res = self._init(tensor_data, _grad_fn)
+            res = self._init(tensor_data, _grad_fn, self.requires_grad or other.requires_grad)
             return res
 
         raise TypeError(f"other is of type {type(other)} not Tensor")
@@ -368,11 +367,11 @@ class Tensor:
         """
         if isinstance(other, Tensor):
             (tensor_data, _grad_fn) = TensorOperations.maximum(self, other)
-            res = self._init(tensor_data, _grad_fn)
+            res = self._init(tensor_data, _grad_fn, self.requires_grad or other.requires_grad)
             return res
         elif isinstance(other, (int, float)):
             (tensor_data, _grad_fn) = TensorOperations.scalar_maximum(self, other)
-            res = self._init(tensor_data, _grad_fn)
+            res = self._init(tensor_data, _grad_fn, self.requires_grad)
             return res
 
         raise TypeError(f"other is of type {type(other)} not Tensor")
@@ -391,11 +390,11 @@ class Tensor:
         """ """
         if isinstance(other, Tensor):
             (tensor_data, _grad_fn) = TensorOperations.minimum(self, other)
-            res = self._init(tensor_data, _grad_fn)
+            res = self._init(tensor_data, _grad_fn, self.requires_grad or other.requires_grad)
             return res
         elif isinstance(other, (int, float)):
             (tensor_data, _grad_fn) = TensorOperations.scalar_minimum(self, other)
-            return self._init(tensor_data, _grad_fn)
+            return self._init(tensor_data, _grad_fn, self.requires_grad)
 
         raise TypeError(f"[minimum] {type(other)} is not a supported type")
 
@@ -463,9 +462,17 @@ class Tensor:
         if grad is None:
             grad = self.tensor_data.ones_like()
 
-        # this is where we do += on the grad so it is not require on the operation
-        self.grad = grad if self.grad is None else TensorData.__add__(self.grad, grad)
-        if self.debug_name() is not None:
+        # HACK: compact gradient since operations don't respect shape,stride,offset of non copmact tensors
+        grad.compact()
+        if self.grad is None:
+            self.grad = grad
+        else:
+            # make sure to accumulate grads
+            self.grad.compact()
+            assert self.grad is not None
+            self.grad = TensorData.__add__(self.grad, grad)
+
+        if self.grad is not None and self.debug_name() is not None:
             self.grad._debug_name = self.debug_name() + "_grad"
 
         if self.grad_fn is not None:
@@ -478,7 +485,7 @@ class Tensor:
         """
         new_shape = self.shape() + [num_classes]
         one_hot = self.tensor_data.zeros_like(new_shape)
-        one_hot_tensor = self._init(one_hot, None, "one_hot")
+        one_hot_tensor = self._init(one_hot, None, debug_name="one_hot")
         for i in range(self.shape()[0]):
             scalar = int(self[i])
             one_hot_tensor[i, scalar] = 1
