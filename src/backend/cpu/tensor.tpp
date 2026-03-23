@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tensor.h"
+#include "../trace.h"
 #include <iostream>
 #include <random>
 
@@ -9,6 +10,7 @@ namespace py = pybind11;
 template <typename T>
 void Tensor<T>::initialize(const std::vector<T> &data,
                            const std::vector<size_t> &shape) {
+  TRACE_SCOPE("cpu.tensor.initialize_vector");
   size_t total_size = m_calculate_size(shape);
   if (data.size() != total_size) {
     throw std::invalid_argument("Data size does not match shape dimensions.");
@@ -23,6 +25,7 @@ void Tensor<T>::initialize(const std::vector<T> &data,
 template <typename T>
 void Tensor<T>::initialize(py::bytes bytes_data,
                            const std::vector<size_t> &shape, float normalize) {
+  TRACE_SCOPE("cpu.tensor.initialize_bytes");
   size_t total_size = m_calculate_size(shape);
 
   // Convert py::bytes to std::string to get raw data pointer and size
@@ -66,11 +69,13 @@ Tensor<T>
 Tensor<T>::create_view(const std::shared_ptr<std::vector<T>> &shared_data,
                        const std::vector<size_t> &shape,
                        const std::vector<size_t> &stride, size_t offset) {
+  TRACE_SCOPE("cpu.tensor.create_view");
   Tensor<T> tensor;
   tensor.data = shared_data;
   tensor.shape = shape;
   tensor.stride = stride;
   tensor.offset = offset;
+  tensor.total_size = m_calculate_size(shape);
   return tensor;
 }
 
@@ -94,6 +99,7 @@ Tensor<T> Tensor<T>::randn(const std::vector<size_t> &size, int mean, int std) {
 }
 
 template <typename T> void Tensor<T>::print() const {
+  TRACE_SCOPE("cpu.tensor.print");
   std::cout << "Tensor Information:\n";
   std::cout << "Shape: [";
   for (size_t i = 0; i < this->shape.size(); ++i) {
@@ -133,6 +139,7 @@ Tensor<T> Tensor<T>::fill(const std::vector<size_t> &size, T val) {
 
 template <typename T>
 void Tensor<T>::reshape(const std::vector<size_t> &new_shape) {
+  TRACE_SCOPE("cpu.tensor.reshape");
   size_t new_total_size = m_calculate_size(new_shape);
   if (m_calculate_size(new_shape) != this->data->size()) {
     throw std::invalid_argument(
@@ -147,6 +154,7 @@ void Tensor<T>::reshape(const std::vector<size_t> &new_shape) {
 // manipulating shape, stride, and offset. However, some operations require our
 // matrix to be compact..
 template <typename T> void Tensor<T>::compact() {
+  TRACE_SCOPE("cpu.tensor.compact");
   size_t logical_size = m_calculate_size(shape);
   std::vector<T> new_data(logical_size);
   for (size_t i = 0; i < logical_size; ++i) {
@@ -157,6 +165,20 @@ template <typename T> void Tensor<T>::compact() {
   this->data = std::make_shared<std::vector<T>>(new_data);
   this->stride = m_calculate_stride(shape);
   this->offset = 0;
+}
+
+template <typename T> bool Tensor<T>::is_contiguous() const {
+  return this->offset == 0 && (this->stride == m_calculate_stride(this->shape));
+}
+
+template <typename T>
+void Tensor<T>::set_metadata(const std::vector<size_t> &shape,
+                             const std::vector<size_t> &stride,
+                             size_t offset) {
+  this->shape = shape;
+  this->stride = stride;
+  this->offset = offset;
+  this->total_size = m_calculate_size(shape);
 }
 
 template <typename T>
@@ -209,6 +231,7 @@ Tensor<T>::flat_index_to_mult_dim(const size_t index) const {
 
 template <typename T>
 void Tensor<T>::swap(const size_t axis1, const size_t axis2) {
+  TRACE_SCOPE("cpu.tensor.swap");
   std::swap(this->shape[axis1], this->shape[axis2]);
   std::swap(this->stride[axis1], this->stride[axis2]);
 }
@@ -217,14 +240,10 @@ template <typename T> int Tensor<T>::get_tensor_count() {
   return this->tensor_count;
 }
 
-template <typename T> bool Tensor<T>::m_is_contiguous() const {
-  return this->offset == 0 && (this->stride == m_calculate_stride(this->shape));
-}
-
 template <typename T>
 template <typename U>
 Tensor<U> Tensor<T>::as_type() const {
-  if (!this->m_is_contiguous()) {
+  if (!this->is_contiguous()) {
     Tensor<T> compact_tensor = *this;
     compact_tensor.compact();
     return compact_tensor.template as_type<U>();
@@ -242,6 +261,7 @@ Tensor<U> Tensor<T>::as_type() const {
 template <typename T>
 Tensor<T> Tensor<T>::max(const std::vector<size_t> &axes,
                          const bool keep_dims) {
+  TRACE_SCOPE("cpu.tensor.max");
   std::vector<bool> reduce_dim(this->shape.size(), true);
   for (size_t axis : axes) {
     if (axis >= reduce_dim.size()) {
@@ -296,6 +316,7 @@ Tensor<T> Tensor<T>::max(const std::vector<size_t> &axes,
 
 template <typename T>
 void Tensor<T>::set_item(std::vector<size_t> &indices, T value) {
+  TRACE_SCOPE("cpu.tensor.set_item");
   size_t flat_index = this->mult_dim_to_flat_index(indices);
   this->data->at(flat_index) = value;
 }
@@ -309,6 +330,7 @@ void bind_tensor(pybind11::module &m, const std::string &class_name) {
       .def_readwrite("shape", &Tensor<T>::shape)
       .def_readwrite("stride", &Tensor<T>::stride)
       .def_readwrite("offset", &Tensor<T>::offset)
+      .def_readwrite("total_size", &Tensor<T>::total_size)
       .def("initialize",
            py::overload_cast<const std::vector<T> &,
                              const std::vector<size_t> &>(
@@ -332,6 +354,12 @@ void bind_tensor(pybind11::module &m, const std::string &class_name) {
       .def("fill", &Tensor<T>::fill)
       .def("print", &Tensor<T>::print)
       .def("compact", &Tensor<T>::compact, "Compact a Tensor")
+      .def("is_contiguous", &Tensor<T>::is_contiguous,
+           "Return whether the tensor uses canonical contiguous layout")
+      .def("set_metadata", &Tensor<T>::set_metadata,
+           "Set tensor shape/stride/offset metadata and recompute logical size",
+           pybind11::arg("shape"), pybind11::arg("stride"),
+           pybind11::arg("offset"))
       .def("reshape", &Tensor<T>::reshape, "Reshape a Tensor")
       .def("mult_dim_to_flat_index", &Tensor<T>::mult_dim_to_flat_index)
       .def("swap", &Tensor<T>::swap, "swap shape and stride of a tensor",

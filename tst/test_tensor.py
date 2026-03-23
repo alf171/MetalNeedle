@@ -1,7 +1,7 @@
-import numpy as np
 import math
+import os
+import tempfile
 import MetalNeedle as mn
-import torch
 import unittest
 
 class TestTensor(unittest.TestCase):
@@ -10,14 +10,17 @@ class TestTensor(unittest.TestCase):
         y = mn.Tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         z = x @ y
 
-        expected_result = np.dot(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-                                 np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]))
+        expected_result = [
+            [30, 36, 42],
+            [66, 81, 96],
+            [102, 126, 150],
+        ]
 
         self.assertEqual(z.shape(), [3,3])
 
         for i in range(3):
             for j in range(3):
-                expected_value = expected_result[i, j]
+                expected_value = expected_result[i][j]
                 calculated_value = z[i, j]
                 self.assertEqual(expected_value, calculated_value)
 
@@ -356,14 +359,14 @@ class TestTensor(unittest.TestCase):
 
     def test_load_from_file(self):
         a = mn.randn([10, 10], 0, 1, dtype="float64", device="cpu", debug_name="blah")
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = os.path.join(tmp_dir, "a")
+            a.save_to_file(file_name="a", offset=0, directory=tmp_dir)
+            b = mn.Tensor.load_from_file(path)
 
-        a.save_to_file(file_name="a", offset=0, directory="tmp")
+            c = mn.Tensor.__pow__(a - b, 2) < 1e-2
 
-        b = mn.Tensor.load_from_file("tmp/a")
-
-        c = mn.Tensor.__pow__(a - b, 2) < 1e-2
-
-        self.assertEqual(c.sum()[0], 100)
+            self.assertEqual(c.sum()[0], 100)
 
     # run UTs
 if __name__ == '__main__':

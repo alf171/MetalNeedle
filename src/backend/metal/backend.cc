@@ -8,6 +8,7 @@
 #include <Metal/Metal.hpp>
 #include <unistd.h>
 #include "backend.h"
+#include "../trace.h"
 
 namespace py = pybind11;
 
@@ -28,6 +29,7 @@ template class MetalBackend<long long>;
 
 template<typename T>
 MetalBackend<T>::MetalBackend() {
+    TRACE_SCOPE("metal.constructor");
     if (!device) {
         device = MTL::CreateSystemDefaultDevice();
         if (!device) {
@@ -51,6 +53,7 @@ MetalBackend<T>::MetalBackend() {
 
 template<typename T>
 MetalTensor<T> MetalBackend<T>::ewise_add(MetalTensor<T>& e1, MetalTensor<T>& e2) {
+    TRACE_SCOPE("metal.ewise_add");
     if (e1.shape != e2.shape) {
         throw std::invalid_argument("Tensors must have same shapes for ewise operations");
     }

@@ -10,8 +10,8 @@ struct Tensor {
     std::shared_ptr<std::vector<T>> data;
     std::vector<size_t> shape;
     std::vector<size_t> stride;
-    size_t offset;
-    size_t total_size;
+    size_t offset = 0;
+    size_t total_size = 0;
     static int tensor_count;
 
     Tensor() {
@@ -62,6 +62,10 @@ struct Tensor {
 
     void compact();
 
+    bool is_contiguous() const;
+
+    void set_metadata(const std::vector<size_t>& shape, const std::vector<size_t>& stride, size_t offset);
+
     size_t mult_dim_to_flat_index(const std::vector<size_t>& dimension) const;
 
     std::vector<size_t> flat_index_to_mult_dim(const size_t index) const;
@@ -85,8 +89,6 @@ private:
     static size_t m_calculate_size(const std::vector<size_t>& shape);
 
     static std::vector<size_t> m_calculate_stride(const std::vector<size_t>& shape);
-
-    bool m_is_contiguous() const;
 };
 
 template <typename T>

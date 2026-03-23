@@ -1,17 +1,17 @@
-SUFFIX=$(python3.13-config --extension-suffix)
+#!/bin/bash
 
-bear -- clang++ -g -arch arm64 -march=native -ftree-vectorize -funroll-loops -flto \
-  -Wall -shared -std=c++23 -fPIC -frtti \
-  -I/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/include/python3.13 \
-  -I/opt/homebrew/lib/python3.13/site-packages/pybind11/include \
-  -I/opt/homebrew/opt/libomp/include \
-  -Isrc/backend/cpu \
-  -I./metal-cpp \
-  -L/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/lib \
-  -L/opt/homebrew/opt/libomp/lib \
-  -Xpreprocessor -fopenmp \
-  -lpython3.13 -lomp \
-  -ferror-limit=1000 \
-  -framework Metal -framework Foundation -framework MetalKit \
-  -stdlib=libc++ -fno-objc-arc -o tmp/backend$SUFFIX \
-  src/backend/bind.cc src/backend/cpu/backend.cc src/backend/metal/backend.cc
+set -euo pipefail
+
+PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE:-python3.14}
+PYBIND11_DIR=${PYBIND11_DIR:-$(brew --prefix pybind11)/share/cmake/pybind11}
+
+cmake -S . -B build \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+  -DPython3_EXECUTABLE="$PYTHON_EXECUTABLE" \
+  -Dpybind11_DIR="$PYBIND11_DIR" \
+  ${EXTRA_CMAKE_ARGS:-}
+
+cmake --build build
+
+cp build/compile_commands.json compile_commands.json

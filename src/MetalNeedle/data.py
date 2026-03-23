@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import List, Union, TypeVar
+from typing import List, Optional, Union, TypeVar
 
 from .device import DeviceManager, TensorDtypes, TensorDevices
 from .util import TensorUtils
@@ -51,15 +51,32 @@ class TensorData:
         dtype: str,
         device: str,
         debug_name: Union[str, None],
+        normalize: Optional[float] = None,
     ) -> TensorData:
         result = TensorData.__new__(TensorData)
         result._dtype = TensorDtypes(dtype)
         result._device = TensorDevices(device)
         result.raw_tensor = DeviceManager.get_tensor(result._dtype, result._device)
         result.operations = DeviceManager.get_backend(result._dtype, result._device)
-        result.raw_tensor.initialize(data, shape)
+        if isinstance(data, bytes):
+            if normalize is None:
+                normalize = 255.0
+            result.raw_tensor.initialize(data, shape, normalize)
+        else:
+            result.raw_tensor.initialize(data, shape)
         result._debug_name = debug_name
         return result
+
+    def view(self, debug_name = None) -> TensorData:
+        ranges = [(0, dim) for dim in self.shape()]
+        raw_tensor = self.operations.slice(self.raw_tensor, ranges)
+        return TensorData.create(
+            raw_tensor,
+            self.operations,
+            self._dtype,
+            self._device,
+            debug_name if debug_name is not None else self._debug_name,
+        )
 
     def clone(self) -> TensorData:
         new_raw_tensor = self.raw_tensor.create(self.data(), self.shape())
@@ -79,13 +96,13 @@ class TensorData:
         return self.raw_tensor.shape
 
     def set_shape(self, shape) -> None:
-        self.raw_tensor.shape = shape
+        self.raw_tensor.set_metadata(shape, self.raw_tensor.stride, self.raw_tensor.offset)
 
     def stride(self) -> List[int]:
         return self.raw_tensor.stride
 
     def set_stride(self, shape) -> None:
-        self.raw_tensor.stride = shape
+        self.raw_tensor.set_metadata(self.raw_tensor.shape, shape, self.raw_tensor.offset)
 
     def data(self) -> List[T]:
         return self.raw_tensor.data()
@@ -123,6 +140,8 @@ class TensorData:
         return TensorData.__mul__(self, -1)
 
     def __setitem__(self, key, value):
+        if isinstance(key, int):
+            key = [key]
         self.raw_tensor.set_item(key, value)
 
     def __getitem__(self, index) -> TensorData:
@@ -137,8 +156,13 @@ class TensorData:
         raise TypeError("index must be a list or int")
 
     def get_single_item(self, index: List[int]) -> T:
-        index = self.raw_tensor.mult_dim_to_flat_index(index)
-        return self.data()[index]
+        compact_index = 0
+        for axis, size in enumerate(self.shape()):
+            stride = 1
+            for next_size in self.shape()[axis + 1 :]:
+                stride *= next_size
+            compact_index += index[axis] * stride
+        return self.data()[compact_index]
 
     def __add__(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):
@@ -181,9 +205,6 @@ class TensorData:
             raw_tensor = self.operations.ewise_div(self.raw_tensor, value)
             return self._create(raw_tensor)
         elif isinstance(value, TensorData):
-            # HACK: since we dont have compaction properly
-            self.compact()
-            value.compact()
             raw_tensor = self.operations.ewise_div(self.raw_tensor, value.raw_tensor)
             return self._create(raw_tensor)
         elif isinstance(value, (int, float)):
@@ -216,7 +237,7 @@ class TensorData:
         return self._create(raw_tensor)
 
     def broadcast(self, new_shape: List[int]) -> TensorData:
-        result = self.clone()
+        result = self.view()
         current_shape = result.shape()[:]
         current_stride = result.stride()[:]
         new_stride = []
@@ -240,14 +261,6 @@ class TensorData:
         result.set_shape(new_shape)
         return result
 
-    # TODO: this implementation assumes the data in contiguous
-    # SOLUTION: could call flatten but ideally, we want dont want to have the caller
-    # be aware when operation makes the memory non contiguous. For this fix,
-    # the c++ class should store whether our array is contiguous or not and then call
-    # compact automatically when we chain operations together that make an assumption
-    # like this. The question then becomes why not always read memory regardless of the
-    # output, the point is we can amortize the cost of flattening our data for better
-    # caching properties
     def reshape(self, new_shape: List[int]) -> TensorData:
         if TensorUtils.product(new_shape) != TensorUtils.product(self.shape()):
             raise TypeError(
@@ -260,7 +273,7 @@ class TensorData:
             new_stride.insert(0, acc)
             acc *= size
 
-        result = self.clone()
+        result = self.view()
         result.set_shape(new_shape)
         result.set_stride(new_stride)
         return result
@@ -273,16 +286,15 @@ class TensorData:
     def T(self) -> TensorData:
         return self.transpose()
 
-    # clone in order to not be destructive
     def transpose(self) -> TensorData:
-        result = self.clone()
+        result = self.view()
         result.raw_tensor.swap(0, 1)
         return result
 
     def swap(self, axis1: int, axis2: int) -> TensorData:
-        result = self.clone()
         if axis1 >= len(self.shape()) or axis2 >= len(self.shape()):
             raise ValueError("axes for swap out of range")
+        result = self.view()
         result.raw_tensor.swap(axis1, axis2)
         return result
 

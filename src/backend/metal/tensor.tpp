@@ -1,12 +1,14 @@
 #pragma once
 
 #include "tensor.h"
+#include "../trace.h"
 #include <random>
 
 #include <Metal/Metal.hpp>
 
 template<typename T>
 void MetalTensor<T>::initialize(const std::vector<T>& data, const std::vector<size_t>& shape) {
+    TRACE_SCOPE("metal.tensor.initialize");
     if (data.size() != m_calculate_size(shape)) {
         throw std::invalid_argument("Data size does not match shape dimensions.");
     }
@@ -21,6 +23,7 @@ void MetalTensor<T>::initialize(const std::vector<T>& data, const std::vector<si
 
 template<typename T>
 MetalTensor<T> MetalTensor<T>::create(const std::vector<T>& data, const std::vector<size_t>& shape) {
+    TRACE_SCOPE("metal.tensor.create");
     if (data.size() != m_calculate_size(shape)) {
         throw std::invalid_argument("Data size does not match shape dimensions.");
     }
@@ -64,6 +67,7 @@ std::vector<T> MetalTensor<T>::randn(const std::vector<int>& size, int mean, int
 
 template<typename T>
 void MetalTensor<T>::print() const {
+    TRACE_SCOPE("metal.tensor.print");
     std::cout << "Tensor Information:\n";
     std::cout << "Shape: [";
     for (size_t i = 0; i < this->cpu_data.size(); ++i) {
@@ -93,6 +97,7 @@ std::vector<T> MetalTensor<T>::fill(const std::vector<int>& size, T val) {
 
 template <typename T>
 void MetalTensor<T>::reshape(const std::vector<size_t>& new_shape) {
+    TRACE_SCOPE("metal.tensor.reshape");
     if (m_calculate_size(new_shape) != this->cpu_data.size()) {
         throw std::invalid_argument("New shape must have the same number of elements.");
     }
@@ -104,6 +109,7 @@ void MetalTensor<T>::reshape(const std::vector<size_t>& new_shape) {
 // shape, stride, and offset. However, some operations require our matrix to be compact..
 template<typename T>
 void MetalTensor<T>::compact() {
+    TRACE_SCOPE("metal.tensor.compact");
     size_t num_elements = 1;
     for (size_t elem : this->shape) {
         num_elements *= elem;
@@ -117,6 +123,20 @@ void MetalTensor<T>::compact() {
     this->cpu_data = new_data;
     this->stride = m_calculate_stride(this->shape);
     this->offset = 0;
+}
+
+template<typename T>
+bool MetalTensor<T>::is_contiguous() const {
+    return this->offset == 0 && (this->stride == m_calculate_stride(this->shape));
+}
+
+template<typename T>
+void MetalTensor<T>::set_metadata(const std::vector<size_t>& shape,
+                                  const std::vector<size_t>& stride,
+                                  size_t offset) {
+    this->shape = shape;
+    this->stride = stride;
+    this->offset = offset;
 }
 
 template<typename T>
@@ -167,6 +187,10 @@ void bind_metal_tensor(pybind11::module& m, const std::string& class_name) {
         .def_readwrite("shape", &MetalTensor<T>::shape)
         .def_readwrite("stride", &MetalTensor<T>::stride)
         .def_readwrite("offset", &MetalTensor<T>::offset)
+        .def("set_metadata", &MetalTensor<T>::set_metadata,
+             "Set tensor shape/stride/offset metadata",
+             pybind11::arg("shape"), pybind11::arg("stride"),
+             pybind11::arg("offset"))
         .def("initialize", &MetalTensor<T>::initialize, "Initialize a Tensor",
                     pybind11::arg("data"), pybind11::arg("shape"))
         .def_static("create", &MetalTensor<T>::create, "Factory method to make a tensor",
@@ -175,6 +199,8 @@ void bind_metal_tensor(pybind11::module& m, const std::string& class_name) {
         .def("fill", &MetalTensor<T>::fill)
         .def("print", &MetalTensor<T>::print)
         .def("compact", &MetalTensor<T>::compact, "Compact a Tensor")
+        .def("is_contiguous", &MetalTensor<T>::is_contiguous,
+             "Return whether the tensor uses canonical contiguous layout")
         .def("reshape", &MetalTensor<T>::reshape, "Reshape a Tensor")
         .def("mult_dim_to_flat_index", &MetalTensor<T>::mult_dim_to_flat_index);
 }

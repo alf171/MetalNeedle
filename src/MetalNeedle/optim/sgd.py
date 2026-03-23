@@ -1,5 +1,3 @@
-from distutils.sysconfig import parse_makefile
-
 from MetalNeedle.optim.base import Optimizer
 from typing import Any
 

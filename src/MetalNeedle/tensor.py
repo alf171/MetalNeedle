@@ -69,13 +69,14 @@ class Tensor:
         dtype: str = "int32",
         requires_grad=False,
         debug_name=None,
+        normalize: Optional[float] = None,
     ) -> Tensor:
         """
         Useful for outside data loads since we already know the shape and have flat data
         """
         result = Tensor.__new__(Tensor)
         result.tensor_data = TensorData.load_from_buffer(
-            buffer, shape, dtype, device, debug_name
+            buffer, shape, dtype, device, debug_name, normalize
         )
         result.requires_grad = requires_grad
         result.grad = None
@@ -103,11 +104,15 @@ class Tensor:
                 device_rank = struct.unpack("I", f.read(4))[0]
                 device = f.read(device_rank).decode("utf-8")
 
-                element_size = DTYPE_TO_SIZE_ENCODE[TensorDtypes(dtype)]
+                dtype_enum = TensorDtypes(dtype)
+                element_size = DTYPE_TO_SIZE_ENCODE[dtype_enum]
                 buffer = f.read(TensorUtils.product(shape) * element_size)
                 print(f"[load] shape={shape}, dtype={dtype}, read_bytes={len(buffer)}")
+                fmt = DTYPE_TO_ARRAY_ENCODE[dtype_enum]
+                values = array.array(fmt)
+                values.frombytes(buffer)
                 return Tensor.load_from_buffer(
-                    buffer, shape, device, dtype, requires_grad, debug_name
+                    list(values), shape, device, dtype, requires_grad, debug_name
                 )
         except (OSError, IOError) as e:
             raise ValueError(f"Failed to open or read file '{file}': {e}")
@@ -462,13 +467,10 @@ class Tensor:
         if grad is None:
             grad = self.tensor_data.ones_like()
 
-        # HACK: compact gradient since operations don't respect shape,stride,offset of non copmact tensors
-        grad.compact()
         if self.grad is None:
             self.grad = grad
         else:
             # make sure to accumulate grads
-            self.grad.compact()
             assert self.grad is not None
             self.grad = TensorData.__add__(self.grad, grad)
 

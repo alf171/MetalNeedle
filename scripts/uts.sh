@@ -2,7 +2,10 @@
 
 source ./scripts/setup.sh
 # run testing script
-# python3.13 -m tst.test_tensor
-#python3.13 -m tst.metal
-#python3.13 -m tst.nn
-python3.13 -m tst.mnsit
+# python3.14 -m tst.test_tensor
+#python3.14 -m tst.metal
+#python3.14 -m tst.nn
+MNIST_BATCH_SIZE=${MNIST_BATCH_SIZE:-128} \
+MNIST_EPOCHS=${MNIST_EPOCHS:-1} \
+MNIST_MAX_BATCHES=${MNIST_MAX_BATCHES:-50} \
+python3.14 -m tst.mnist
