@@ -3,12 +3,13 @@ import MetalNeedle as mn
 
 class MnistDataLoader:
     """ Load mnist data set """
-    def __init__(self, images_file, label_file, batch_size, shuffle=True):
+    def __init__(self, images_file, label_file, batch_size, shuffle=True, device="cpu"):
         # meta data
         self.images_file = images_file
         self.label_file = label_file
         self.batch_size = batch_size
         self.shuffle = shuffle
+        self.device = device
         self.image_header_size = 16
         self.label_header_size = 8
         self.num_images, self.num_rows, self.num_cols = self._read_image_metadata(images_file)
@@ -48,6 +49,7 @@ class MnistDataLoader:
         images = mn.Tensor.load_from_buffer(
             image_buffer,
             [current_batch_size, image_size],
+            device=self.device,
             dtype="float32",
             requires_grad=False,
             normalize=255.0,
@@ -55,6 +57,7 @@ class MnistDataLoader:
         labels = mn.Tensor.load_from_buffer(
             label_buffer,
             [current_batch_size],
+            device=self.device,
             dtype="float32",
             normalize=1.0,
         ).one_hot(10)

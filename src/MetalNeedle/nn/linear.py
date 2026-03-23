@@ -11,12 +11,16 @@ class Linear(Module):
     W: [out_features, in_features]
     b: [out_features]
     """
-    def __init__(self, in_features, out_features):
+    def __init__(self, in_features, out_features, device="cpu"):
         super().__init__()
         weight_std = math.sqrt(2.0 / (in_features + out_features))
-        self.weight = randn([out_features, in_features], requires_grad=True) * weight_std
+        self.weight = randn(
+            [out_features, in_features], device=device, requires_grad=True
+        ) * weight_std
         self.weight.requires_grad = True
-        self.bias = randn([out_features], mean=0, std=0, requires_grad=True)
+        self.bias = randn(
+            [out_features], mean=0, std=0, device=device, requires_grad=True
+        )
 
     def forward(self, x: Tensor) -> Tensor:
         return (x @ self.weight.T) + self.bias

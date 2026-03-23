@@ -315,6 +315,12 @@ Tensor<T> Tensor<T>::max(const std::vector<size_t> &axes,
 }
 
 template <typename T>
+T Tensor<T>::get_item(const std::vector<size_t> &index) const {
+  size_t flat_index = this->mult_dim_to_flat_index(index);
+  return this->data->at(flat_index);
+}
+
+template <typename T>
 void Tensor<T>::set_item(std::vector<size_t> &indices, T value) {
   TRACE_SCOPE("cpu.tensor.set_item");
   size_t flat_index = this->mult_dim_to_flat_index(indices);
@@ -372,5 +378,6 @@ void bind_tensor(pybind11::module &m, const std::string &class_name) {
           },
           "convert tensor to a float")
       .def("get_tensor_count", &Tensor<T>::get_tensor_count)
+      .def("get_item", &Tensor<T>::get_item)
       .def("set_item", &Tensor<T>::set_item);
 }

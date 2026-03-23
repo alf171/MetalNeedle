@@ -156,13 +156,7 @@ class TensorData:
         raise TypeError("index must be a list or int")
 
     def get_single_item(self, index: List[int]) -> T:
-        compact_index = 0
-        for axis, size in enumerate(self.shape()):
-            stride = 1
-            for next_size in self.shape()[axis + 1 :]:
-                stride *= next_size
-            compact_index += index[axis] * stride
-        return self.data()[compact_index]
+        return self.raw_tensor.get_item(index)
 
     def __add__(self, value) -> TensorData:
         if DeviceManager.is_tensor(value):

@@ -80,6 +80,8 @@ struct Tensor {
 
     void print() const;
 
+    T get_item(const std::vector<size_t>& index) const;
+
     void set_item(std::vector<size_t>& index, T value);
 
     template<typename U>

@@ -81,5 +81,5 @@ class DeviceManager:
     def is_tensor(obj):
         obj_type_str = str(type(obj))
         # TODO: could have a slightly more robust tensor check :)
-        pattern = r"<class 'backend\.cpu\..*'>"
+        pattern = r"<class 'backend\.(cpu|metal)\..*'>"
         return bool(re.match(pattern, obj_type_str))
