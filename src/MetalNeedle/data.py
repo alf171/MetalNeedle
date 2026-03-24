@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import itertools
-from typing import List, Optional, Union, TypeVar
+from typing import List, Optional, Sequence, Union, TypeVar
 
 from .device import DeviceManager, TensorDtypes, TensorDevices
 from .util import TensorUtils
 
-T = TypeVar("T", bound=Union[int, float])
+T = TypeVar("T", bound=int | float)
 
 
 class TensorData:
@@ -128,7 +128,8 @@ class TensorData:
                 self.raw_tensor = self.raw_tensor.as_float()
                 self.operations = DeviceManager.get_backend(new_dtype, self._device)
                 self._dtype = new_dtype
-            raise NotImplemented(
+                return
+            raise NotImplementedError(
                 f"dtype conversion from {self._dtype} to {new_dtype} not supported"
             )
 
@@ -139,7 +140,7 @@ class TensorData:
     def __neg__(self):
         return TensorData.__mul__(self, -1)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if isinstance(key, int):
             key = [key]
         self.raw_tensor.set_item(key, value)
@@ -155,7 +156,7 @@ class TensorData:
 
         raise TypeError("index must be a list or int")
 
-    def get_single_item(self, index: List[int]) -> T:
+    def get_single_item(self, index: Sequence[int]) -> T:
         return self.raw_tensor.get_item(index)
 
     def __add__(self, value) -> TensorData:

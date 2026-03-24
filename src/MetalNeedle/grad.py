@@ -86,7 +86,7 @@ class TensorGrad:
     @staticmethod
     def scalar_pow(grad: TensorData, tensor1: Tensor, value: T) -> None:
         if tensor1.requires_grad:
-            tensor1_grad = grad * (value * tensor1.tensor_data) ** (value - 1)
+            tensor1_grad = grad * value * (tensor1.tensor_data ** (value - 1))
             tensor1.backward(tensor1_grad)
 
     @staticmethod

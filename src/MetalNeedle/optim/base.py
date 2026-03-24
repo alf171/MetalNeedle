@@ -12,4 +12,4 @@ class Optimizer:
                 parameter.grad = parameter.grad.zeros_like()
 
     def step(self) -> NoReturn:
-        raise NotImplemented
+        raise NotImplementedError

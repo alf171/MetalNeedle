@@ -16,13 +16,13 @@ class Loss:
         """
         Calculate the loss
         """
-        raise NotImplemented("[loss] __call__ of Loss method not implemented")
+        raise NotImplementedError("[loss] __call__ of Loss method not implemented")
 
     def backward(self, prediction, targets) -> None:
         """
         Calculate loss w.r.t prediction
         """
-        raise NotImplemented("[loss] backward not implemented")
+        raise NotImplementedError("[loss] backward not implemented")
 
     def _reduce(self, loss_tensor) -> Tensor:
         """

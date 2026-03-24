@@ -4,7 +4,7 @@ import array
 import os
 import struct
 import uuid
-from typing import List, Union, TypeVar, Optional
+from typing import List, Union, TypeVar, Optional, cast
 
 from .device import (
     DTYPE_TO_ARRAY_ENCODE,
@@ -17,6 +17,8 @@ from .ops import TensorOperations
 from .data import TensorData
 
 T = TypeVar("T", bound=Union[int, float])
+IndexItem = Union[int, slice]
+IndexKey = Union[int, list[IndexItem], tuple[IndexItem, ...]]
 
 class Tensor:
     def __init__(
@@ -219,11 +221,14 @@ class Tensor:
         )
         return self.__mul__(-1, debug_name)
 
-    def __setitem__(self, key: int, value: T, debug_name=None) -> None:
+    def __setitem__(
+        self, key: int | list[int] | tuple[int, ...], value: T, debug_name=None
+    ) -> None:
         self.tensor_data[key] = value
 
+
     def __getitem__(
-        self, multi_dim_index: Union[int, List[int], tuple[int, ...]], debug_name=None
+        self, multi_dim_index: IndexKey, debug_name=None
     ) -> Union[Tensor, T]:
         if isinstance(multi_dim_index, int):
             multi_dim_index = [multi_dim_index]
@@ -248,7 +253,8 @@ class Tensor:
 
         # fetch a single value
         if all_are_indices and len(multi_dim_index) == len(self.shape()):
-            return self.tensor_data.get_single_item(multi_dim_index)
+            int_index = cast(list[int] | tuple[int, ...], multi_dim_index)
+            return self.tensor_data.get_single_item(int_index)
 
         # TODO: this should be moved into operations and then gradient should only
         # be propagated into `gotten` items
@@ -445,8 +451,10 @@ class Tensor:
             divisor = TensorUtils.product(self.tensor_data.shape())
         elif isinstance(axes, int):
             divisor = self.shape()[axes]
-        elif isinstance(axes, list):
+        elif isinstance(axes, (list, tuple)):
             divisor = TensorUtils.product(self.shape()[ax] for ax in axes)
+        else:
+            raise TypeError(f"unsupported axes type: {type(axes)}")
 
         return reduce_sum / divisor
 
@@ -489,7 +497,7 @@ class Tensor:
         one_hot = self.tensor_data.zeros_like(new_shape)
         one_hot_tensor = self._init(one_hot, None, debug_name="one_hot")
         for i in range(self.shape()[0]):
-            scalar = int(self[i])
+            scalar = int(self.tensor_data.get_single_item([i]))
             one_hot_tensor[i, scalar] = 1
 
         return one_hot_tensor

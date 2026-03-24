@@ -1,5 +1,5 @@
 from functools import reduce
-from typing import Union
+from typing import Iterable, Union
 
 class TensorUtils:
     @staticmethod
@@ -39,7 +39,7 @@ class TensorUtils:
         return res
 
     @staticmethod
-    def product(lst: list[int] | tuple[int]) -> int:
+    def product(lst: Iterable[int] | tuple[int]) -> int:
         return reduce(lambda x, y: x * y, lst, 1)
 
     @staticmethod

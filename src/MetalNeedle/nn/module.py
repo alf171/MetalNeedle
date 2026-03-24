@@ -65,7 +65,7 @@ class Module:
         """
         inheritor must implement a custom forward for their module
         """
-        raise NotImplemented("forward pass not implemented")
+        raise NotImplementedError("forward pass not implemented")
 
     def __call__(self, *args, **kwargs):
         return self.forward(args, kwargs)

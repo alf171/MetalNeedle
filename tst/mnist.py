@@ -225,7 +225,7 @@ def mnist() -> None:
             batch_metrics.optimizer_step = perf_counter() - step_start
 
             accuracy_start = perf_counter()
-            running_loss += loss_value[0]
+            running_loss += float(loss_value.tensor_data.get_single_item([0]))
             running_accuracy += _batch_accuracy(output, labels)
             batch_metrics.accuracy = perf_counter() - accuracy_start
             batch_count += 1
